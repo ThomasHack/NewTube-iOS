@@ -127,6 +127,9 @@ extension PlaybackViewModel {
             Task { @MainActor [weak self] in self?.playPrevious() }
             return .success
         }
+        // The command center outlives this view model; don't keep the last video's state.
+        center.nextTrackCommand.isEnabled = hasNext
+        center.previousTrackCommand.isEnabled = hasPrevious
     }
 
     func updateNowPlayingInfo() {
