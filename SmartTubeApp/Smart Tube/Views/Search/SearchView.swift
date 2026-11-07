@@ -274,6 +274,7 @@ struct SearchFilterSheet: View {
                     } label: {
                         Text("Apply").frame(maxWidth: .infinity)
                     }
+                    .buttonStyle(.borderedProminent)
                     .padding(.top, 20)
                     .accessibilityIdentifier("search.filterApplyButton")
                     Button(role: .cancel) {
@@ -286,9 +287,10 @@ struct SearchFilterSheet: View {
                 .padding(.vertical, 24)
             }
             .scrollClipDisabled()
-            .environment(\.settingsOptionsUsePageLayout, false)
             .navigationTitle("Search filters")
         }
+        // On the stack, because pushed pages don't inherit from the view that pushed them.
+        .environment(\.settingsOptionsUsePageLayout, false)
         .accessibilityIdentifier("search.filterSheet")
     }
 }
