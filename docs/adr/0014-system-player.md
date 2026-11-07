@@ -15,14 +15,13 @@ All playback already ran through one `AVPlayer`, so nothing required a custom UI
 
 Show `PlaybackViewModel.player` in `AVPlayerViewController`. App features use its extension points:
 transport bar menus (quality, speed, captions, sleep timer and more), `contextualActions` (SponsorBlock's
-skip button), `navigationMarkerGroups` (chapters), `customInfoViewControllers` (comments) and
-`contentOverlayView` (captions, stats, audio-only artwork).
+skip button), `navigationMarkerGroups` (chapters), `interstitialTimeRanges` (SponsorBlock segments),
+`customInfoViewControllers` (comments) and `contentOverlayView` (captions, stats, audio-only artwork).
 
 ## Consequences
 
 - Good: standard tvOS playback UI and focus behavior, and far less code.
-- Bad: less control over the look. SponsorBlock segments aren't on the timeline: `interstitialTimeRanges`
-  would mark them, but playback got stuck on them, so they were removed.
+- Bad: less control over the look. SponsorBlock segments aren't colored by category.
 - Bad: seek length and control hiding are the system's, so those settings are gone.
 - Bad: hold-for-2x speed and tappable timestamps in descriptions are gone.
 

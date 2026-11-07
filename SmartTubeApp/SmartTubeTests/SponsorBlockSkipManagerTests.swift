@@ -38,6 +38,36 @@ private final class SpyDelegate: SponsorBlockDelegate {
 @Suite("SponsorBlockSkipManager")
 struct SponsorBlockSkipManagerTests {
 
+    // MARK: - Moving into a segment
+
+    @Test("seeking into a segment offers the button instead of skipping")
+    @MainActor func seekingIntoASegmentOffersTheButton() {
+        let manager = SponsorBlockSkipManager()
+        let delegate = SpyDelegate()
+        manager.delegate = delegate
+        manager.player = AVPlayer()
+        let segment = SponsorSegment(start: 40, end: 60, category: .sponsor)
+        manager.sponsorSegments = [segment]
+
+        manager.checkSponsorSkip(at: 10)
+        manager.checkSponsorSkip(at: 50)
+        #expect(!manager.isSkippingSegment)
+        #expect(manager.currentToastSegment == segment)
+    }
+
+    @Test("playing into a segment skips it")
+    @MainActor func playingIntoASegmentSkips() {
+        let manager = SponsorBlockSkipManager()
+        let delegate = SpyDelegate()
+        manager.delegate = delegate
+        manager.player = AVPlayer()
+        manager.sponsorSegments = [SponsorSegment(start: 40, end: 60, category: .sponsor)]
+
+        manager.checkSponsorSkip(at: 39.6)
+        manager.checkSponsorSkip(at: 40.1)
+        #expect(manager.isSkippingSegment)
+    }
+
     // MARK: - 1. .skip category triggers seek
 
     @Test(".skip segment returns true and triggers seek on delegate")

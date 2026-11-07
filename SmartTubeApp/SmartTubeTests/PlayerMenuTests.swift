@@ -45,7 +45,8 @@ struct PlayerMenuTests {
     @Test func chaptersEndWhereTheNextOneStarts() throws {
         let info = PlayerItemInfo(
             videoId: "v", title: "T", channelTitle: "C", description: nil, thumbnailURL: nil, duration: 100,
-            chapters: [Chapter(title: "One", startTime: 0), Chapter(title: "Two", startTime: 40)]
+            chapters: [Chapter(title: "One", startTime: 0), Chapter(title: "Two", startTime: 40)],
+            sponsorSegments: []
         )
         let markers = try #require(PlayerItemMetadata.chapterMarkers(for: info).first?.timedNavigationMarkers)
         #expect(markers.count == 2)
@@ -56,7 +57,7 @@ struct PlayerMenuTests {
     @Test func noMarkersBeforeTheDurationIsKnown() {
         let info = PlayerItemInfo(
             videoId: "v", title: "T", channelTitle: "C", description: nil, thumbnailURL: nil, duration: 0,
-            chapters: [Chapter(title: "One", startTime: 0)]
+            chapters: [Chapter(title: "One", startTime: 0)], sponsorSegments: []
         )
         #expect(PlayerItemMetadata.chapterMarkers(for: info).isEmpty)
     }

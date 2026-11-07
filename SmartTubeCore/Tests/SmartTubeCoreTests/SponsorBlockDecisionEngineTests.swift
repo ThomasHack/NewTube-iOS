@@ -32,6 +32,16 @@ struct SponsorBlockDecisionEngineTests {
         #expect(result == .clearToast)
     }
 
+    @Test("a handled segment offers the button instead of skipping")
+    func handledSegmentShowsTheButton() {
+        let seg = SponsorSegment(start: 10, end: 20, category: .sponsor)
+        let result = SponsorBlockDecisionEngine.decide(
+            at: 15, segments: [seg], settings: settings([.sponsor: .skip]),
+            isSkipInProgress: false, duration: 100, handledSegmentIDs: [seg.id]
+        )
+        #expect(result == .showToast(seg))
+    }
+
     @Test("a segment still skips shortly before its end")
     func skipsWellBeforeTheEnd() {
         let seg = SponsorSegment(start: 10, end: 20, category: .sponsor)

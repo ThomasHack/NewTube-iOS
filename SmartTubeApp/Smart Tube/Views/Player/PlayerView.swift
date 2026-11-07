@@ -59,7 +59,8 @@ struct PlayerView: View {
             description: currentVideo.description,
             thumbnailURL: currentVideo.thumbnailURL,
             duration: vm.duration,
-            chapters: vm.chapters
+            chapters: vm.chapters,
+            sponsorSegments: vm.sponsorSegments
         )
     }
 

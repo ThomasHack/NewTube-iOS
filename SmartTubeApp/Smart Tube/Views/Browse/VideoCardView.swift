@@ -213,50 +213,40 @@ struct VideoCardView: View {
         }
     }
 
+    /// Not the card's layouts, because those contain the button that shows this preview.
     private var contextMenuPreview: some View {
-        Group {
-            if compact {
-                compactLayout
-            } else {
-                gridLayout
-            }
+        VStack(alignment: .leading, spacing: 12) {
+            Color.clear
+                .aspectRatio(16 / 9, contentMode: .fit)
+                .overlay(thumbnailView.clipped())
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+            Text(displayTitle)
+                .font(.subheadline.weight(.medium))
+                .lineLimit(2)
         }
         .padding(12)
-        .frame(width: 300)
+        .frame(width: 480)
         .background(.background)
     }
 
     // MARK: - Body
 
     var body: some View {
-        Button {
-            onSelect?()
-        } label: {
-            cardContent
-        }
-        // The standard tvOS lockup. With .hoverEffect on the thumbnail, it provides the lift, the
-        // motion that follows the thumb on the touch surface, and the focus sound.
-        .buttonStyle(.borderless)
-        .contextMenu {
-            contextMenuItems
-        } preview: {
-            contextMenuPreview
-        }
-        .focused($isFocused)
-        .onAppear { feedLog.info("[feed] id=\(self.video.id) title=\(self.video.title)") }
-        .onChange(of: isFocused) { _, newValue in
-            focusLog.info("[VideoCard] isFocused=\(newValue) id=\(self.video.id)")
-        }
-        .zIndex(isFocused ? 1 : 0)
-        .alert(item: $watchLaterAlert) { item in
-            Alert(title: Text(item.title), message: Text(item.message), dismissButton: .default(Text("OK")))
-        }
-        .sheet(item: $playlistPickerMode) { mode in
-            PlaylistPickerSheet(
-                mode: mode, video: video, sourcePlaylistId: effectivePlaylistId, api: api,
-                onFinished: handlePlaylistPickerResult
-            )
-        }
+        cardContent
+            .onAppear { feedLog.info("[feed] id=\(self.video.id) title=\(self.video.title)") }
+            .onChange(of: isFocused) { _, newValue in
+                focusLog.info("[VideoCard] isFocused=\(newValue) id=\(self.video.id)")
+            }
+            .zIndex(isFocused ? 1 : 0)
+            .alert(item: $watchLaterAlert) { item in
+                Alert(title: Text(item.title), message: Text(item.message), dismissButton: .default(Text("OK")))
+            }
+            .sheet(item: $playlistPickerMode) { mode in
+                PlaylistPickerSheet(
+                    mode: mode, video: video, sourcePlaylistId: effectivePlaylistId, api: api,
+                    onFinished: handlePlaylistPickerResult
+                )
+            }
     }
 
     private func handlePlaylistPickerResult(_ result: Result<PlaylistInfo, Error>) {
@@ -275,29 +265,49 @@ struct VideoCardView: View {
         }
     }
 
+    // MARK: Selectable thumbnail
+
+    /// The thumbnail is the button, so the image and its overlays lift and move as one piece and the
+    /// text below stays still. `.card` is the system style for that, including the focus sound.
+    private func selectableThumbnail<Thumbnail: View>(
+        cornerRadius: CGFloat, @ViewBuilder thumbnail: () -> Thumbnail
+    ) -> some View {
+        Button {
+            onSelect?()
+        } label: {
+            thumbnail()
+        }
+        .buttonStyle(.card)
+        .buttonBorderShape(.roundedRectangle(radius: cornerRadius))
+        .contextMenu {
+            contextMenuItems
+        } preview: {
+            contextMenuPreview
+        }
+        .focused($isFocused)
+    }
+
     // MARK: Grid layout (default)
 
     private var gridLayout: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Color.clear
-                .aspectRatio(16 / 9, contentMode: .fit)
-                .overlay(thumbnailView.clipped())
-                .overlay(alignment: .bottom) {
-                    if let progress = effectiveProgress, progress > 0 {
-                        watchProgressBar(progress)
+        // Room for the thumbnail to grow when focused.
+        VStack(alignment: .leading, spacing: 16) {
+            selectableThumbnail(cornerRadius: 10) {
+                Color.clear
+                    .aspectRatio(16 / 9, contentMode: .fit)
+                    .overlay(thumbnailView.clipped())
+                    .overlay(alignment: .bottom) {
+                        if let progress = effectiveProgress, progress > 0 {
+                            watchProgressBar(progress)
+                        }
                     }
-                }
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-                .overlay(alignment: .topLeading) {
-                    if video.isLive { liveBadge }
-                }
-                .overlay(alignment: .topTrailing) {
-                    if WatchLaterMembershipStore.shared.contains(video.id) { watchLaterSavedBadge }
-                }
-                // One layer, so the overlays move with the image when focused.
-                .compositingGroup()
-                .contentShape(.hoverEffect, RoundedRectangle(cornerRadius: 10))
-                .hoverEffect(.highlight)
+                    .overlay(alignment: .topLeading) {
+                        if video.isLive { liveBadge }
+                    }
+                    .overlay(alignment: .topTrailing) {
+                        if WatchLaterMembershipStore.shared.contains(video.id) { watchLaterSavedBadge }
+                    }
+            }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(displayTitle)
@@ -325,20 +335,18 @@ struct VideoCardView: View {
 
     private var compactLayout: some View {
         HStack(alignment: .top, spacing: 10) {
-            thumbnailView
-                .frame(width: 120, height: 90)
-                .overlay(alignment: .bottom) {
-                    if let progress = effectiveProgress, progress > 0 {
-                        watchProgressBar(progress)
+            selectableThumbnail(cornerRadius: 6) {
+                thumbnailView
+                    .frame(width: 120, height: 90)
+                    .overlay(alignment: .bottom) {
+                        if let progress = effectiveProgress, progress > 0 {
+                            watchProgressBar(progress)
+                        }
                     }
-                }
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-                .overlay(alignment: .topTrailing) {
-                    if WatchLaterMembershipStore.shared.contains(video.id) { watchLaterSavedBadge }
-                }
-                .compositingGroup()
-                .contentShape(.hoverEffect, RoundedRectangle(cornerRadius: 6))
-                .hoverEffect(.highlight)
+                    .overlay(alignment: .topTrailing) {
+                        if WatchLaterMembershipStore.shared.contains(video.id) { watchLaterSavedBadge }
+                    }
+            }
             VStack(alignment: .leading, spacing: 3) {
                 Text(displayTitle)
                     .font(.subheadline)
@@ -400,9 +408,7 @@ struct VideoCardView: View {
             AsyncImage(url: url) { phase in
                 switch phase {
                 case .success(let img):
-                    // The borderless style would highlight the first image it finds, moving it
-                    // apart from the overlays. The whole thumbnail gets the effect instead.
-                    img.resizable().scaledToFill().hoverEffectDisabled()
+                    img.resizable().scaledToFill()
                 case .failure:
                     let nextIndex = thumbnailFallbackIndex + 1
                     if nextIndex < fallbacks.count {
