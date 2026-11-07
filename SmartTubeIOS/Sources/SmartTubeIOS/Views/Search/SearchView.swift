@@ -13,7 +13,9 @@ public struct SearchView: View {
     @State private var selectedVideo: Video?
     @State private var channelDestination: ChannelDestination?
     @State private var showFilterSheet = false
+    #if !os(tvOS)
     @FocusState private var isSearchFocused: Bool
+    #endif
     #if os(iOS)
     @Environment(PlayerRouter.self) private var playerRouter
     #endif
@@ -21,18 +23,27 @@ public struct SearchView: View {
     public init() {}
 
     public var body: some View {
+        #if os(tvOS)
+        @Bindable var vm = vm
+        #endif
         VStack(spacing: 0) {
+            #if os(tvOS)
+            if !vm.query.isEmpty {
+                tvFilterRow
+            }
+            #else
             searchBar
             Divider()
             if !vm.query.isEmpty {
                 filterChipsRow
             }
+            #endif
             Group {
                 #if os(tvOS)
-                if vm.isLoading || !vm.results.isEmpty {
+                if vm.query.isEmpty {
+                    tvIdleView
+                } else if vm.isLoading || vm.isAwaitingSearch || !vm.results.isEmpty {
                     resultsView
-                } else if vm.query.isEmpty {
-                    suggestionsListView
                 } else {
                     noResultsView
                 }
@@ -50,7 +61,25 @@ public struct SearchView: View {
             }
         }
         #if os(tvOS)
-        .toolbar(.hidden, for: .navigationBar)
+        // The system search UI (field and keyboard) lives in the navigation bar, so unlike
+        // the other tabs this screen must not hide it.
+        .searchable(text: $vm.query, prompt: "Search YouTube")
+        .autocorrectionDisabled()
+        .searchSuggestions {
+            if !vm.query.isEmpty {
+                ForEach(vm.suggestions, id: \.self) { suggestion in
+                    Text(suggestion).searchCompletion(suggestion)
+                }
+            }
+        }
+        .onSubmit(of: .search) {
+            if vm.isAwaitingSearch {
+                vm.search()
+            } else {
+                Task { await vm.recordCurrentSearch() }
+            }
+        }
+        .task(id: vm.query) { await vm.searchAsYouType() }
         .navigationDestination(item: $selectedVideo) { video in
             PlayerView(video: video, api: api)
         }
@@ -70,11 +99,14 @@ public struct SearchView: View {
             }
         }
         .task(id: vm.query) { await vm.updateSuggestions(for: vm.query) }
+        #if !os(tvOS)
         .onChange(of: isSearchFocused) { _, focused in
             if focused { Task { await vm.updateSuggestions(for: vm.query) } }
         }
+        #endif
     }
 
+    #if !os(tvOS)
     // MARK: - Search bar
 
     private var searchBar: some View {
@@ -107,11 +139,8 @@ public struct SearchView: View {
             Button {
                 showFilterSheet = true
             } label: {
-                Image(
-                    systemName: vm.filter.isDefault
-                        ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill"
-                )
-                .foregroundStyle(vm.filter.isDefault ? .secondary : Color.accentColor)
+                Image(systemName: filterSymbol)
+                    .foregroundStyle(vm.filter.isDefault ? .secondary : Color.accentColor)
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("search.filterButton")
@@ -122,46 +151,113 @@ public struct SearchView: View {
         .padding(.vertical, 8)
     }
 
-    // MARK: - Active filter chips
+    // MARK: - Active filter row
 
     @ViewBuilder
     private var filterChipsRow: some View {
         if !vm.filter.isDefault {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    if vm.filter.sortOrder != .relevance {
-                        FilterChip(label: LocalizedStringKey(vm.filter.sortOrder.label)) {
-                            var f = vm.filter
-                            f.sortOrder = .relevance
-                            vm.applyFilter(f)
-                        }
-                    }
-                    if vm.filter.uploadDate != .anytime {
-                        FilterChip(label: LocalizedStringKey(vm.filter.uploadDate.label)) {
-                            var f = vm.filter
-                            f.uploadDate = .anytime
-                            vm.applyFilter(f)
-                        }
-                    }
-                    if vm.filter.type != .any {
-                        FilterChip(label: LocalizedStringKey(vm.filter.type.label)) {
-                            var f = vm.filter
-                            f.type = .any
-                            vm.applyFilter(f)
-                        }
-                    }
-                    if vm.filter.duration != .any {
-                        FilterChip(label: LocalizedStringKey(vm.filter.duration.label)) {
-                            var f = vm.filter
-                            f.duration = .any
-                            vm.applyFilter(f)
-                        }
-                    }
+                    activeFilterChips
                 }
                 .padding(.horizontal)
                 .padding(.vertical, 6)
             }
             Divider()
+        }
+    }
+    #endif
+
+    #if os(tvOS)
+    // MARK: - tvOS filter row
+
+    private var tvFilterRow: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 16) {
+                Button {
+                    showFilterSheet = true
+                } label: {
+                    Label("Search filters", systemImage: filterSymbol)
+                }
+                .accessibilityIdentifier("search.filterButton")
+                activeFilterChips
+            }
+            .padding(.vertical, 12)
+        }
+        .scrollClipDisabled()
+        .focusSection()
+    }
+
+    // MARK: - tvOS idle content (recent + recommended searches)
+
+    private var tvIdleView: some View {
+        List {
+            if !vm.history.isEmpty {
+                Section("Recent") {
+                    ForEach(vm.history) { entry in
+                        tvQueryButton(entry.query, systemImage: AppSymbol.clock)
+                            .accessibilityIdentifier("search.history.\(entry.query)")
+                    }
+                    Button("Clear History", role: .destructive) {
+                        vm.clearHistory()
+                    }
+                    .accessibilityIdentifier("search.history.clearAll")
+                }
+            }
+            Section("Recommended") {
+                ForEach(vm.suggestions, id: \.self) { suggestion in
+                    tvQueryButton(suggestion, systemImage: AppSymbol.search)
+                }
+            }
+        }
+        .accessibilityIdentifier("search.suggestionsContainer")
+    }
+
+    private func tvQueryButton(_ query: String, systemImage: String) -> some View {
+        Button {
+            vm.query = query
+            vm.search()
+        } label: {
+            Label(query, systemImage: systemImage)
+        }
+    }
+    #endif
+
+    // MARK: - Active filter chips
+
+    private var filterSymbol: String {
+        vm.filter.isDefault ? AppSymbol.filter : AppSymbol.filterActive
+    }
+
+    @ViewBuilder
+    private var activeFilterChips: some View {
+        if vm.filter.sortOrder != .relevance {
+            FilterChip(label: LocalizedStringKey(vm.filter.sortOrder.label)) {
+                var f = vm.filter
+                f.sortOrder = .relevance
+                vm.applyFilter(f)
+            }
+        }
+        if vm.filter.uploadDate != .anytime {
+            FilterChip(label: LocalizedStringKey(vm.filter.uploadDate.label)) {
+                var f = vm.filter
+                f.uploadDate = .anytime
+                vm.applyFilter(f)
+            }
+        }
+        if vm.filter.type != .any {
+            FilterChip(label: LocalizedStringKey(vm.filter.type.label)) {
+                var f = vm.filter
+                f.type = .any
+                vm.applyFilter(f)
+            }
+        }
+        if vm.filter.duration != .any {
+            FilterChip(label: LocalizedStringKey(vm.filter.duration.label)) {
+                var f = vm.filter
+                f.duration = .any
+                vm.applyFilter(f)
+            }
         }
     }
 
@@ -176,7 +272,7 @@ public struct SearchView: View {
             .filter { !hideLiveShorts || !($0.isLive && $0.isShort) }
             .filter { !hideVideoPremieres || !$0.isUpcoming }
         return ScrollView {
-            if vm.isLoading && vm.results.isEmpty {
+            if (vm.isLoading || vm.isAwaitingSearch) && vm.results.isEmpty {
                 ProgressView().frame(maxWidth: .infinity).padding()
             }
             VideoGridSection(
@@ -184,6 +280,9 @@ public struct SearchView: View {
                 onSelect: { video in
                     let captured = displayResults
                     Task { @MainActor in
+                        #if os(tvOS)
+                        await vm.recordCurrentSearch()
+                        #endif
                         await CurrentQueueStore.shared.replaceAll(with: captured)
                         let startIdx = captured.firstIndex(where: { $0.id == video.id }) ?? 0
                         let toPlay = await CurrentQueueStore.shared.videoAt(index: startIdx) ?? video
@@ -208,6 +307,7 @@ public struct SearchView: View {
         #endif
     }
 
+    #if !os(tvOS)
     // MARK: - Suggestions list (history + recommended/live)
 
     private var suggestionsListView: some View {
@@ -296,6 +396,7 @@ public struct SearchView: View {
         .contentShape(Rectangle())
         .onTapGesture { isSearchFocused = false }
     }
+    #endif
 
     private var placeholderView: some View {
         VStack(spacing: 16) {
@@ -336,6 +437,16 @@ private struct FilterChip: View {
     let onRemove: () -> Void
 
     var body: some View {
+        #if os(tvOS)
+        // A single focusable button: the Siri Remote can't reach a tiny inner target.
+        Button(action: onRemove) {
+            Label {
+                Text(label)
+            } icon: {
+                Image(systemName: AppSymbol.xmark)
+            }
+        }
+        #else
         HStack(spacing: 4) {
             Text(label)
                 .font(.caption)
@@ -348,6 +459,7 @@ private struct FilterChip: View {
         .padding(.vertical, 5)
         .background(.tint.opacity(0.15), in: Capsule())
         .foregroundStyle(.tint)
+        #endif
     }
 }
 

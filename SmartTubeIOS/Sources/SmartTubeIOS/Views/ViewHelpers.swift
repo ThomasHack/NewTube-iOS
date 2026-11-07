@@ -126,6 +126,8 @@ enum AppSymbol {
     // MARK: - Navigation tabs
     static let home = "house.fill"
     static let search = "magnifyingglass"
+    static let filter = "line.3.horizontal.decrease.circle"
+    static let filterActive = "line.3.horizontal.decrease.circle.fill"
     static let library = "square.stack.fill"
     static let channel = "person.crop.circle.fill"
     static let settings = "gearshape.fill"

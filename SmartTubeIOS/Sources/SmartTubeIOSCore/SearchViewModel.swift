@@ -23,6 +23,10 @@ public final class SearchViewModel {
     private var searchTask: Task<Void, Never>?
     private var suggestTask: Task<Void, Never>?
     private var hideObserverTasks: [Task<Void, Never>] = []
+    /// The query the current `results` belong to.
+    private var lastSearchedQuery: String?
+
+    public static let searchAsYouTypeDebounce: Duration = .milliseconds(500)
 
     private static let recommendedTerms: [String] = [
         "trending videos", "music 2025", "cooking recipes", "travel vlog",
@@ -45,6 +49,17 @@ public final class SearchViewModel {
         observeFeedHideNotifications()
     }
 
+    /// `true` while the current query has text but its search hasn't started yet (it's
+    /// still in the debounce window), so the UI can show progress instead of "no results".
+    public var isAwaitingSearch: Bool {
+        let trimmed = trimmedQuery
+        return !trimmed.isEmpty && trimmed != lastSearchedQuery
+    }
+
+    private var trimmedQuery: String {
+        query.trimmingCharacters(in: .whitespaces)
+    }
+
     /// Call from `.task(id: query)` in the view to debounce live suggestions.
     /// When `q` is empty, restores the recommended terms immediately.
     public func updateSuggestions(for q: String) async {
@@ -63,13 +78,51 @@ public final class SearchViewModel {
     }
 
     public func search() {
-        let trimmed = query.trimmingCharacters(in: .whitespaces)
+        let trimmed = trimmedQuery
         guard !trimmed.isEmpty else { return }
+        startSearch(trimmed)
+        Task { await recordSearch(trimmed) }
+    }
+
+    /// Debounced search for the current query, for use from `.task(id: query)`.
+    ///
+    /// The tvOS search keyboard has no reliable submit action, so results follow the text as
+    /// it's typed. Partial queries aren't added to history; call `recordCurrentSearch()` once
+    /// the user acts on a result.
+    public func searchAsYouType(debounce: Duration = searchAsYouTypeDebounce) async {
+        let trimmed = trimmedQuery
+        guard !trimmed.isEmpty else {
+            clearResults()
+            return
+        }
+        guard trimmed != lastSearchedQuery else { return }
+        try? await Task.sleep(for: debounce)
+        guard !Task.isCancelled else { return }
+        startSearch(trimmed)
+        await searchTask?.value
+    }
+
+    /// Adds the current query to history.
+    public func recordCurrentSearch() async {
+        let trimmed = trimmedQuery
+        guard !trimmed.isEmpty else { return }
+        await recordSearch(trimmed)
+    }
+
+    private func startSearch(_ trimmed: String) {
+        lastSearchedQuery = trimmed
         results = []
         nextPageToken = nil
         searchTask?.cancel()
         searchTask = Task { await performSearch(query: trimmed, filter: filter) }
-        Task { await recordSearch(trimmed) }
+    }
+
+    private func clearResults() {
+        searchTask?.cancel()
+        lastSearchedQuery = nil
+        results = []
+        nextPageToken = nil
+        isLoading = false
     }
 
     // MARK: - History management
@@ -118,11 +171,13 @@ public final class SearchViewModel {
 
     private func performSearch(query: String, continuationToken: String? = nil, filter: SearchFilter = .default) async {
         isLoading = true
-        defer { isLoading = false }
+        // A cancelled search has been replaced by a newer one, which now owns these values.
+        defer { if !Task.isCancelled { isLoading = false } }
         do {
             let group = try await retryWithBackoff(label: "SearchVM") {
                 try await api.search(query: query, continuationToken: continuationToken, filter: filter)
             }
+            guard !Task.isCancelled else { return }
             if continuationToken == nil {
                 results = group.videos
             } else {

@@ -28,10 +28,10 @@ public actor SearchHistoryStore: UserDefaultsBackedStore {
         if let loaded = Self.loadFrom(.standard) { entries = loaded }
     }
 
-    /// Designated initializer for unit testing. Pass a unique `suiteName` string
+    /// Designated initializer for unit tests and previews. Pass a unique `suiteName` string
     /// (e.g. `"test-\(UUID().uuidString)"`) to get a fully isolated store with
     /// no shared `UserDefaults` state.
-    init(suiteName: String) {
+    package init(suiteName: String) {
         self.defaults = UserDefaults(suiteName: suiteName) ?? .standard
         if let loaded = Self.loadFrom(self.defaults) { entries = loaded }
     }

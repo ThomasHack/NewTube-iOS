@@ -73,6 +73,12 @@ public struct HomeView: View {
         _sectionVM = State(initialValue: BrowseViewModel(api: api))
     }
 
+    /// Injects the view models directly so previews can supply sample data.
+    init(homeVM: HomeViewModel, sectionVM: BrowseViewModel) {
+        _homeVM = State(initialValue: homeVM)
+        _sectionVM = State(initialValue: sectionVM)
+    }
+
     // MARK: - Body
 
     public var body: some View {
@@ -176,6 +182,7 @@ public struct HomeView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
+        .frame(maxWidth: .infinity)
         .background(.ultraThinMaterial)
         .focusSection()
         .defaultFocus($focusedSection, selectedSection)

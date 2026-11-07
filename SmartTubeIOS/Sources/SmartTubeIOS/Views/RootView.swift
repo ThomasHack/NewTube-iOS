@@ -43,7 +43,11 @@ public struct RootView: View {
             #endif
         }
         .environment(\.isLandscapeLayout, isLandscapeLayout)
-        .onGeometryChange(for: Bool.self) { $0.size.width > $0.size.height } action: { isLandscapeLayout = $0 }
+        .onGeometryChange(for: Bool.self) {
+            $0.size.width > $0.size.height
+        } action: {
+            isLandscapeLayout = $0
+        }
         .tint(store.settings.accentColor.color)
         .preferredColorScheme(store.settings.themeName.colorScheme)
         #if !os(tvOS) && ENABLE_DOWNLOADS
@@ -297,7 +301,8 @@ struct MainTabView: View {
                 // work there. The standard player plays with the app's own sign-in, so
                 // this one error still falls back to it on iOS.
                 if tosState.vm?.playerError == .signInRequired {
-                    rootLog.notice("[RootView] TOS sign-in required for videoId=\(video.id) — opening the standard player")
+                    rootLog.notice(
+                        "[RootView] TOS sign-in required for videoId=\(video.id) — opening the standard player")
                     tosState.markFallback(videoId: video.id)
                     playerRouter.open(video: video, api: api)
                     return
@@ -357,15 +362,30 @@ struct MainTVTabView: View {
     @State private var searchVM = SearchViewModel()
     @State private var selectedTab: AppSection = .home
     @Environment(\.innerTubeAPI) private var api
+    /// Replaces each tab's content; previews use this to supply sample data.
+    private let tabContent: ((AppSection) -> AnyView)?
+
+    init(tabContent: ((AppSection) -> AnyView)? = nil) {
+        self.tabContent = tabContent
+    }
 
     var body: some View {
         TabView(selection: $selectedTab) {
             ForEach(AppSection.allCases) { section in
-                NavigationStack { section.destination(api: api) }
-                    .tabItem {
-                        Label(section.rawValue, systemImage: section.icon)
+                Tab(
+                    section.rawValue,
+                    systemImage: section.icon,
+                    value: section,
+                    role: section == .search ? .search : nil
+                ) {
+                    NavigationStack {
+                        if let tabContent {
+                            tabContent(section)
+                        } else {
+                            section.destination(api: api)
+                        }
                     }
-                    .tag(section)
+                }
             }
         }
         .environment(searchVM)
