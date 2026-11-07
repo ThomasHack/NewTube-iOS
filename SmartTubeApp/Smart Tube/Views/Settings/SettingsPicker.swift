@@ -63,34 +63,53 @@ private struct SettingsPickerOptions<Value: Hashable, Content: View>: View {
     @Binding var selection: Value
     let content: Content
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.settingsOptionsUsePageLayout) private var usesPageLayout
 
     var body: some View {
-        SettingsPageLayout {
-            List {
-                Group(subviews: content) { options in
-                    ForEach(options) { option in
-                        if let value = option.containerValues.tag(for: Value.self) {
-                            Button {
-                                selection = value
-                                dismiss()
-                            } label: {
-                                HStack {
-                                    option
-                                    Spacer()
-                                    if value == selection {
-                                        Image(systemName: AppSymbol.checkmark)
-                                    }
-                                }
-                            }
-                        } else {
-                            option
-                        }
-                    }
+        Group {
+            if usesPageLayout {
+                SettingsPageLayout {
+                    List { rows }
                 }
+            } else {
+                ScrollView {
+                    VStack(spacing: 20) { rows }
+                        .padding(.horizontal, 60)
+                        .padding(.vertical, 24)
+                }
+                .scrollClipDisabled()
             }
         }
         .navigationTitle(title)
     }
+
+    private var rows: some View {
+        Group(subviews: content) { options in
+            ForEach(options) { option in
+                if let value = option.containerValues.tag(for: Value.self) {
+                    Button {
+                        selection = value
+                        dismiss()
+                    } label: {
+                        HStack {
+                            option
+                            Spacer()
+                            if value == selection {
+                                Image(systemName: AppSymbol.checkmark)
+                            }
+                        }
+                    }
+                } else {
+                    option
+                }
+            }
+        }
+    }
+}
+
+extension EnvironmentValues {
+    /// False inside an overlay, which is too narrow for the icon-and-list page layout.
+    @Entry var settingsOptionsUsePageLayout = true
 }
 
 // MARK: - Previews

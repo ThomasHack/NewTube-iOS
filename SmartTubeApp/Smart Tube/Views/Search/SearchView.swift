@@ -243,8 +243,10 @@ struct SearchFilterSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
+            // A plain stack rather than a Form, whose rows fill the overlay and ignore content margins.
+            // Focused rows grow, so they need room around them.
+            ScrollView {
+                VStack(spacing: 20) {
                     SettingsPicker("Sort by", selection: $draft.sortOrder) {
                         ForEach(SearchFilter.SortOrder.allCases, id: \.self) { order in
                             Text(LocalizedStringKey(order.label)).tag(order)
@@ -265,21 +267,26 @@ struct SearchFilterSheet: View {
                             Text(LocalizedStringKey(dur.label)).tag(dur)
                         }
                     }
-                }
-                // Rows, because two toolbar buttons overlap in a tvOS sheet.
-                Section {
-                    Button("Apply") {
+                    // Rows, because two toolbar buttons overlap in a tvOS sheet.
+                    Button {
                         onApply(draft)
                         dismiss()
+                    } label: {
+                        Text("Apply").frame(maxWidth: .infinity)
                     }
+                    .padding(.top, 20)
                     .accessibilityIdentifier("search.filterApplyButton")
-                    Button("Cancel", role: .cancel) { dismiss() }
+                    Button(role: .cancel) {
+                        dismiss()
+                    } label: {
+                        Text("Cancel").frame(maxWidth: .infinity)
+                    }
                 }
+                .padding(.horizontal, 60)
+                .padding(.vertical, 24)
             }
-            // Focused rows grow, so keep them clear of the overlay's edges and of each other.
-            .contentMargins(.horizontal, 60, for: .scrollContent)
-            .listRowSpacing(16)
             .scrollClipDisabled()
+            .environment(\.settingsOptionsUsePageLayout, false)
             .navigationTitle("Search filters")
         }
         .accessibilityIdentifier("search.filterSheet")
