@@ -23,6 +23,7 @@
   },
   "testTargets" : [
     {
+      "enabled" : false,
       "target" : {
         "containerPath" : "container:SmartTubeApp.xcodeproj",
         "identifier" : "38EEA5DF9BAA36788D776AB0",

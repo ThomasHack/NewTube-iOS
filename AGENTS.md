@@ -7,11 +7,15 @@ Package `SmartTubeIOS/` (targets `SmartTubeIOSCore` = Foundation-only models/API
 Architecture map: docs/architecture.md · Glossary: CONTEXT.md · Decisions: docs/adr/ · Plan: docs/modernization/
 
 ## Commands (always via `just`; run `just` to list)
-- `just ci` — secrets check + format check + lint + unit tests. Run before every commit.
+- `just ci` — secrets check + format check + lint + unit tests. Run after finishing a larger task, not before every commit.
 - `just build` / `just build-tvos` — simulator builds, no signing needed.
 - `just test-unit` / `just test-unit-filter <Name>` — Swift Testing package tests (no simulator).
 - `just test-smoke` — hermetic UI smoke plan. `just test-ui` — live UI plan (needs signed-in simulator; 3 workers max, see docs/how-to/run-tests.md).
 - `just format` — swift-format in place. `just lint` — SwiftLint against the committed baseline.
+
+## When to run tests
+- Unit tests: only after finishing a larger task. During a task, compile the affected target instead.
+- UI tests: don't run them while navigation and large parts of the app are being reworked; the maintainer tests manually. They're disabled in `SmartTube.xctestplan` and may be out of date.
 
 ## Rules that differ from defaults
 - Swift 6 strict concurrency everywhere. View models are `@MainActor @Observable`. No `ObservableObject`, `@Published`, Combine, `DispatchQueue`, completion handlers in new code.

@@ -7,6 +7,16 @@
 All commands are `just` recipes (run `just` from the repo root to list them). Don't use
 `mcp_xcode_RunAllTests`/`mcp_xcode_RunSomeTests` or any other `mcp_xcode_*` tool to run tests.
 
+## When to run tests
+
+Tests take a lot of time, so run them deliberately:
+
+- **Unit tests:** only after finishing a larger task. During a task, compiling the affected target
+  is enough.
+- **UI tests:** not during the current rework of navigation and large parts of the app. The
+  maintainer tests manually. `SmartTubeUITests` is disabled in `SmartTube.xctestplan`; set
+  `"enabled"` back to `true` there to bring it back. These tests may be out of date until then.
+
 ## Target simulator
 
 Single source of truth for the iOS/Catalyst target simulator — don't copy this UDID into other
