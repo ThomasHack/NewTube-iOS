@@ -53,8 +53,17 @@ enum PlayerMenu {
                 action(String(localized: "Previous Video"), symbol: AppSymbol.previousTrack) { perform(.previousVideo) }
             )
         }
-        if state.hasNext {
-            items.append(action(String(localized: "Next Video"), symbol: AppSymbol.nextTrack) { perform(.nextVideo) })
+        if state.isSignedIn {
+            items.append(
+                action(
+                    String(localized: "Like"),
+                    symbol: state.likeStatus == .like ? "hand.thumbsup.fill" : AppSymbol.thumbsUp
+                ) { perform(.like) })
+            items.append(
+                action(
+                    String(localized: "Dislike"),
+                    symbol: state.likeStatus == .dislike ? "hand.thumbsdown.fill" : AppSymbol.thumbsDown
+                ) { perform(.dislike) })
         }
         if !state.captions.isEmpty {
             items.append(captionsMenu(state, perform))
@@ -124,15 +133,8 @@ enum PlayerMenu {
             items.append(
                 action(String(localized: "Open Channel"), symbol: AppSymbol.personRectangle) { perform(.openChannel) })
         }
-        if state.isSignedIn {
-            items.append(
-                action(
-                    String(localized: "Like"), symbol: AppSymbol.thumbsUp, isOn: state.likeStatus == .like
-                ) { perform(.like) })
-            items.append(
-                action(
-                    String(localized: "Dislike"), symbol: AppSymbol.thumbsDown, isOn: state.likeStatus == .dislike
-                ) { perform(.dislike) })
+        if state.hasNext {
+            items.append(action(String(localized: "Next Video"), symbol: AppSymbol.nextTrack) { perform(.nextVideo) })
         }
         items.append(sleepTimerMenu(state, perform))
         items.append(

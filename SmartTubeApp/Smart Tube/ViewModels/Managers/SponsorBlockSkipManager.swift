@@ -16,6 +16,8 @@ protocol SponsorBlockDelegate: AnyObject {
     func snapCurrentTime(to seconds: Double)
 }
 
+private let skipLog = AppLogger(category: "SponsorBlock")
+
 // MARK: - SponsorBlockSkipManager
 
 /// Owns `sponsorSegments`, `currentToastSegment`, and `isSkippingSegment`.
@@ -80,10 +82,13 @@ final class SponsorBlockSkipManager {
             currentToastSegment = nil
             delegate.handlePlaybackEnd()
             return true
-        case .skip(let target, _):
+        case .skip(let target, let segment):
             currentToastSegment = nil
             isSkippingSegment = true
             guard let player else { return true }
+            skipLog.notice(
+                "[skip] \(segment.category.rawValue) at \(time)s → \(target)s, player at \(player.currentTime().seconds)s, status=\(player.currentItem?.status.rawValue ?? -1) rate=\(player.rate)"
+            )
             player.seek(
                 to: CMTime(seconds: target, preferredTimescale: 600),
                 toleranceBefore: .zero,
@@ -91,6 +96,8 @@ final class SponsorBlockSkipManager {
             ) { [weak self] finished in
                 Task { @MainActor [weak self] in
                     guard let self else { return }
+                    let landed = self.player?.currentTime().seconds ?? -1
+                    skipLog.notice("[skip] seek to \(target)s finished=\(finished) landed at \(landed)s")
                     if finished { self.delegate?.snapCurrentTime(to: target) }
                     try? await Task.sleep(nanoseconds: 200_000_000)
                     self.isSkippingSegment = false

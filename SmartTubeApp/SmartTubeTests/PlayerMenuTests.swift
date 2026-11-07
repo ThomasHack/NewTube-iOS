@@ -21,13 +21,14 @@ struct PlayerMenuTests {
         #expect(titles(PlayerMenuState()).count == 2)
     }
 
-    @Test func videoNavigationAppearsOnlyWhenAvailable() {
+    @Test func previousVideoIsInTheBarAndNextVideoInMore() {
         let state = PlayerMenuState(hasPrevious: true, hasNext: true)
-        #expect(titles(state).count == 4)
+        #expect(titles(state).count == titles(PlayerMenuState()).count + 1)
+        #expect(moreTitles(state).count == moreTitles(PlayerMenuState()).count + 1)
     }
 
-    @Test func likingNeedsAnAccount() {
-        #expect(moreTitles(PlayerMenuState(isSignedIn: true)).count == moreTitles(PlayerMenuState()).count + 2)
+    @Test func thumbsAreInTheBarAndNeedAnAccount() {
+        #expect(titles(PlayerMenuState(isSignedIn: true)).count == titles(PlayerMenuState()).count + 2)
     }
 
     @Test func queueShuffleOnlyAppearsInAQueue() {

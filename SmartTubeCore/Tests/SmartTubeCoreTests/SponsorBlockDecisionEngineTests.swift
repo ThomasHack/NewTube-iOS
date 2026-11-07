@@ -20,6 +20,28 @@ struct SponsorBlockDecisionEngineTests {
         return s
     }
 
+    // Seen on a device: seeking to 2303.229 landed on 2303.228333, because player times are rounded
+    // to a timescale of 600. That's still before the end, so the skip repeated forever.
+    @Test("a seek landing just before the segment's end doesn't skip again")
+    func landingJustBeforeTheEndIsPastTheSegment() {
+        let seg = SponsorSegment(start: 2_250, end: 2303.229, category: .sponsor)
+        let result = SponsorBlockDecisionEngine.decide(
+            at: 2303.228333333, segments: [seg], settings: settings([.sponsor: .skip]),
+            isSkipInProgress: false, duration: 3_000
+        )
+        #expect(result == .clearToast)
+    }
+
+    @Test("a segment still skips shortly before its end")
+    func skipsWellBeforeTheEnd() {
+        let seg = SponsorSegment(start: 10, end: 20, category: .sponsor)
+        let result = SponsorBlockDecisionEngine.decide(
+            at: 19.5, segments: [seg], settings: settings([.sponsor: .skip]),
+            isSkipInProgress: false, duration: 100
+        )
+        #expect(result == .skip(to: 20, segment: seg))
+    }
+
     @Test("disabled SponsorBlock always clears toast")
     func disabledClearsToast() {
         let seg = SponsorSegment(start: 0, end: 10, category: .sponsor)

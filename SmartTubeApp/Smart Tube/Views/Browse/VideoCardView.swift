@@ -400,7 +400,9 @@ struct VideoCardView: View {
             AsyncImage(url: url) { phase in
                 switch phase {
                 case .success(let img):
-                    img.resizable().scaledToFill()
+                    // The borderless style would highlight the first image it finds, moving it
+                    // apart from the overlays. The whole thumbnail gets the effect instead.
+                    img.resizable().scaledToFill().hoverEffectDisabled()
                 case .failure:
                     let nextIndex = thumbnailFallbackIndex + 1
                     if nextIndex < fallbacks.count {
