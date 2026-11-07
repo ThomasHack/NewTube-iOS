@@ -12,40 +12,11 @@ struct RSSFeedsView: View {
     @State private var showAddFeed = false
     @State private var showManageFeeds = false
 
-    #if os(iOS)
-    @Environment(PlayerRouter.self) private var playerRouter
-    #else
     @State private var selectedVideo: Video?
-    #endif
     @Environment(\.innerTubeAPI) private var api
 
     var body: some View {
         VStack(spacing: 0) {
-            #if os(iOS)
-            // Inline header — shown because LibraryView hides the navigation bar globally.
-            HStack {
-                Text("RSS Feeds")
-                    .font(.headline)
-                Spacer()
-                Button {
-                    showManageFeeds = true
-                } label: {
-                    Image(systemName: "list.bullet.indent")
-                }
-                .accessibilityLabel("Manage RSS Feeds")
-                .accessibilityIdentifier("rss.manageFeedsButton")
-                Button {
-                    showAddFeed = true
-                } label: {
-                    Image(systemName: "plus")
-                }
-                .accessibilityLabel("Add RSS Feed")
-                .accessibilityIdentifier("rss.addFeedButton")
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            Divider()
-            #endif
 
             Group {
                 if vm.isLoading && vm.videos.isEmpty {
@@ -64,11 +35,9 @@ struct RSSFeedsView: View {
         .sheet(isPresented: $showManageFeeds, onDismiss: { vm.load() }) {
             ManageRSSFeedsView()
         }
-        #if os(tvOS)
         .navigationDestination(item: $selectedVideo) { video in
             PlayerView(video: video, api: api)
         }
-        #endif
         .task {
             vm.load()
         }
@@ -117,11 +86,7 @@ struct RSSFeedsView: View {
             VideoGridSection(
                 videos: displayVideos,
                 onSelect: { video in
-                    #if os(iOS)
-                    playerRouter.open(video: video, api: api)
-                    #else
                     selectedVideo = video
-                    #endif
                 }
             )
             if vm.isLoading {

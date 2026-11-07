@@ -11,9 +11,7 @@ public struct SettingsView: View {
     @Environment(AuthService.self) private var auth
     @Environment(SettingsStore.self) private var store
     @State private var showSignIn = false
-    #if os(tvOS)
     @State private var showGithubQR = false
-    #endif
     /// #126: whether the current visit to this screen has already passed the PIN
     /// check. Reset to `false` on `.onDisappear` (see body) so leaving and coming back
     /// to Settings (e.g. switching tabs) re-locks it — a parental-control PIN that
@@ -46,25 +44,15 @@ public struct SettingsView: View {
             sponsorBlockSection
             deArrowSection
             parentalControlsSection
-            #if os(macOS)
-            experimentalSection
-            #endif
             aboutSection
         }
-        #if os(macOS)
-        .formStyle(.grouped)
-        #endif
         // Hide the blank navigation bar on iOS and tvOS — a visible nav bar on tvOS
         // conflicts with the TabView tab bar scroll-hide animation (issue #102 / gh-34).
         // .navigationBar placement is unavailable on macOS.
-        #if !os(macOS)
         .toolbar(.hidden, for: .navigationBar)
-        #endif
-        #if os(tvOS)
         .sheet(isPresented: $showGithubQR) {
             GitHubQRView()
         }
-        #endif
         .sheet(item: $parentalControlsSheetMode) { mode in
             ParentalControlsSheet(mode: mode)
         }
@@ -96,11 +84,7 @@ public struct SettingsView: View {
         Section("Account") {
             if auth.isSignedIn {
                 HStack {
-                    #if os(tvOS)
                     let avatarSize: CGFloat = 64
-                    #else
-                    let avatarSize: CGFloat = 40
-                    #endif
                     AsyncImage(url: auth.accountAvatarURL) { phase in
                         switch phase {
                         case .success(let image):
@@ -142,7 +126,6 @@ public struct SettingsView: View {
                 }
             }
 
-            #if !os(iOS)
             Picker("Default Quality", selection: $store.settings.preferredQuality) {
                 ForEach(AppSettings.VideoQuality.allCases, id: \.self) { q in
                     Text(q.rawValue.capitalized).tag(q)
@@ -165,9 +148,7 @@ public struct SettingsView: View {
                 Text("Original Track Only").tag("original" as String?)
             }
             .accessibilityIdentifier("settings.preferredAudioLanguageRow")
-            #endif
 
-            #if os(tvOS)
             Picker("Seek Back", selection: $store.settings.seekBackSeconds) {
                 ForEach(AppSettings.availableSeekOptions, id: \.self) { s in
                     Text("\(s) s").tag(s)
@@ -180,24 +161,7 @@ public struct SettingsView: View {
                 }
             }
             .accessibilityIdentifier("settings.seekForwardRow")
-            #elseif os(macOS)
-            Stepper(
-                "Seek Back: \(store.settings.seekBackSeconds) s",
-                value: $store.settings.seekBackSeconds,
-                in: 5...60,
-                step: 5
-            )
-            .accessibilityIdentifier("settings.seekBackRow")
-            Stepper(
-                "Seek Forward: \(store.settings.seekForwardSeconds) s",
-                value: $store.settings.seekForwardSeconds,
-                in: 5...60,
-                step: 5
-            )
-            .accessibilityIdentifier("settings.seekForwardRow")
-            #endif
 
-            #if !os(iOS)
             Picker("Hide Controls After", selection: $store.settings.controlsHideTimeout) {
                 Text("2s").tag(2)
                 Text("3s").tag(3)
@@ -211,17 +175,14 @@ public struct SettingsView: View {
                 Text("Fit (letterbox)").tag(AppSettings.VideoGravityMode.fit)
                 Text("Fill (crop)").tag(AppSettings.VideoGravityMode.fill)
             }
-            #endif
 
             Toggle("Loop Video", isOn: $store.settings.loopEnabled)
             Toggle("Shuffle", isOn: $store.settings.shuffleEnabled)
 
             Toggle("Autoplay next video", isOn: $store.settings.autoplayEnabled)
             Toggle("Background Playback", isOn: $store.settings.backgroundPlaybackEnabled)
-            #if !os(iOS)
             Toggle("Prefer H.264 Codec", isOn: $store.settings.preferH264)
                 .accessibilityIdentifier("settings.preferH264Toggle")
-            #endif
         }
     }
 
@@ -297,18 +258,6 @@ public struct SettingsView: View {
                 Text("Compact").tag(ThumbnailStyle.compact)
             }
             .accessibilityIdentifier("settings.thumbnailStylePicker")
-            #if !os(tvOS)
-            Picker("Columns (Portrait)", selection: $store.settings.gridColumnsPortrait) {
-                ForEach(AppSettings.availableGridColumnCounts, id: \.self) { Text("\($0)").tag($0) }
-            }
-            .disabled(store.settings.compactThumbnails)
-            .accessibilityIdentifier("settings.gridColumnsPortraitPicker")
-            Picker("Columns (Landscape)", selection: $store.settings.gridColumnsLandscape) {
-                ForEach(AppSettings.availableGridColumnCounts, id: \.self) { Text("\($0)").tag($0) }
-            }
-            .disabled(store.settings.compactThumbnails)
-            .accessibilityIdentifier("settings.gridColumnsLandscapePicker")
-            #endif
             Toggle("Hide Shorts", isOn: $store.settings.hideShorts)
                 .accessibilityIdentifier("settings.hideShortsToggle")
             Toggle("Hide Live Shorts", isOn: $store.settings.hideLiveShorts)
@@ -320,7 +269,6 @@ public struct SettingsView: View {
             Toggle("Hide Watched Videos", isOn: $store.settings.hideWatchedVideos)
                 .accessibilityIdentifier("settings.hideWatchedVideosToggle")
             if store.settings.hideWatchedVideos {
-                #if os(tvOS)
                 // tvOS has no Stepper.
                 Picker("Watched threshold", selection: $store.settings.hideWatchedThreshold) {
                     ForEach(Array(stride(from: 50, through: 100, by: 5)), id: \.self) { percent in
@@ -328,27 +276,7 @@ public struct SettingsView: View {
                     }
                 }
                 .accessibilityIdentifier("settings.hideWatchedThresholdStepper")
-                #else
-                Stepper(
-                    "Watched threshold: \(Int(store.settings.hideWatchedThreshold * 100))%",
-                    value: $store.settings.hideWatchedThreshold, in: 0.5...1.0, step: 0.05
-                )
-                .accessibilityIdentifier("settings.hideWatchedThresholdStepper")
-                #endif
             }
-            #if os(iOS)
-            if #available(iOS 26.0, *) {
-                Toggle("Disable Liquid Glass", isOn: $store.settings.disableLiquidGlass)
-                    .accessibilityIdentifier("settings.disableLiquidGlassToggle")
-            }
-            #endif
-            #if !os(tvOS)
-            NavigationLink("Visible Sections") {
-                SectionsSettingsView()
-                    .environment(store)
-            }
-            .accessibilityIdentifier("settings.visibleSectionsLink")
-            #endif
         }
     }
 
@@ -418,38 +346,16 @@ public struct SettingsView: View {
 
     // MARK: - Experimental (macOS)
 
-    #if os(macOS)
-    private var experimentalSection: some View {
-        @Bindable var store = store
-        return Section {
-            Toggle("IFrame Player (TOS-compliant, shows ads)", isOn: $store.settings.useTOSPlayerOnMac)
-                .accessibilityIdentifier("settings.useTOSPlayerOnMacToggle")
-        } header: {
-            Text("Experimental")
-        } footer: {
-            Text(
-                "Uses YouTube's official embedded player instead of the direct stream pipeline. Quality selection is unavailable. Ads will play. Useful for videos that refuse to play via the standard path."
-            )
-        }
-    }
-    #endif
-
     // MARK: - About
 
     private var aboutSection: some View {
         Section {
             LabeledContent("Version", value: appVersion)
-            #if os(tvOS)
             Button {
                 showGithubQR = true
             } label: {
                 Label("View on GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
             }
-            #else
-            Link(destination: URL(string: "https://github.com/milika/SmartTubeIOS")!) {
-                Label("View on GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
-            }
-            #endif
             Button("Reset All Settings", role: .destructive) { store.reset() }
                 .accessibilityIdentifier("settings.resetAllButton")
         } header: {
@@ -468,7 +374,6 @@ public struct SettingsView: View {
 
 // MARK: - GitHubQRView (tvOS)
 
-#if os(tvOS)
 private struct GitHubQRView: View {
     @Environment(\.dismiss) private var dismiss
 
@@ -516,7 +421,6 @@ private struct GitHubQRView: View {
         }
     }
 }
-#endif
 
 // MARK: - SectionsSettingsView
 
@@ -585,12 +489,6 @@ struct SectionsSettingsView: View {
             }
         }
         .navigationTitle("Visible Sections")
-        #if os(iOS)
-        .toolbar(.visible, for: .navigationBar)
-        #endif
-        #if os(iOS)
-        .navigationBarTitleDisplayMode(.inline)
-        #endif
     }
 }
 
@@ -624,13 +522,6 @@ struct SponsorBlockExcludedChannelsView: View {
             }
         }
         .navigationTitle("Excluded Channels")
-        #if os(iOS)
-        .toolbar(.visible, for: .navigationBar)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            EditButton()
-        }
-        #endif
     }
 }
 

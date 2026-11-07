@@ -1,4 +1,3 @@
-#if os(tvOS)
 import XCTest
 
 // MARK: - TVPlayerControlsUITests
@@ -314,4 +313,3 @@ final class TVPlayerControlsUITests: XCTestCase {
             "#150 regression: player.titleLabel must still exist after pressing Menu to close description panel")
     }
 }
-#endif

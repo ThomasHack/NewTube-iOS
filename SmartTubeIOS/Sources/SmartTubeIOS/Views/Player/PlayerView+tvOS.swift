@@ -10,8 +10,6 @@ import SwiftUI
 // (@FocusState, @State highlightedControl) remain in PlayerView.swift because
 // Swift does not allow stored properties in extensions.
 
-#if os(tvOS)
-
 // MARK: - ConditionalMoveCommand
 
 /// Conditionally applies `.onMoveCommand`. When `enabled = false` the modifier is
@@ -265,4 +263,3 @@ extension PlayerControlsOverlay {
         }
     }
 }
-#endif

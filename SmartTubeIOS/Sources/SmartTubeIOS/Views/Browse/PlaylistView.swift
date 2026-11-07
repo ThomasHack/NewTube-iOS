@@ -18,9 +18,6 @@ public struct PlaylistView: View {
     @State private var vm: PlaylistViewModel
     @State private var selectedVideo: Video?
     @State private var channelDestination: ChannelDestination?
-    #if os(iOS)
-    @Environment(PlayerRouter.self) private var playerRouter
-    #endif
 
     public init(playlistId: String, playlistTitle: String, api: InnerTubeAPI) {
         self.playlistId = playlistId
@@ -49,7 +46,6 @@ public struct PlaylistView: View {
         .navigationTitle(playlistTitle)
         .toolbar {
             if playlistId == CurrentQueueStore.playlistID {
-                #if os(iOS) || os(tvOS)
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(role: .destructive) {
                         Task {
@@ -60,28 +56,14 @@ public struct PlaylistView: View {
                         Label("Clear Queue", systemImage: "trash")
                     }
                 }
-                #else
-                ToolbarItem {
-                    Button(role: .destructive) {
-                        Task {
-                            await CurrentQueueStore.shared.clear()
-                            dismiss()
-                        }
-                    } label: {
-                        Label("Clear Queue", systemImage: "trash")
-                    }
-                }
-                #endif
             }
         }
         .onAppear {
             vm.load(playlistId: playlistId)
         }
-        #if os(tvOS)
         .navigationDestination(item: $selectedVideo) { video in
             PlayerView(video: video, api: api)
         }
-        #endif
         .navigationDestination(item: $channelDestination) { dest in
             ChannelView(channelId: dest.channelId)
         }
@@ -103,7 +85,6 @@ public struct PlaylistView: View {
 
                 LazyVStack(spacing: 0) {
                     ForEach(displayVideos) { video in
-                        #if os(tvOS)
                         VideoCardView(
                             video: video, compact: true, currentPlaylistId: playlistId,
                             onSelect: {
@@ -120,27 +101,6 @@ public struct PlaylistView: View {
                         .padding(.vertical, 6)
                         .accessibilityIdentifier("video.card.\(video.id)")
                         .onAppear { vm.loadMoreIfNeeded(lastVideo: video) }
-                        #else
-                        VideoCardView(video: video, compact: true, currentPlaylistId: playlistId)
-                            .padding(.horizontal)
-                            .padding(.vertical, 6)
-                            .accessibilityIdentifier("video.card.\(video.id)")
-                            .onTapGesture {
-                                #if os(iOS)
-                                Task { @MainActor in
-                                    let captured = displayVideos
-                                    await CurrentQueueStore.shared.replaceAll(with: captured)
-                                    let startIdx =
-                                        video.playlistIndex ?? captured.firstIndex(where: { $0.id == video.id }) ?? 0
-                                    let toPlay = await CurrentQueueStore.shared.videoAt(index: startIdx) ?? video
-                                    playerRouter.open(video: toPlay, api: api)
-                                }
-                                #else
-                                selectedVideo = video
-                                #endif
-                            }
-                            .onAppear { vm.loadMoreIfNeeded(lastVideo: video) }
-                        #endif
                         Divider().padding(.horizontal)
                     }
                     if vm.isLoading {
@@ -148,7 +108,6 @@ public struct PlaylistView: View {
                     }
                 }
             } else {
-                #if os(tvOS)
                 let columnCount = 4
                 LazyVStack(alignment: .leading, spacing: 12) {
                     ForEach(Array(stride(from: 0, to: displayVideos.count, by: columnCount)), id: \.self) { startIdx in
@@ -187,41 +146,6 @@ public struct PlaylistView: View {
                 }
                 .padding(.horizontal)
                 .padding(.vertical, 8)
-                #else
-                LazyVGrid(
-                    columns: videoGridColumns(store.settings, landscape: isLandscapeLayout),
-                    spacing: videoGridRowSpacing
-                ) {
-                    ForEach(displayVideos) { video in
-                        VideoCardView(video: video, compact: false, currentPlaylistId: playlistId)
-                            .accessibilityIdentifier("video.card.\(video.id)")
-                            .onTapGesture {
-                                #if os(iOS)
-                                Task { @MainActor in
-                                    let captured = displayVideos
-                                    await CurrentQueueStore.shared.replaceAll(with: captured)
-                                    let startIdx =
-                                        video.playlistIndex ?? captured.firstIndex(where: { $0.id == video.id }) ?? 0
-                                    let toPlay = await CurrentQueueStore.shared.videoAt(index: startIdx) ?? video
-                                    playerRouter.open(video: toPlay, api: api)
-                                }
-                                #else
-                                Task { @MainActor in
-                                    let captured = displayVideos
-                                    await CurrentQueueStore.shared.replaceAll(with: captured)
-                                    let startIdx =
-                                        video.playlistIndex ?? captured.firstIndex(where: { $0.id == video.id }) ?? 0
-                                    selectedVideo = await CurrentQueueStore.shared.videoAt(index: startIdx) ?? video
-                                }
-                                #endif
-                            }
-                            .onAppear { vm.loadMoreIfNeeded(lastVideo: video) }
-                    }
-                }
-                .id(isLandscapeLayout)  // reset on column-count change — see VideoGridSection (#82)
-                .padding(.horizontal)
-                .padding(.vertical, 8)
-                #endif
                 if vm.isLoading {
                     ProgressView().frame(maxWidth: .infinity).padding()
                 }

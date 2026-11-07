@@ -13,9 +13,7 @@ struct CommentsOverlayView: View {
     let comments: [Comment]
     let isLoading: Bool
     let onDismiss: () -> Void
-    #if os(tvOS)
     var focusNamespace: Namespace.ID
-    #endif
     var accessibilityId: String? = nil
 
     var body: some View {
@@ -63,10 +61,8 @@ struct CommentsOverlayView: View {
             }
             .background(.regularMaterial)
             .clipShape(RoundedRectangle(cornerRadius: 16))
-            #if os(tvOS)
             .focusScope(focusNamespace)
             .onExitCommand { onDismiss() }
-            #endif
             .padding(.horizontal, 8)
             .safeAreaPadding(.horizontal)
             .padding(.bottom, 8)

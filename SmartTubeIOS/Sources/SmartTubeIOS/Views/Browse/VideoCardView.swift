@@ -36,22 +36,12 @@ public struct VideoCardView: View {
     @Environment(AuthService.self) private var authService
     @Environment(SettingsStore.self) private var store
     @Environment(\.innerTubeAPI) private var api
-    #if os(iOS)
-    @Environment(PlayerRouter.self) private var playerRouter
-    #endif
     @State private var localProgress: Double?
     @State private var watchLaterAlert: DownloadAlertItem?
     @State private var playlistPickerMode: PlaylistPickerSheet.Mode?
     /// Index into `video.thumbnailFallbackURLs`. -1 = use primary `thumbnailURL`.
     @State private var thumbnailFallbackIndex: Int = -1
-    #if !os(tvOS)
-    #if ENABLE_DOWNLOADS
-    @Environment(VideoDownloadService.self) private var downloadService
-    #endif
-    #endif
-    #if os(tvOS)
     @FocusState private var isFocused: Bool
-    #endif
 
     private var effectiveProgress: Double? {
         localProgress ?? video.watchProgress
@@ -104,62 +94,8 @@ public struct VideoCardView: View {
             // BotGuard.prepare() is idempotent (no-op if already ready, or coalescences with
             // an ongoing task), so all card tasks joining the same prepare() call pay ≤8 s
             // total — not per-card.
-            #if canImport(WebKit)
-            await BotGuardWebViewRunner.shared.prepare()
-            // iOS uses TOS player (WKWebView embed) by default — HLS URLs are never
-            // consumed there, so pre-warming the HLS extractor is pure waste and the
-            // primary source of the SlowLoad NON_FATAL (4497ms per card on scroll).
-            // Mac/tvOS still use AVPlayer and need the pre-warm.
-            #if !os(iOS)
-            if !video.isShort
-                && YouTubeWebViewHLSExtractor.activePreWarmLoops < YouTubeWebViewHLSExtractor.maxPreWarmLoops
-            {
-                YouTubeWebViewHLSExtractor.activePreWarmLoops += 1
-                defer { YouTubeWebViewHLSExtractor.activePreWarmLoops -= 1 }
-                let videoId = video.id
-                outer: while !Task.isCancelled {
-                    if await VideoPreloadCache.shared.cachedWKHLSURL(for: videoId) == nil {
-                        await YouTubeWebViewHLSExtractor.preWarm(videoId: videoId)
-                    }
-                    let hasCachedURL = await VideoPreloadCache.shared.cachedWKHLSURL(for: videoId) != nil
-                    let hasCachedPot = await VideoPreloadCache.shared.cachedPoToken(for: videoId) != nil
-                    if hasCachedURL && !hasCachedPot && !YouTubeWebViewHLSExtractor.isPreWarming {
-                        YouTubeWebViewHLSExtractor.isPreWarming = true
-                        if let freshURL = await YouTubeWebViewHLSExtractor.shared.serialExtract(videoId: videoId) {
-                            let freshPot = YouTubeWebViewHLSExtractor.shared.extractedPoToken
-                            await VideoPreloadCache.shared.store(
-                                wkHLSManifestURL: freshURL, for: videoId, isPreWarm: true)
-                            if let pot = freshPot {
-                                await VideoPreloadCache.shared.store(wkHLSPoToken: pot, for: videoId)
-                            }
-                        }
-                        YouTubeWebViewHLSExtractor.isPreWarming = false
-                    }
-                    CFNotificationCenterPostNotification(
-                        CFNotificationCenterGetDarwinNotifyCenter(),
-                        CFNotificationName("com.void.smarttube.player.prewarm.done.\(videoId)" as CFString),
-                        nil, nil, true
-                    )
-                    do {
-                        try await Task.sleep(nanoseconds: 30_000_000_000)
-                    } catch {
-                        break outer
-                    }
-                    let stillCached = await VideoPreloadCache.shared.cachedWKHLSURL(for: videoId) != nil
-                    if stillCached { break outer }
-                }
-            }
-            #endif
-            #endif
         }
         .contextMenu {
-            #if !os(tvOS)
-            if let shareURL = video.shareURL {
-                ShareLink(item: shareURL) {
-                    Label("Share", systemImage: AppSymbol.share)
-                }
-            }
-            #endif
             if let channelId = video.channelId, !channelId.isEmpty {
                 Button {
                     NotificationCenter.default.post(
@@ -261,13 +197,6 @@ public struct VideoCardView: View {
             } label: {
                 Label("Play Next", systemImage: "text.insert")
             }
-            #if os(iOS)
-            Button {
-                playerRouter.open(video: video, api: api, incognito: true)
-            } label: {
-                Label("Play Incognito", systemImage: "eyeglasses")
-            }
-            #endif
             if authService.isSignedIn {
                 Button(role: .destructive) {
                     Task {
@@ -305,18 +234,6 @@ public struct VideoCardView: View {
                     }
                 }
             }
-            #if !os(tvOS) && ENABLE_DOWNLOADS
-            Button {
-                downloadService.download(video: video)
-            } label: {
-                if downloadService.state.isActive {
-                    Label("Downloading…", systemImage: AppSymbol.download)
-                } else {
-                    Label("Download to Gallery", systemImage: AppSymbol.download)
-                }
-            }
-            .disabled(downloadService.state.isActive)
-            #endif
         } preview: {
             Group {
                 if compact {
@@ -329,18 +246,11 @@ public struct VideoCardView: View {
             .frame(width: 300)
             .background(.background)
         }
-        #if !os(tvOS)
-        // Download state is observed at app-root level (RootView) so the alert
-        // survives context menu dismiss animations that would otherwise reset
-        // the card-level @State. Only the button label/disabled state is read here.
-        .padding(0)  // zero-effect modifier to keep the view chain well-typed
-        #endif
     }
 
     // MARK: - Body
 
     public var body: some View {
-        #if os(tvOS)
         // Modifier order is critical on tvOS:
         //
         //   cardContent  (contains .contextMenu — handles long press)
@@ -365,14 +275,6 @@ public struct VideoCardView: View {
             .onAppear { feedLog.info("[feed] id=\(self.video.id) title=\(self.video.title)") }
             .onChange(of: isFocused) { _, newValue in
                 focusLog.info("[VideoCard] isFocused=\(newValue) id=\(self.video.id)")
-                #if canImport(WebKit)
-                if newValue, !video.isShort {
-                    let videoId = video.id
-                    Task(priority: .background) {
-                        await YouTubeWebViewHLSExtractor.preWarm(videoId: videoId)
-                    }
-                }
-                #endif
             }
             .shadow(color: isFocused ? .white.opacity(0.9) : .clear, radius: 18, x: 0, y: 0)
             .scaleEffect(isFocused ? 1.08 : 1.0)
@@ -387,19 +289,6 @@ public struct VideoCardView: View {
                     onFinished: handlePlaylistPickerResult
                 )
             }
-        #else
-        cardContent
-            .onAppear { feedLog.info("[feed] id=\(self.video.id) title=\(self.video.title)") }
-            .alert(item: $watchLaterAlert) { item in
-                Alert(title: Text(item.title), message: Text(item.message), dismissButton: .default(Text("OK")))
-            }
-            .sheet(item: $playlistPickerMode) { mode in
-                PlaylistPickerSheet(
-                    mode: mode, video: video, sourcePlaylistId: effectivePlaylistId, api: api,
-                    onFinished: handlePlaylistPickerResult
-                )
-            }
-        #endif
     }
 
     private func handlePlaylistPickerResult(_ result: Result<PlaylistInfo, Error>) {
@@ -589,19 +478,6 @@ public struct VideoCardView: View {
             .task(id: video.id) {
                 // Reset so a reused card slot always tries the primary URL for the new video.
                 thumbnailFallbackIndex = -1
-                #if canImport(WebKit)
-                await BotGuardWebViewRunner.shared.prepare()
-                #if !os(iOS)
-                if !video.isShort {
-                    let videoId = video.id
-                    while !Task.isCancelled {
-                        await YouTubeWebViewHLSExtractor.preWarm(videoId: videoId)
-                        if await VideoPreloadCache.shared.cachedWKHLSURL(for: videoId) != nil { break }
-                        try? await Task.sleep(nanoseconds: 4_000_000_000)
-                    }
-                }
-                #endif
-                #endif
             }
         }
     }
@@ -723,11 +599,7 @@ public struct VideoCardView: View {
 #if DEBUG
 #Preview("Card") {
     VideoCardView(video: PreviewData.videos[0], onSelect: {})
-        #if os(tvOS)
-    .frame(width: 420)
-        #else
-    .frame(width: 320)
-        #endif
+        .frame(width: 420)
         .padding()
         .previewEnvironment()
 }

@@ -1,10 +1,6 @@
 import Foundation
 import os
 
-#if canImport(FoundationNetworking)
-import FoundationNetworking
-#endif
-
 private let credLog = Logger(subsystem: appSubsystem, category: "Credentials")
 
 // MARK: - YouTubeClientCredentials

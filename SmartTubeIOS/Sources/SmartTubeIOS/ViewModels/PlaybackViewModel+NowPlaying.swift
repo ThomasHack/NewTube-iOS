@@ -1,11 +1,8 @@
 import AVFoundation
-import SmartTubeIOSCore
-import os
-
-#if canImport(UIKit)
-import UIKit
 import MediaPlayer
-#endif
+import SmartTubeIOSCore
+import UIKit
+import os
 
 private let playerLog = AppLogger(category: "Player")
 
@@ -14,15 +11,12 @@ private let playerLog = AppLogger(category: "Player")
 // Swift 6 actor-isolation assertion (_swift_task_checkIsolatedSwift → EXC_BREAKPOINT).
 // An inline closure defined inside a @MainActor method inherits @MainActor isolation
 // even when it only captures a value-type snapshot; extracting it here breaks that.
-#if canImport(UIKit)
 private func makeNonisolatedArtworkProvider(image: UIImage) -> (CGSize) -> UIImage {
     { _ in image }
 }
-#endif
 
 // MARK: - Now Playing (lock screen + Dynamic Island)
 
-#if canImport(UIKit)
 extension PlaybackViewModel {
 
     func setupAudioSessionObserver() {
@@ -223,4 +217,3 @@ extension PlaybackViewModel {
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
     }
 }
-#endif

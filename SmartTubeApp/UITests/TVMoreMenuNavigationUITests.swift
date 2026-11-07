@@ -8,7 +8,6 @@
 // Test: open more menu → press DOWN 3 times from Speed →
 //       verify each press advanced exactly 1 row (no skip).
 
-#if os(tvOS)
 import XCTest
 
 final class TVMoreMenuNavigationUITests: XCTestCase {
@@ -168,4 +167,3 @@ final class TVMoreMenuNavigationUITests: XCTestCase {
             "Selecting the Quality row must open the quality picker")
     }
 }
-#endif

@@ -33,24 +33,10 @@ extension ShortsPlayerView {
 
     @ViewBuilder
     var shortsOverlay: some View {
-        #if os(iOS)
-        // When paused, skip .contentShape so the UIHostingView doesn't intercept UIKit
-        // touches in the transparent Spacer region — native controls need direct delivery.
-        // Swipe navigation while paused is handled by the window-level UIPanGestureRecognizer
-        // in SwipeGestureOverlay (fires regardless of which UIView owns the touch).
-        if vm.playerState == .paused {
-            overlayStack
-        } else {
-            overlayStack
-                .contentShape(Rectangle())
-                .simultaneousGesture(overlaySwipeGesture)
-        }
-        #else
         // tvOS: no playerState on PlaybackViewModel, no DragGesture; contentShape for
         // D-pad focus but no swipe gesture (navigation via .onMoveCommand instead).
         overlayStack
             .contentShape(Rectangle())
-        #endif
     }
 
     private var overlayStack: some View {
@@ -82,33 +68,4 @@ extension ShortsPlayerView {
 
     // Swipe navigation gesture applied to the overlay when playing (contentShape active).
     // tvOS has no DragGesture — handled via .onMoveCommand in ShortsPlayerView.
-    #if !os(tvOS)
-    private var overlaySwipeGesture: some Gesture {
-        DragGesture(minimumDistance: 50, coordinateSpace: .global)
-            .onEnded { value in
-                guard !isTransitioning else { return }
-                let dy = value.translation.height
-                guard abs(dy) > abs(value.translation.width) else { return }
-                if dy < 0 {
-                    if let next = ShortsNavigation.targetIndex(
-                        vertical: -100, horizontal: 0,
-                        current: currentIndex, count: videos.count
-                    ) {
-                        performVerticalTransition(direction: -1) { goTo(next) }
-                    } else {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { slideOffset = 0 }
-                    }
-                } else {
-                    if let prev = ShortsNavigation.targetIndex(
-                        vertical: 100, horizontal: 0,
-                        current: currentIndex, count: videos.count
-                    ) {
-                        performVerticalTransition(direction: 1) { goTo(prev) }
-                    } else {
-                        loadMoreAtStart()
-                    }
-                }
-            }
-    }
-    #endif
 }

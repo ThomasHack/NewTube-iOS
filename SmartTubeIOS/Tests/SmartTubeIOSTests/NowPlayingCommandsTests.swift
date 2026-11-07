@@ -1,11 +1,9 @@
 import Foundation
+import MediaPlayer
 import Testing
 
 @testable import SmartTubeIOS
 @testable import SmartTubeIOSCore
-
-#if canImport(UIKit)
-import MediaPlayer
 
 /// Tests that setupRemoteCommandCenter registers next/previous track commands and
 /// that updateNowPlayingInfo correctly reflects hasNext/hasPrevious in the enabled
@@ -111,4 +109,3 @@ struct NowPlayingCommandsTests {
         #expect(vm.cachedArtworkVideoID == "sameVideo")
     }
 }
-#endif

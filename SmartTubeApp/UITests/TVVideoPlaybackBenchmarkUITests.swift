@@ -1,4 +1,3 @@
-#if os(tvOS)
 import XCTest
 
 // AGENT-POST-RUN-CHECK: ui-tests-with-logs
@@ -195,4 +194,3 @@ final class TVVideoPlaybackBenchmarkUITests: XCTestCase {
             "Expected \(videoIDs.count) timing entries, got \(timings.count)")
     }
 }
-#endif

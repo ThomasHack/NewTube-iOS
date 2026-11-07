@@ -2,10 +2,6 @@ import CryptoKit
 import Foundation
 import os
 
-#if canImport(FoundationNetworking)
-import FoundationNetworking
-#endif
-
 private let tubeLog = Logger(subsystem: appSubsystem, category: "InnerTube")
 
 /// Extracts the visitor identifier embedded in a YouTube watch page.

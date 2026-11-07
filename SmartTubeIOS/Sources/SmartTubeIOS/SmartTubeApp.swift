@@ -11,9 +11,6 @@ struct SmartTubeApp: App {
     /// the download task is not orphaned when a card view leaves the hierarchy
     /// (e.g. after a context menu dismiss). PlayerView creates its own isolated
     /// service instance and is unaffected.
-    #if ENABLE_DOWNLOADS
-    @State private var cardDownloadService: VideoDownloadService
-    #endif
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -23,19 +20,7 @@ struct SmartTubeApp: App {
         _browseViewModel = State(initialValue: BrowseViewModel(api: api))
         let settingsStore = SettingsStore()
         _settingsStore = State(initialValue: settingsStore)
-        #if ENABLE_DOWNLOADS
-        _cardDownloadService = State(initialValue: VideoDownloadService(api: api))
-        #endif
 
-        #if os(iOS)
-        // #107: UIKit reads UIDesignRequiresCompatibility once at process launch to
-        // decide whether to render iOS 26's Liquid Glass tab bar or the pre-26 style —
-        // there's no live/runtime API to flip it, so this can only take effect on the
-        // *next* launch after the user toggles it in Settings (see SettingsView's
-        // "Restart the app for this to take effect" note next to the toggle).
-        UserDefaults.standard.set(
-            settingsStore.settings.disableLiquidGlass, forKey: "UIDesignRequiresCompatibility")
-        #endif
     }
 
     var body: some Scene {
@@ -45,12 +30,6 @@ struct SmartTubeApp: App {
                 .environment(browseViewModel)
                 .environment(settingsStore)
                 .environment(\.innerTubeAPI, api)
-                #if ENABLE_DOWNLOADS
-                .environment(cardDownloadService)
-                #endif
-                #if ENABLE_DOWNLOADS
-                .environment(DownloadStore.shared)
-                #endif
                 .onChange(of: authService.accessToken, initial: true) { _, newToken in
                     Task {
                         await api.setAuthToken(newToken)
@@ -74,8 +53,5 @@ struct SmartTubeApp: App {
                 }
             }
         }
-        #if os(macOS)
-        .defaultSize(width: 1280, height: 800)
-        #endif
     }
 }

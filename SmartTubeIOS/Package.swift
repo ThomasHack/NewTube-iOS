@@ -5,28 +5,26 @@ let package = Package(
     name: "SmartTubeIOS",
     defaultLocalization: "en",
     platforms: [
-        .iOS(.v27),
-        .macOS(.v27),
-        .tvOS(.v27),
+        .tvOS(.v27)
     ],
     products: [
-        // Cross-platform core: models + InnerTube/SponsorBlock services (Foundation only).
+        // Core: models + InnerTube/SponsorBlock services (Foundation only).
         .library(
             name: "SmartTubeIOSCore",
             targets: ["SmartTubeIOSCore"]
         ),
-        // SwiftUI UI layer (iOS/iPadOS/macOS).
+        // SwiftUI UI layer.
         .library(name: "SmartTubeIOS", targets: ["SmartTubeIOS"]),
     ],
     targets: [
-        // MARK: Core – iOS, macOS (Foundation only)
+        // MARK: Core (Foundation only)
         .target(
             name: "SmartTubeIOSCore",
             dependencies: [],
             path: "Sources/SmartTubeIOSCore",
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
-        // MARK: UI – iOS/iPadOS/macOS (SwiftUI)
+        // MARK: UI (SwiftUI)
         .target(
             name: "SmartTubeIOS",
             dependencies: ["SmartTubeIOSCore"],

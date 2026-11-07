@@ -32,9 +32,6 @@ struct ManageRSSFeedsView: View {
                 }
             }
             .navigationTitle("Manage RSS Feeds")
-            #if !os(macOS) && !os(tvOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }

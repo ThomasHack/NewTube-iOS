@@ -1,4 +1,3 @@
-#if os(tvOS)
 import XCTest
 
 // MARK: - TVSettingsUITests
@@ -140,4 +139,3 @@ final class TVSettingsUITests: XCTestCase {
         )
     }
 }
-#endif

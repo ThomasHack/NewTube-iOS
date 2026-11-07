@@ -2,10 +2,6 @@ import Foundation
 import Network
 import os
 
-#if canImport(FoundationNetworking)
-import FoundationNetworking
-#endif
-
 private let tubeLog = Logger(subsystem: appSubsystem, category: "InnerTube")
 
 // MARK: - InnerTubeAPI

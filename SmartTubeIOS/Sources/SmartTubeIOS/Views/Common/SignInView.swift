@@ -2,10 +2,6 @@ import CoreImage
 import CoreImage.CIFilterBuiltins
 import SwiftUI
 
-#if os(macOS)
-import AppKit
-#endif
-
 // MARK: - SignInView
 //
 // Google Device Authorization Grant sign-in UI (mirrors Android's equivalent).
@@ -20,49 +16,9 @@ public struct SignInView: View {
     public init() {}
 
     public var body: some View {
-        #if os(tvOS)
         tvBody
-        #else
-        NavigationStack {
-            Group {
-                if let info = auth.pendingActivation {
-                    activationView(info: info)
-                } else {
-                    loadingView
-                }
-            }
-            .navigationTitle("Sign In")
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        auth.cancelSignIn()
-                        dismiss()
-                    }
-                }
-            }
-            .alert("Sign-In Failed", isPresented: $showError, presenting: auth.error) { _ in
-                Button("Try Again") { Task { await auth.beginSignIn() } }
-                Button("Cancel", role: .cancel) { auth.error = nil }
-            } message: { err in
-                Text(err.localizedDescription)
-            }
-            .onChange(of: auth.error == nil ? 0 : 1) { _, hasError in
-                if hasError == 1 { showError = true }
-            }
-        }
-        .task {
-            await auth.beginSignIn()
-        }
-        .onChange(of: auth.isSignedIn) { _, signedIn in
-            if signedIn { dismiss() }
-        }
-        #endif
     }
 
-    #if os(tvOS)
     /// Full-screen tvOS sign-in layout — two-column, 10-foot-UI friendly.
     private var tvBody: some View {
         ZStack(alignment: .topTrailing) {
@@ -171,7 +127,6 @@ public struct SignInView: View {
         .padding(60)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-    #endif
 
     // MARK: - Loading screen
 
@@ -199,22 +154,6 @@ public struct SignInView: View {
         return components.url?.absoluteString ?? info.verificationURL.absoluteString
     }
 
-    #if os(macOS)
-    /// Opens the activation URL in the system default browser.
-    ///
-    /// `ASWebAuthenticationSession` was tried here but crashes reliably on macOS
-    /// when the user closes Safari: the SafariLaunchAgent XPC teardown fires on a
-    /// non-main thread and AppKit's sheet dismissal path calls `dispatch_assert_queue`
-    /// against the main queue → `_dispatch_assert_queue_fail`.  Since Device
-    /// Authorization Grant never needs a redirect callback, a plain browser open is
-    /// both simpler and crash-free.
-    @MainActor
-    private func openActivationPageMac(info: AuthService.ActivationInfo) {
-        guard let url = URL(string: activationQRURL(info: info)) else { return }
-        NSWorkspace.shared.open(url)
-    }
-    #endif
-
     private func activationView(info: AuthService.ActivationInfo) -> some View {
         ScrollView {
             VStack(spacing: 28) {
@@ -239,11 +178,7 @@ public struct SignInView: View {
                 // On macOS use ASWebAuthenticationSession so the page opens in an
                 // in-app browser sheet rather than the external default browser.
                 Button {
-                    #if os(macOS)
-                    openActivationPageMac(info: info)
-                    #else
                     openURL(URL(string: activationQRURL(info: info)) ?? info.verificationURL)
-                    #endif
                 } label: {
                     Label("Open Activation Page", systemImage: "arrow.up.right")
                         .frame(maxWidth: .infinity)
@@ -283,12 +218,6 @@ public struct SignInView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 16))
 
                 Button {
-                    #if os(iOS)
-                    UIPasteboard.general.string = info.userCode
-                    #elseif os(macOS)
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(info.userCode, forType: .string)
-                    #endif
                 } label: {
                     Label("Copy Code", systemImage: AppSymbol.copyDoc)
                 }
@@ -360,13 +289,8 @@ struct QRCodeView: View {
         let context = CIContext()
         guard let cgImage = context.createCGImage(scaled, from: scaled.extent) else { return nil }
 
-        #if os(macOS)
-        let nsImage = NSImage(cgImage: cgImage, size: .zero)
-        return Image(nsImage: nsImage)
-        #else
         let uiImage = UIImage(cgImage: cgImage)
         return Image(uiImage: uiImage)
-        #endif
     }
 }
 

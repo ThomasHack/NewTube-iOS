@@ -1,10 +1,7 @@
 import AVFoundation
+import MediaPlayer
 import SmartTubeIOSCore
 import os
-
-#if canImport(UIKit)
-import MediaPlayer
-#endif
 
 private let playerLog = AppLogger(category: "Player")
 
@@ -74,9 +71,7 @@ extension PlaybackViewModel {
                     playerLog.error(
                         "[stall] player.rate→0 while isPlaying=true at t=\(t)s stall#\(self.stallCount) video=\(self.currentVideo?.id ?? "nil")"
                     )
-                    #if canImport(UIKit)
                     self.updateNowPlayingPlayback()
-                    #endif
                     // Stall recovery: mirror the AVPlayerItemPlaybackStalled path (#193).
                     // Wait 2 s for the system to self-heal (audio route change, interruption
                     // resume, etc.), then nudge the pipeline if still stalled. Guard on
@@ -137,7 +132,6 @@ extension PlaybackViewModel {
         }
     }
 
-    #if canImport(UIKit)
     func setupAirPlayObserver() {
         airPlayObserver = player.observe(\.isExternalPlaybackActive, options: [.new]) { [weak self] _, change in
             guard let self, let active = change.newValue else { return }
@@ -146,5 +140,4 @@ extension PlaybackViewModel {
             }
         }
     }
-    #endif
 }

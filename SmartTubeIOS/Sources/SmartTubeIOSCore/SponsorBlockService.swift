@@ -1,9 +1,5 @@
 import Foundation
 
-#if canImport(FoundationNetworking)
-import FoundationNetworking
-#endif
-
 // MARK: - SponsorBlockService
 //
 // Queries the SponsorBlock API (https://sponsor.ajay.app) to retrieve

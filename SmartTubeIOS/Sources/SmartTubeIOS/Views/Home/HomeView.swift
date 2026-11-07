@@ -18,9 +18,6 @@ public struct HomeView: View {
     @Environment(\.innerTubeAPI) private var api
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.scenePhase) private var scenePhase
-    #if os(iOS)
-    @Environment(PlayerRouter.self) private var playerRouter
-    #endif
 
     // "Home" is always first; its type is .home.
     @State private var selectedSection: BrowseSection = BrowseSection.allSections[0]
@@ -37,12 +34,6 @@ public struct HomeView: View {
     // Auto-retry tracking: record the type-specific video count at the moment a
     // scroll trigger fires so onChange can detect whether the next page helped.
     @State private var needsMoreShorts = false
-    #if os(macOS)
-    /// Tracks the video ID for which the TOS player hit a fatal embed error so
-    /// the NavigationDestination can fall through to the standard PlayerView for
-    /// that video only. Cleared when a different video is tapped.
-    @State private var tosPlayerFallbackVideoId: String? = nil
-    #endif
     @State private var shortsCountAtTrigger = 0
     @State private var needsMoreNonShorts = false
     @State private var nonShortsCountAtTrigger = 0
@@ -70,13 +61,11 @@ public struct HomeView: View {
         _sectionVM = State(initialValue: BrowseViewModel(api: api))
     }
 
-    #if os(tvOS)
     /// Apple TV has no chip bar: each tab shows one fixed section.
     public init(api: InnerTubeAPI, section: BrowseSection) {
         self.init(api: api)
         _selectedSection = State(initialValue: section)
     }
-    #endif
 
     /// Injects the view models directly so previews can supply sample data.
     init(homeVM: HomeViewModel, sectionVM: BrowseViewModel, section: BrowseSection? = nil) {
@@ -89,74 +78,25 @@ public struct HomeView: View {
 
     public var body: some View {
         VStack(spacing: 0) {
-            #if !os(tvOS)
-            chipBar
-            Divider()
-            #endif
             contentArea
-                #if !os(iOS)
-            .navigationDestination(item: $selectedVideo) { video in
-                #if os(macOS)
-                if store.settings.useTOSPlayerOnMac && tosPlayerFallbackVideoId != video.id {
-                    TOSPlayerView(video: video, api: api) {
-                        tosPlayerFallbackVideoId = video.id
-                    }
-                    .environment(store)
-                    .onDisappear { tosPlayerFallbackVideoId = nil }
-                } else {
+                .navigationDestination(item: $selectedVideo) { video in
                     PlayerView(video: video, api: api)
                 }
-                #else
-                PlayerView(video: video, api: api)
-                #endif
-            }
-                #endif
                 .navigationDestination(item: $selectedPlaylist) { stub in
                     PlaylistView(playlistId: stub.id, playlistTitle: stub.title, api: api)
                 }
                 .navigationDestination(item: $channelDestination) { dest in
                     ChannelView(channelId: dest.channelId)
                 }
-                #if os(tvOS)
-            .focusSection()
-            #endif
+                .focusSection()
         }
-        #if os(iOS)
-        // Player cover is centralised in MainTabView; deep-link handled there too.
-        .toolbar(.hidden, for: .navigationBar)
-        .fullScreenCover(item: $shortsPresentation) { target in
-            ShortsPlayerView(videos: target.videos, startIndex: target.startIndex, api: api)
-        }
-        #endif
         .sheet(isPresented: $showSignIn) { SignInView() }
         .onReceive(NotificationCenter.default.publisher(for: .openChannel)) { note in
             guard let channelId = note.userInfo?["channelId"] as? String, !channelId.isEmpty else { return }
             channelDestination = ChannelDestination(channelId: channelId)
         }
-        #if os(iOS)
-        // App Intents ("Open Subscriptions in SmartTube"): RootView switches to this tab.
-        // A section hidden in Settings still opens, just without a chip.
-        .onReceive(NotificationCenter.default.publisher(for: .smartTubeOpenSection)) { note in
-            guard let raw = note.userInfo?["section"] as? String,
-                let type = BrowseSection.SectionType(rawValue: raw)
-            else { return }
-            selectedSection =
-                visibleSections.first { $0.type == type }
-                ?? BrowseSection(id: type.rawValue, title: type.defaultTitle, type: type)
-        }
-        #endif
-        #if !os(tvOS)
-        .onChange(of: visibleSections) { _, newSections in
-            if !newSections.contains(selectedSection), let first = newSections.first {
-                selectedSection = first
-            }
-        }
-        #endif
         .task(id: auth.accessToken) {
             // Apple TV never shows the mixed Home feed, so it must not be loaded there.
-            #if !os(tvOS)
-            await homeVM.updateAuthToken(auth.accessToken)
-            #endif
             await sectionVM.updateAuthToken(auth.accessToken)
         }
         .task(id: selectedSection) {
@@ -183,87 +123,6 @@ public struct HomeView: View {
     }
 
     // MARK: - Chip bar
-
-    #if !os(tvOS)
-    private var chipBar: some View {
-        ScrollViewReader { proxy in
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(visibleSections) { section in
-                        chipButton(section: section).id(section.id)
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-            }
-            // Keep the selected chip in view when the section changes by swipe (#159) or
-            // App Intent, not by tapping the chip.
-            .onChange(of: selectedSection) { _, section in
-                withAnimation { proxy.scrollTo(section.id, anchor: .center) }
-            }
-        }
-        .accessibilityIdentifier("home.chipBar")
-    }
-
-    private func chipButton(section: BrowseSection) -> some View {
-        let isSelected = selectedSection == section
-        let action = {
-            let isNewSection = selectedSection != section
-            if isNewSection {
-                select(section)
-            } else if section.type != .home, sectionVM.videoGroups.isEmpty && !sectionVM.isLoading {
-                // Same chip re-tapped on an empty section — retry the load.
-                // This handles failed fetches or cases where an observation gap
-                // left the view showing an empty state despite data being available.
-                sectionVM.reload(section: section)
-            }
-        }
-        return Button(action: action) {
-            Text(section.title)
-                .font(.subheadline.weight(.medium))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 7)
-                .background(
-                    isSelected ? Color.primary : Color.secondary.opacity(0.15),
-                    in: Capsule()
-                )
-                .foregroundStyle(
-                    isSelected
-                        ? Color(white: colorScheme == .dark ? 0 : 1)
-                        : Color.primary
-                )
-        }
-        .buttonStyle(.plain)
-        .animation(.easeInOut(duration: 0.15), value: selectedSection)
-        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
-    }
-
-    private func select(_ section: BrowseSection) {
-        selectedSection = section
-        if section.type != .home { sectionVM.select(section: section) }
-    }
-    #endif
-
-    #if os(iOS)
-    // MARK: - Swipe between sections (#159)
-
-    /// A clearly sideways swipe over the feed moves to the next / previous chip. Attached
-    /// only to the vertical feeds, not the horizontal Shorts row, whose own scrolling would
-    /// otherwise also change the section.
-    private var sectionSwipe: some Gesture {
-        DragGesture(minimumDistance: 30)
-            .onEnded { value in
-                let dx = value.translation.width
-                let dy = value.translation.height
-                guard abs(dx) > 80, abs(dx) > abs(dy) * 2 else { return }
-                let sections = visibleSections
-                guard let index = sections.firstIndex(of: selectedSection) else { return }
-                let next = index + (dx < 0 ? 1 : -1)
-                guard sections.indices.contains(next) else { return }
-                withAnimation(.easeInOut(duration: 0.2)) { select(sections[next]) }
-            }
-    }
-    #endif
 
     // MARK: - Content area
 
@@ -295,9 +154,6 @@ public struct HomeView: View {
             ChannelListView(channels: sectionVM.subscribedChannels) { channel in
                 channelDestination = ChannelDestination(channelId: channel.id)
             }
-            #if os(iOS)
-            .simultaneousGesture(sectionSwipe)
-            #endif
         }
     }
 
@@ -314,9 +170,6 @@ public struct HomeView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .contentShape(Rectangle())
-        #if os(iOS)
-        .simultaneousGesture(sectionSwipe)
-        #endif
     }
 
     // MARK: - Home shelves  (unified interleaved feed)
@@ -340,9 +193,7 @@ public struct HomeView: View {
                             accessibilityID: "home.shortsRow",
                             loadMore: { homeVM.loadNextShortsPage() }
                         )
-                        #if os(tvOS)
                         .focusSection()
-                        #endif
                     }
                     ScrollView {
                         VStack(alignment: .leading, spacing: 0) {
@@ -358,12 +209,7 @@ public struct HomeView: View {
                         }
                     }
                     .refreshable { homeVM.load() }
-                    #if os(iOS)
-                    .simultaneousGesture(sectionSwipe)
-                    #endif
-                    #if os(tvOS)
                     .focusSection()
-                    #endif
                 }
             }
         }
@@ -538,9 +384,7 @@ public struct HomeView: View {
                         }
                     }
                 )
-                #if os(tvOS)
                 .focusSection()
-                #endif
             }
             if isShorts {
                 // Shorts chip: vertical portrait card list driven by ShortsRowSection's
@@ -564,9 +408,7 @@ public struct HomeView: View {
                     scrollAxis: .vertical
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                #if os(tvOS)
                 .focusSection()
-                #endif
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
@@ -614,12 +456,7 @@ public struct HomeView: View {
                 }
                 .accessibilityIdentifier("home.sectionFeed")
                 .refreshable { sectionVM.loadContent(refresh: true) }
-                #if os(iOS)
-                .simultaneousGesture(sectionSwipe)
-                #endif
-                #if os(tvOS)
                 .focusSection()
-                #endif
             }
         }
         .onChange(of: sectionVM.videoGroups.flatMap(\.videos).count) { _, _ in
@@ -763,9 +600,6 @@ public struct HomeView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .contentShape(Rectangle())
-        #if os(iOS)
-        .simultaneousGesture(sectionSwipe)
-        #endif
     }
 
     // MARK: - Video selection
@@ -774,19 +608,9 @@ public struct HomeView: View {
         if video.playlistId == video.id {
             selectedPlaylist = video
         } else if video.isShort {
-            #if os(iOS)
-            let shorts = groupVideos.filter { $0.isShort }
-            let idx = shorts.firstIndex(where: { $0.id == video.id }) ?? 0
-            shortsPresentation = ShortsPresentation(videos: shorts, startIndex: idx)
-            #else
             selectedVideo = video
-            #endif
         } else {
-            #if os(iOS)
-            playerRouter.open(video: video, api: api)
-            #else
             selectedVideo = video
-            #endif
         }
     }
 }
@@ -802,7 +626,6 @@ extension HomeView {
     }
 }
 
-#if os(tvOS)
 #Preview("Recommended") {
     NavigationStack { HomeView.preview(section: BrowseSection(type: .recommended)) }
         .previewEnvironment()
@@ -817,15 +640,4 @@ extension HomeView {
     NavigationStack { HomeView.preview(section: BrowseSection(type: .recommended)) }
         .previewEnvironment(signedIn: false)
 }
-#else
-#Preview("Signed in") {
-    NavigationStack { HomeView.preview() }
-        .previewEnvironment()
-}
-
-#Preview("Signed out") {
-    NavigationStack { HomeView.preview() }
-        .previewEnvironment(signedIn: false)
-}
-#endif
 #endif

@@ -121,15 +121,9 @@ struct HLSManifestParserTests {
         let result = parseHLSMasterManifest(manifest, baseURL: base)
         #expect(result[1080] != nil)
         // On iOS/macOS the H.264 variant must win; on tvOS the first-seen (HEVC) wins.
-        #if os(tvOS)
         #expect(
             result[1080] == URL(string: "https://cdn.example.com/1080p_hevc.m3u8"),
             "tvOS: keeps first-seen HEVC variant")
-        #else
-        #expect(
-            result[1080] == URL(string: "https://cdn.example.com/1080p_h264.m3u8"),
-            "iOS/macOS: upgrades to H.264 variant for broader compatibility")
-        #endif
     }
 
     @Test("H.264 first, HEVC second: H.264 is not downgraded")

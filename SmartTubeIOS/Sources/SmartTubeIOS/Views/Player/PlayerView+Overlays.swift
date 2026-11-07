@@ -1,10 +1,7 @@
 import SmartTubeIOSCore
 import SwiftUI
-import os
-
-#if canImport(UIKit)
 import UIKit
-#endif
+import os
 
 private let menuLog = AppLogger(category: "PlayerMenu")
 
@@ -127,7 +124,6 @@ extension PlayerView {
                 maxWidth: moreMenuPortraitWidth,
                 maxHeight: moreMenuContentHeight > 0 ? min(moreMenuContentHeight, moreMenuMaxHeight) : moreMenuMaxHeight
             )
-            #if os(tvOS)
             // Native SwiftUI focus handles D-pad navigation via the .focused() bindings
             // on each row button. onMoveCommand was removed because it caused a double-step
             // bug: both onMoveCommand and the native focus engine responded to the same
@@ -142,7 +138,6 @@ extension PlayerView {
             .onDisappear {
                 menuLog.notice("[moreMenu] overlay disappeared")
             }
-            #endif
             .padding(.horizontal, 8)
             .safeAreaPadding(.horizontal)
             .padding(.horizontal, moreMenuAdditionalHorizontalPadding)
@@ -151,9 +146,7 @@ extension PlayerView {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
         }
         .ignoresSafeArea()
-        #if os(tvOS)
         .focusScope(moreMenuNamespace)
-        #endif
     }
 
     @ViewBuilder private var moreMenuItems: some View {
@@ -177,16 +170,12 @@ extension PlayerView {
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
             Divider()
-            #if os(tvOS)
             moreMenuSpeedRow
             moreMenuQualityRow
-            #endif
             moreMenuLikeDislikeRow
             moreMenuShareRow
-            #if os(tvOS)
             moreMenuSleepTimerRow
             moreMenuAudioOnlyRow
-            #endif
             moreMenuQueueShuffleRow
             moreMenuDownloadRow
             moreMenuCaptionsRow
@@ -201,27 +190,15 @@ extension PlayerView {
     }
 
     private var moreMenuMaxHeight: CGFloat {
-        #if os(iOS)
-        verticalSizeClass == .compact ? 320 : 440
-        #else
         520
-        #endif
     }
 
     private var moreMenuAdditionalHorizontalPadding: CGFloat {
-        #if os(iOS)
-        vm.isLandscape ? 36 : 0
-        #else
         0
-        #endif
     }
 
     var moreMenuPortraitWidth: CGFloat {
-        #if os(iOS)
-        min(UIScreen.main.bounds.width, UIScreen.main.bounds.height) * 0.8
-        #else
         .infinity
-        #endif
     }
 
     // MARK: - Description overlay
@@ -277,10 +254,8 @@ extension PlayerView {
             }
             .background(.regularMaterial)
             .clipShape(RoundedRectangle(cornerRadius: 16))
-            #if os(tvOS)
             .focusScope(descriptionOverlayNamespace)
             .onExitCommand { showDescriptionSheet = false }
-            #endif
             .padding(.horizontal, 8)
             .safeAreaPadding(.horizontal)
             .padding(.bottom, 8)
@@ -316,20 +291,12 @@ extension PlayerView {
     // MARK: - Comments overlay
 
     var commentsOverlay: some View {
-        #if os(tvOS)
         CommentsOverlayView(
             comments: vm.comments.comments,
             isLoading: vm.comments.isLoading,
             onDismiss: { showCommentsSheet = false },
             focusNamespace: commentsOverlayNamespace
         )
-        #else
-        CommentsOverlayView(
-            comments: vm.comments.comments,
-            isLoading: vm.comments.isLoading,
-            onDismiss: { showCommentsSheet = false }
-        )
-        #endif
     }
 
     // MARK: - Comments loading
@@ -366,16 +333,13 @@ extension PlayerView {
         .buttonStyle(.plain)
         .foregroundStyle(.primary)
         .accessibilityIdentifier("player.moreMenu.speedRow")
-        #if os(tvOS)
         .background(moreMenuFocusedRow == .speed ? Color.gray.opacity(0.35) : .clear)
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .focused($moreMenuFocusedRow, equals: .speed)
         .prefersDefaultFocus(in: moreMenuNamespace)
-        #endif
         Divider()
     }
 
-    #if os(tvOS)
     @ViewBuilder private var moreMenuQualityRow: some View {
         if !vm.availableFormats.isEmpty {
             Button {
@@ -404,14 +368,9 @@ extension PlayerView {
             Divider()
         }
     }
-    #endif
 
     private var shouldShowAudioTrackInMoreMenu: Bool {
-        #if os(tvOS)
         vm.availableAudioTracks.count > 1
-        #else
-        vm.availableAudioTracks.count > 1 && !vm.controlsVisible
-        #endif
     }
 
     @ViewBuilder private var moreMenuLikeDislikeRow: some View {
@@ -433,11 +392,9 @@ extension PlayerView {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("player.moreMenu.likeRow")
-                #if os(tvOS)
                 .background(moreMenuFocusedRow == .like ? Color.gray.opacity(0.35) : .clear)
                 .clipShape(RoundedRectangle(cornerRadius: 10))
                 .focused($moreMenuFocusedRow, equals: .like)
-                #endif
                 Divider().frame(height: 44)
                 Button {
                     vm.dislike()
@@ -455,33 +412,15 @@ extension PlayerView {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("player.moreMenu.dislikeRow")
-                #if os(tvOS)
                 .background(moreMenuFocusedRow == .dislike ? Color.gray.opacity(0.35) : .clear)
                 .clipShape(RoundedRectangle(cornerRadius: 10))
                 .focused($moreMenuFocusedRow, equals: .dislike)
-                #endif
             }
             Divider()
         }
     }
 
     @ViewBuilder private var moreMenuShareRow: some View {
-        #if os(iOS)
-        Button {
-            showMoreMenu = false
-            if let url = (vm.playerInfo?.video ?? video).shareURL {
-                presentShareSheet(url: url)
-            }
-        } label: {
-            Label("Share", systemImage: AppSymbol.share)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding()
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .foregroundStyle(.primary)
-        Divider()
-        #endif
     }
 
     @ViewBuilder private var moreMenuSleepTimerRow: some View {
@@ -507,11 +446,9 @@ extension PlayerView {
         .buttonStyle(.plain)
         .foregroundStyle(.primary)
         .accessibilityIdentifier("player.moreMenu.sleepTimerRow")
-        #if os(tvOS)
         .background(moreMenuFocusedRow == .sleepTimer ? Color.gray.opacity(0.35) : .clear)
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .focused($moreMenuFocusedRow, equals: .sleepTimer)
-        #endif
         Divider()
     }
 
@@ -543,11 +480,9 @@ extension PlayerView {
         .buttonStyle(.plain)
         .foregroundStyle(.primary)
         .accessibilityIdentifier("player.moreMenu.audioOnlyRow")
-        #if os(tvOS)
         .background(moreMenuFocusedRow == .audioOnly ? Color.gray.opacity(0.35) : .clear)
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .focused($moreMenuFocusedRow, equals: .audioOnly)
-        #endif
         Divider()
     }
 
@@ -579,38 +514,14 @@ extension PlayerView {
             .buttonStyle(.plain)
             .foregroundStyle(.primary)
             .accessibilityIdentifier("player.moreMenu.queueShuffleRow")
-            #if os(tvOS)
             .background(moreMenuFocusedRow == .queueShuffle ? Color.gray.opacity(0.35) : .clear)
             .clipShape(RoundedRectangle(cornerRadius: 10))
             .focused($moreMenuFocusedRow, equals: .queueShuffle)
-            #endif
             Divider()
         }
     }
 
     @ViewBuilder private var moreMenuDownloadRow: some View {
-        #if !os(tvOS) && ENABLE_DOWNLOADS
-        Button {
-            showMoreMenu = false
-            downloadService.download(video: vm.playerInfo?.video ?? video)
-        } label: {
-            Group {
-                if downloadService.state.isActive {
-                    Label("Downloading…", systemImage: AppSymbol.download)
-                } else {
-                    Label("Download to Gallery", systemImage: AppSymbol.download)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding()
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .foregroundStyle(.primary)
-        .disabled(downloadService.state.isActive)
-        .accessibilityIdentifier("player.moreMenu.downloadButton")
-        Divider()
-        #endif
     }
 
     @ViewBuilder private var moreMenuCaptionsRow: some View {
@@ -635,11 +546,9 @@ extension PlayerView {
             .buttonStyle(.plain)
             .foregroundStyle(.primary)
             .accessibilityIdentifier("player.moreMenu.captionsRow")
-            #if os(tvOS)
             .background(moreMenuFocusedRow == .captions ? Color.gray.opacity(0.35) : .clear)
             .clipShape(RoundedRectangle(cornerRadius: 10))
             .focused($moreMenuFocusedRow, equals: .captions)
-            #endif
             Divider()
         }
     }
@@ -666,11 +575,9 @@ extension PlayerView {
             .buttonStyle(.plain)
             .foregroundStyle(.primary)
             .accessibilityIdentifier("player.moreMenu.audioTrackRow")
-            #if os(tvOS)
             .background(moreMenuFocusedRow == .audioTrack ? Color.gray.opacity(0.35) : .clear)
             .clipShape(RoundedRectangle(cornerRadius: 10))
             .focused($moreMenuFocusedRow, equals: .audioTrack)
-            #endif
             Divider()
         }
     }
@@ -690,11 +597,9 @@ extension PlayerView {
             .buttonStyle(.plain)
             .foregroundStyle(.primary)
             .accessibilityIdentifier("player.moreMenu.descriptionRow")
-            #if os(tvOS)
             .background(moreMenuFocusedRow == .description ? Color.gray.opacity(0.35) : .clear)
             .clipShape(RoundedRectangle(cornerRadius: 10))
             .focused($moreMenuFocusedRow, equals: .description)
-            #endif
             Divider()
         }
     }
@@ -713,11 +618,9 @@ extension PlayerView {
         .buttonStyle(.plain)
         .foregroundStyle(.primary)
         .accessibilityIdentifier("player.moreMenu.commentsRow")
-        #if os(tvOS)
         .background(moreMenuFocusedRow == .comments ? Color.gray.opacity(0.35) : .clear)
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .focused($moreMenuFocusedRow, equals: .comments)
-        #endif
         Divider()
     }
 
@@ -741,11 +644,9 @@ extension PlayerView {
         .buttonStyle(.plain)
         .foregroundStyle(.primary)
         .accessibilityIdentifier("player.moreMenu.statsForNerds")
-        #if os(tvOS)
         .background(moreMenuFocusedRow == .statsForNerds ? Color.gray.opacity(0.35) : .clear)
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .focused($moreMenuFocusedRow, equals: .statsForNerds)
-        #endif
         Divider()
     }
 
@@ -762,10 +663,8 @@ extension PlayerView {
         .buttonStyle(.plain)
         .foregroundStyle(.primary)
         .accessibilityIdentifier("player.moreMenu.cancel")
-        #if os(tvOS)
         .background(moreMenuFocusedRow == .cancel ? Color.gray.opacity(0.35) : .clear)
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .focused($moreMenuFocusedRow, equals: .cancel)
-        #endif
     }
 }

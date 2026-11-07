@@ -99,14 +99,6 @@ final class PlaybackQualityManager {
     var hasAppliedH264Cap: Bool = false
     @ObservationIgnored var qualityTask: Task<Void, Never>? = nil
     @ObservationIgnored private var itemObserverTask: Task<Void, Never>? = nil
-    #if canImport(WebKit)
-    /// Keeps the YTHLSProxyLoader alive for the duration of WebView-HLS playback.
-    @ObservationIgnored var webHLSProxyLoader: YTHLSProxyLoader? = nil
-    /// The master manifest URL obtained via WKWebView HLS extraction.
-    /// Non-nil only when the video is being played via the WKWebView HLS path.
-    /// Used by `selectFormat` to route quality switches through `reloadWKHLSItem`.
-    @ObservationIgnored var wkHLSMasterURL: URL? = nil
-    #endif
 
     // MARK: - Cross-load HLS manifest cache
     //
@@ -152,10 +144,6 @@ final class PlaybackQualityManager {
         qualityTask = nil
         itemObserverTask?.cancel()
         itemObserverTask = nil
-        #if canImport(WebKit)
-        webHLSProxyLoader = nil
-        wkHLSMasterURL = nil
-        #endif
     }
 
     func cancel() {
@@ -200,28 +188,6 @@ final class PlaybackQualityManager {
         let savedTime = delegate.currentTime
         qualityTask = Task { [weak self] in
             guard let self else { return }
-            #if canImport(WebKit)
-            // Guard: if current playback is a muxed fallback, all stored HLS variant URLs
-            // are from an expired/failed session. Reusing them would immediately 403.
-            // Trigger 403 recovery to run a fresh exhaustiveRetry → fresh WKWebView extraction.
-            if isMuxedFallback {
-                wkHLSMasterURL = nil
-                hlsVariantURLs = [:]
-                webHLSProxyLoader = nil
-                isMuxedFallback = false
-                playerLog.notice(
-                    "[quality] muxed fallback — clearing stale wkHLS URLs, triggering recovery for fresh extraction")
-                let err = NSError(
-                    domain: NSURLErrorDomain, code: -1102,
-                    userInfo: [NSLocalizedDescriptionKey: "Quality switch: current stream is muxed fallback"])
-                await delegate.qualityItemDidFail(error: err, quality: quality, hasAppliedH264Cap: hasAppliedH264Cap)
-                return
-            }
-            if self.wkHLSMasterURL != nil {
-                await self.reloadWKHLSItem(seekTo: savedTime, height: format?.height)
-                return
-            }
-            #endif
             if self.delegate?.playerInfo?.hlsURL != nil {
                 await self.reloadHLSItem(seekTo: savedTime, quality: quality)
             } else {
@@ -633,77 +599,4 @@ final class PlaybackQualityManager {
         delegate?.isSwappingItem = false
     }
 
-    #if canImport(WebKit)
-    /// Switches quality for a video playing via WKWebView HLS proxy.
-    ///
-    /// Picks the variant playlist URL for `height` from `hlsVariantURLs` (or the highest
-    /// available when `height` is nil for Auto), routes it through a fresh `YTHLSProxyLoader`
-    /// with the same nSolver as the current loader, and replaces the AVPlayer item.
-    /// On `readyToPlay`, delegates the seek + rate restore to `qualityItemDidBecomeReady`.
-    private func reloadWKHLSItem(seekTo time: TimeInterval, height: Int?) async {
-        guard !Task.isCancelled else { return }
-        let sortedHeights = hlsVariantURLs.keys.sorted(by: >)
-        let selectedHeight: Int?
-        if let h = height {
-            // Best variant at or below requested height, falling back to the lowest if none fit.
-            selectedHeight = sortedHeights.first(where: { $0 <= h }) ?? sortedHeights.last
-        } else {
-            // Auto = highest available variant.
-            selectedHeight = sortedHeights.first
-        }
-        guard let h = selectedHeight, let variantURL = hlsVariantURLs[h] else {
-            playerLog.error("[wkHLS quality] no variant URL for height=\(height.map { "\($0)" } ?? "Auto")")
-            return
-        }
-        guard let proxyURL = variantURL.proxyURL else {
-            playerLog.error("[wkHLS quality] failed to build proxy URL for \(h)p")
-            return
-        }
-        let ua =
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15"
-        let nSolver = webHLSProxyLoader?.nSolver
-        let existingCookies = webHLSProxyLoader?.webViewCookies ?? []
-        let existingLang = webHLSProxyLoader?.selectedLanguageContentID
-        playerLog.notice(
-            "[wkHLS quality] switching to \(h)p via proxy (nSolver=\(nSolver != nil) cookies=\(existingCookies.count) lang=\(existingLang ?? "original"))"
-        )
-        let newLoader = YTHLSProxyLoader(
-            ua: ua, nSolver: nSolver, webViewCookies: existingCookies,
-            selectedLanguageContentID: existingLang)
-        webHLSProxyLoader = newLoader
-        let asset = AVURLAsset(url: proxyURL)
-        asset.resourceLoader.setDelegate(newLoader, queue: DispatchQueue.global(qos: .userInitiated))
-        let item = AVPlayerItem(asset: asset)
-        item.audioTimePitchAlgorithm = .spectral
-        item.preferredForwardBufferDuration = 2.0
-        Task { [weak item] in
-            try? await Task.sleep(for: .seconds(5))
-            item?.preferredForwardBufferDuration = 0
-        }
-        itemObserverTask?.cancel()
-        itemObserverTask = Task { [weak self] in
-            for await status in item.statusStream {
-                guard let self, !Task.isCancelled else { return }
-                switch status {
-                case .readyToPlay:
-                    let size = item.presentationSize
-                    playerLog.notice(
-                        "✅ [wkHLS quality] readyToPlay — presentationSize=\(Int(size.width))x\(Int(size.height))")
-                    self.player.rate = Float(self.delegate?.settings.playbackSpeed ?? 1)
-                    self.delegate?.qualityItemDidBecomeReady(item, seekTo: time)
-                case .failed:
-                    let err = item.error.map { "\($0)" } ?? "nil"
-                    playerLog.error("❌ [wkHLS quality] AVPlayerItem failed: \(err)")
-                    await MainActor.run { self.delegate?.toastMessage = "Quality unavailable" }
-                case .unknown: break
-                @unknown default: break
-                }
-            }
-        }
-        delegate?.isQualityChangePending = true
-        delegate?.isSwappingItem = true
-        player.replaceCurrentItem(with: item)
-        delegate?.isSwappingItem = false
-    }
-    #endif
 }

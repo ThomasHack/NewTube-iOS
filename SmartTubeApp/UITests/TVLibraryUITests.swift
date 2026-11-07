@@ -1,4 +1,3 @@
-#if os(tvOS)
 import XCTest
 
 // MARK: - TVLibraryUITests
@@ -148,4 +147,3 @@ final class TVLibraryUITests: XCTestCase {
         XCTAssertTrue(homeChipBar.exists, "home.sectionContainer must reappear after returning from Library")
     }
 }
-#endif

@@ -8,7 +8,6 @@
 //   testNoLoadingSpinnerAfterPlaybackStarts — spinner gone 8 s after player opens
 //   testPlaybackContinuesAfterControlsHide  — player still up after controls auto-hide
 
-#if os(tvOS)
 import XCTest
 
 final class TVVideoPlaybackRegressionUITests: XCTestCase {
@@ -175,4 +174,3 @@ final class TVVideoPlaybackRegressionUITests: XCTestCase {
         )
     }
 }
-#endif  // os(tvOS)

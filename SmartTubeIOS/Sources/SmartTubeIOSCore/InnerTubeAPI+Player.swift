@@ -1,10 +1,6 @@
 import Foundation
 import os
 
-#if canImport(FoundationNetworking)
-import FoundationNetworking
-#endif
-
 private let tubeLog = Logger(subsystem: appSubsystem, category: "InnerTube")
 
 // MARK: - Player endpoints and playback tracking

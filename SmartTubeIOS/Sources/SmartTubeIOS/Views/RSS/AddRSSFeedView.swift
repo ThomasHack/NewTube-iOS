@@ -21,10 +21,6 @@ struct AddRSSFeedView: View {
                     TextField("RSS Feed URL", text: $feedURL)
                         .textContentType(.URL)
                         .autocorrectionDisabled()
-                        #if os(iOS)
-                    .keyboardType(.URL)
-                    .textInputAutocapitalization(.never)
-                        #endif
                         .accessibilityIdentifier("rss.addFeed.urlField")
                 }
 
@@ -63,9 +59,6 @@ struct AddRSSFeedView: View {
                 }
             }
             .navigationTitle("Add RSS Feed")
-            #if !os(macOS) && !os(tvOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }

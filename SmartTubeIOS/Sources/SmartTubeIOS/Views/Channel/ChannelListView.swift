@@ -10,15 +10,12 @@ import SwiftUI
 struct ChannelListView: View {
     let channels: [Channel]
     let onSelect: (Channel) -> Void
-    #if os(tvOS)
     @FocusState private var focusedChannelId: String?
-    #endif
 
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 0) {
                 ForEach(channels) { channel in
-                    #if os(tvOS)
                     Button {
                         onSelect(channel)
                     } label: {
@@ -31,19 +28,12 @@ struct ChannelListView: View {
                     }
                     .buttonStyle(.plain)
                     .focused($focusedChannelId, equals: channel.id)
-                    #else
-                    ChannelListRow(channel: channel)
-                        .contentShape(Rectangle())
-                        .onTapGesture { onSelect(channel) }
-                    #endif
                     Divider()
                         .padding(.leading, 72)
                 }
             }
         }
-        #if os(tvOS)
         .focusSection()
-        #endif
     }
 }
 

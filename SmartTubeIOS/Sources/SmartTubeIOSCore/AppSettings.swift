@@ -307,11 +307,7 @@ public struct AppSettings: Codable {
         audioOnlyMode = false
         preferH264 = false
         iCloudSyncEnabled = false
-        #if os(macOS)
-        useTOSPlayerOnMac = true
-        #else
         useTOSPlayerOnMac = false
-        #endif
         settingsVersion = 1
     }
 }

@@ -437,11 +437,7 @@ public final class HomeViewModel {
     /// iOS: ~3 cards/screen → threshold = 6; tvOS: ~4 cards/screen → threshold = 8.
     func loadMoreShortsIfNeeded() async {
         guard showsShorts else { return }
-        #if os(tvOS)
         let threshold = 8
-        #else
-        let threshold = 6
-        #endif
         guard !isLoadingMoreShorts else {
             homeLog.notice("loadMoreShortsIfNeeded: skipped — already loading")
             return
@@ -473,11 +469,7 @@ public final class HomeViewModel {
     /// (`loadMoreShortsIfNeeded`), so the Shorts row keeps growing for an
     /// endless-scroll experience without delaying `isRefreshing = false`.
     private func preloadMoreShorts() async {
-        #if os(tvOS)
         let preloadHighThreshold = 50
-        #else
-        let preloadHighThreshold = 40
-        #endif
         guard !isLoadingMoreShorts else { return }
         isLoadingMoreShorts = true
         defer { isLoadingMoreShorts = false }

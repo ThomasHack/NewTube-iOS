@@ -1,13 +1,10 @@
 import AVFoundation
 import Foundation
+import MediaPlayer
 import Observation
 import SmartTubeIOSCore
-import os
-
-#if canImport(UIKit)
 import UIKit
-import MediaPlayer
-#endif
+import os
 
 private let playerLog = AppLogger(category: "Player")
 
@@ -60,9 +57,7 @@ public final class PlaybackViewModel {
     var pendingWrongVideoCheck: Bool = false
     public internal(set) var isPlaying: Bool = false {
         didSet {
-            #if os(tvOS)
             PlaybackIdleTimer.setPlaying(isPlaying, owner: ObjectIdentifier(self))
-            #endif
             guard isPlaying, !oldValue else { return }
             // fix13: Cross-process Darwin notification for regression-test timing.
             // XCTDarwinNotificationExpectation in WKHLSReplayRegressionUITests receives
@@ -281,19 +276,6 @@ public final class PlaybackViewModel {
         get { qualityManager.qualityTask }
         set { qualityManager.qualityTask = newValue }
     }
-    #if canImport(WebKit)
-    /// Forwarded from qualityManager; keeps YTHLSProxyLoader alive during WebView-HLS playback.
-    var webHLSProxyLoader: YTHLSProxyLoader? {
-        get { qualityManager.webHLSProxyLoader }
-        set { qualityManager.webHLSProxyLoader = newValue }
-    }
-    /// The master manifest URL obtained via WKWebView HLS extraction. Non-nil only when the
-    /// video is playing via the WKWebView path; used to route quality switches correctly.
-    var wkHLSMasterURL: URL? {
-        get { qualityManager.wkHLSMasterURL }
-        set { qualityManager.wkHLSMasterURL = newValue }
-    }
-    #endif
     /// True while `replaceCurrentItem` is executing; guards the rate observer from
     /// treating the transient rate-drop as an unexpected external pause.
     var isSwappingItem: Bool = false
@@ -304,12 +286,6 @@ public final class PlaybackViewModel {
     /// Captures `isPlaying` at the start of an audio interruption so playback can be
     /// resumed on `.ended` only if it was actually playing before the call (#244).
     var wasPlayingBeforeInterruption: Bool = false
-    #if canImport(WebKit)
-    /// Set to true when BotGuardWebViewRunner successfully produces a minted (non-websafe-fallback)
-    /// PO token for the current video. Allows the inner rqh=1 guard in attemptComposition to
-    /// proceed — the CDN accepts minted tokens from the full getMinter() path.
-    var hasMintedPoToken: Bool = false
-    #endif
     /// True from when a quality-change replaceCurrentItem fires until readyToPlay is
     /// handled. The time observer skips currentTime updates during this window so the
     /// UI position is preserved and any user seek during transition is not lost.
@@ -375,12 +351,6 @@ public final class PlaybackViewModel {
     /// path in loadAsync() so the result is ready (or close to ready) by the time
     /// exhaustiveRetry reaches Phase -2. Cancelled by load() only when a different
     /// video is requested; preserved across stop() so same-video replay can reuse it.
-    #if canImport(WebKit)
-    var wkHLSEarlyTask: Task<URL?, Never>?
-    /// The videoId for which `wkHLSEarlyTask` was last started.
-    /// Allows load() to skip cancellation when the same video is re-tapped after stop().
-    var wkHLSEarlyTaskVideoId: String?
-    #endif
     /// fix2/fix30: TVEmbedded PlayerInfo pre-fetch started concurrently with the race paths.
     /// On tvOS: started inside tryAllStreams alongside the AndroidVR rqh=1 timeout (fix2).
     /// On iOS: started at the beginning of exhaustiveRetry alongside the race group (fix30).
@@ -409,10 +379,8 @@ public final class PlaybackViewModel {
     // read from MediaPlayer's internal artwork-closure thread. nonisolated(unsafe) is
     // intentional: UIImage is immutable after creation and the worst-case race is that
     // MediaPlayer gets nil on the first render (it will retry on the next state update).
-    #if canImport(UIKit)
     nonisolated(unsafe) var cachedArtwork: UIImage? = nil
     @ObservationIgnored var cachedArtworkVideoID: String? = nil
-    #endif
 
     // MARK: - Dependencies
 
@@ -451,7 +419,6 @@ public final class PlaybackViewModel {
         self.comments = CommentsController(api: api)
 
         player.allowsExternalPlayback = true
-        #if canImport(UIKit)
         do {
             // Only configure the audio category at init time. setActive(true) is
             // deliberately deferred to loadAsync (PlaybackViewModel+Loading.swift ~line 494)
@@ -462,14 +429,11 @@ public final class PlaybackViewModel {
         } catch {
             playerLog.error("AVAudioSession category setup failed: \(error.localizedDescription)")
         }
-        #endif
         setupTimeObserver()
         setupRateObserver()
-        #if canImport(UIKit)
         setupRemoteCommandCenter()
         setupAudioSessionObserver()
         setupAirPlayObserver()
-        #endif
 
         // Wire delegates (self is now fully initialised).
         sbm.delegate = self
@@ -489,11 +453,8 @@ public final class PlaybackViewModel {
         rateObserver?.invalidate()
         airPlayObserver?.invalidate()
         if let obs = audioSessionObserver { NotificationCenter.default.removeObserver(obs) }
-        #if os(tvOS)
         let owner = ObjectIdentifier(self)
         Task { @MainActor in PlaybackIdleTimer.setPlaying(false, owner: owner) }
-        #endif
-        #if canImport(UIKit)
         let center = MPRemoteCommandCenter.shared()
         center.playCommand.removeTarget(nil)
         center.pauseCommand.removeTarget(nil)
@@ -503,7 +464,6 @@ public final class PlaybackViewModel {
         center.changePlaybackPositionCommand.removeTarget(nil)
         center.nextTrackCommand.removeTarget(nil)
         center.previousTrackCommand.removeTarget(nil)
-        #endif
     }
 
     // MARK: - Load video

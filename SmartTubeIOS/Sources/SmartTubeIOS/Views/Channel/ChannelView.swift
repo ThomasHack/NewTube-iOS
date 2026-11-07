@@ -25,9 +25,6 @@ public struct ChannelView: View {
     @Environment(AuthService.self) private var auth
     @Environment(\.innerTubeAPI) private var api
     @Environment(\.isLandscapeLayout) private var isLandscapeLayout
-    #if os(iOS)
-    @Environment(PlayerRouter.self) private var playerRouter
-    #endif
 
     public init(channelId: String) {
         self.channelId = channelId
@@ -55,16 +52,9 @@ public struct ChannelView: View {
             guard let id = vm.channel?.id else { return }
             isFollowedLocally = await LocalSubscriptionStore.shared.isFollowing(id)
         }
-        #if !os(iOS) && !os(macOS)
         .fullScreenCover(item: $selectedVideo) { video in
             PlayerView(video: video, api: api)
         }
-        #endif
-        #if os(macOS)
-        .navigationDestination(item: $selectedVideo) { video in
-            PlayerView(video: video, api: api)
-        }
-        #endif
         .navigationDestination(item: $channelDestination) { dest in
             ChannelView(channelId: dest.channelId)
         }
@@ -72,11 +62,9 @@ public struct ChannelView: View {
             guard let channelId = note.userInfo?["channelId"] as? String, !channelId.isEmpty else { return }
             channelDestination = ChannelDestination(channelId: channelId)
         }
-        #if !os(macOS)
         .fullScreenCover(item: $shortsPresentation) { target in
             ShortsPlayerView(videos: target.videos, startIndex: target.startIndex, api: api)
         }
-        #endif
         .alert("Error", isPresented: .constant(vm.error != nil), presenting: vm.error) { _ in
             Button("Retry") { vm.load(channelId: channelId) }
             Button("Dismiss", role: .cancel) {}
@@ -85,20 +73,6 @@ public struct ChannelView: View {
         }
         .toolbar {
             if let channel = vm.channel {
-                #if os(macOS)
-                ToolbarItem(placement: .automatic) {
-                    let isExcluded = store.settings.sponsorBlockExcludedChannels[channel.id] != nil
-                    Button {
-                        toggleSponsorBlockExclusion(for: channel)
-                    } label: {
-                        Label(
-                            isExcluded ? "Remove SponsorBlock Exclusion" : "Exclude from SponsorBlock",
-                            systemImage: isExcluded
-                                ? "person.crop.circle.badge.checkmark" : "person.crop.circle.badge.minus"
-                        )
-                    }
-                }
-                #else
                 ToolbarItem(placement: .topBarTrailing) {
                     let isExcluded = store.settings.sponsorBlockExcludedChannels[channel.id] != nil
                     Button {
@@ -112,7 +86,6 @@ public struct ChannelView: View {
                     }
                     .accessibilityIdentifier("channel.sponsorBlockButton")
                 }
-                #endif
             }
         }
     }
@@ -174,11 +147,7 @@ public struct ChannelView: View {
                             .padding(.vertical, 6)
                             .accessibilityIdentifier("video.card.\(video.id)")
                             .onTapGesture {
-                                #if os(iOS)
-                                playerRouter.open(video: video, api: api)
-                                #else
                                 selectedVideo = video
-                                #endif
                             }
                             .onAppear {
                                 if video.id == vm.videos.last?.id { vm.loadMore() }
@@ -187,7 +156,6 @@ public struct ChannelView: View {
                     }
                 }
             } else {
-                #if os(tvOS)
                 let columnCount = 4
                 LazyVStack(alignment: .leading, spacing: 12) {
                     ForEach(Array(stride(from: 0, to: videos.count, by: columnCount)), id: \.self) { startIdx in
@@ -211,29 +179,6 @@ public struct ChannelView: View {
                     }
                 }
                 .padding()
-                #else
-                LazyVGrid(
-                    columns: videoGridColumns(store.settings, landscape: isLandscapeLayout),
-                    spacing: videoGridRowSpacing
-                ) {
-                    ForEach(videos) { video in
-                        VideoCardView(video: video, compact: false)
-                            .accessibilityIdentifier("video.card.\(video.id)")
-                            .onTapGesture {
-                                #if os(iOS)
-                                playerRouter.open(video: video, api: api)
-                                #else
-                                selectedVideo = video
-                                #endif
-                            }
-                            .onAppear {
-                                if video.id == vm.videos.last?.id { vm.loadMore() }
-                            }
-                    }
-                }
-                .id(isLandscapeLayout)  // reset on column-count change — see VideoGridSection (#82)
-                .padding()
-                #endif
             }
         }
     }

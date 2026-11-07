@@ -197,64 +197,9 @@ actor YouTubeNDescrambler {
     /// Launches `path` with `args`, captures stdout, and returns it as a String.
     /// Stderr is suppressed. Blocks until the child exits.
     private static func spawnAndRead(path: String, args: [String]) -> String {
-        #if os(tvOS)
         // posix_spawn is unavailable on tvOS — yt-dlp / Deno descrambling is not supported
         // on this platform. Callers guard against empty output and fall back gracefully.
         return ""
-        #else
-        var stdoutFDs = [Int32](repeating: 0, count: 2)  // [0]=read [1]=write
-        guard Darwin.pipe(&stdoutFDs) == 0 else { return "" }
-
-        var fileActions: posix_spawn_file_actions_t?
-        posix_spawn_file_actions_init(&fileActions)
-        defer { posix_spawn_file_actions_destroy(&fileActions) }
-
-        // Child stdout → write end of pipe.
-        posix_spawn_file_actions_adddup2(&fileActions, stdoutFDs[1], STDOUT_FILENO)
-        // Close read end in child (it's the parent's read handle).
-        posix_spawn_file_actions_addclose(&fileActions, stdoutFDs[0])
-
-        // Suppress stderr by redirecting to /dev/null.
-        let devNull = Darwin.open("/dev/null", O_WRONLY)
-        if devNull >= 0 {
-            posix_spawn_file_actions_adddup2(&fileActions, devNull, STDERR_FILENO)
-        }
-
-        // Build C argument array: [execPath, arg1, arg2, ..., nil]
-        var cArgs = args.map { strdup($0) }
-        cArgs.append(nil)
-        defer { cArgs.compactMap { $0 }.forEach { free($0) } }
-
-        // Inherit parent environment so Deno can find its npm cache (DENO_DIR, HOME, etc.).
-        var pid: pid_t = 0
-        let spawnRet = withUnsafeMutablePointer(to: &fileActions) { fa in
-            cArgs.withUnsafeMutableBufferPointer { argv in
-                posix_spawn(&pid, path, fa, nil, argv.baseAddress!, environ)
-            }
-        }
-
-        // Close write end in parent (child now owns it; closing here lets read() return EOF).
-        Darwin.close(stdoutFDs[1])
-        if devNull >= 0 { Darwin.close(devNull) }
-
-        guard spawnRet == 0 else {
-            Darwin.close(stdoutFDs[0])
-            return ""
-        }
-
-        // Read all stdout.
-        var output = Data()
-        var buf = [UInt8](repeating: 0, count: 4096)
-        while true {
-            let n = Darwin.read(stdoutFDs[0], &buf, buf.count)
-            if n <= 0 { break }
-            output.append(contentsOf: buf.prefix(Int(n)))
-        }
-        Darwin.close(stdoutFDs[0])
-        Darwin.waitpid(pid, nil, 0)
-
-        return String(data: output, encoding: .utf8) ?? ""
-        #endif
     }
 
     // MARK: - yt-dlp HLS (simulator fast-path for rqh=1 videos)

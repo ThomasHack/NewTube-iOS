@@ -13,33 +13,16 @@ public struct SearchView: View {
     @State private var selectedVideo: Video?
     @State private var channelDestination: ChannelDestination?
     @State private var showFilterSheet = false
-    #if !os(tvOS)
-    @FocusState private var isSearchFocused: Bool
-    #endif
-    #if os(iOS)
-    @Environment(PlayerRouter.self) private var playerRouter
-    #endif
 
     public init() {}
 
     public var body: some View {
-        #if os(tvOS)
         @Bindable var vm = vm
-        #endif
         VStack(spacing: 0) {
-            #if os(tvOS)
             if !vm.query.isEmpty {
                 tvFilterRow
             }
-            #else
-            searchBar
-            Divider()
-            if !vm.query.isEmpty {
-                filterChipsRow
-            }
-            #endif
             Group {
-                #if os(tvOS)
                 if vm.query.isEmpty {
                     tvIdleView
                 } else if vm.isLoading || vm.isAwaitingSearch || !vm.results.isEmpty {
@@ -47,20 +30,8 @@ public struct SearchView: View {
                 } else {
                     noResultsView
                 }
-                #else
-                if isSearchFocused {
-                    suggestionsListView
-                } else if vm.isLoading || !vm.results.isEmpty {
-                    resultsView
-                } else if !vm.query.isEmpty {
-                    noResultsView
-                } else {
-                    suggestionsListView
-                }
-                #endif
             }
         }
-        #if os(tvOS)
         // The system search UI (field and keyboard) lives in the navigation bar, so unlike
         // the other tabs this screen must not hide it.
         .searchable(text: $vm.query, prompt: "Search YouTube")
@@ -83,9 +54,6 @@ public struct SearchView: View {
         .navigationDestination(item: $selectedVideo) { video in
             PlayerView(video: video, api: api)
         }
-        #elseif os(iOS)
-        .toolbar(.hidden, for: .navigationBar)
-        #endif
         .navigationDestination(item: $channelDestination) { dest in
             ChannelView(channelId: dest.channelId)
         }
@@ -99,76 +67,8 @@ public struct SearchView: View {
             }
         }
         .task(id: vm.query) { await vm.updateSuggestions(for: vm.query) }
-        #if !os(tvOS)
-        .onChange(of: isSearchFocused) { _, focused in
-            if focused { Task { await vm.updateSuggestions(for: vm.query) } }
-        }
-        #endif
     }
 
-    #if !os(tvOS)
-    // MARK: - Search bar
-
-    private var searchBar: some View {
-        @Bindable var vm = vm
-        return HStack(spacing: 8) {
-            Image(systemName: AppSymbol.search)
-                .foregroundStyle(.secondary)
-            TextField("Search YouTube", text: $vm.query)
-                .focused($isSearchFocused)
-                .submitLabel(.search)
-                .autocorrectionDisabled()
-                .accessibilityIdentifier("search.bar")
-                #if os(iOS)
-            .textInputAutocapitalization(.never)
-                #endif
-                .onSubmit {
-                    vm.search()
-                    isSearchFocused = false
-                }
-            if !vm.query.isEmpty {
-                Button {
-                    vm.query = ""
-                } label: {
-                    Image(systemName: AppSymbol.xmarkCircle)
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("search.clearButton")
-            }
-            Button {
-                showFilterSheet = true
-            } label: {
-                Image(systemName: filterSymbol)
-                    .foregroundStyle(vm.filter.isDefault ? .secondary : Color.accentColor)
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("search.filterButton")
-        }
-        .padding(10)
-        .background(Color.secondary.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
-        .padding(.horizontal)
-        .padding(.vertical, 8)
-    }
-
-    // MARK: - Active filter row
-
-    @ViewBuilder
-    private var filterChipsRow: some View {
-        if !vm.filter.isDefault {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    activeFilterChips
-                }
-                .padding(.horizontal)
-                .padding(.vertical, 6)
-            }
-            Divider()
-        }
-    }
-    #endif
-
-    #if os(tvOS)
     // MARK: - tvOS filter row
 
     private var tvFilterRow: some View {
@@ -221,7 +121,6 @@ public struct SearchView: View {
             Label(query, systemImage: systemImage)
         }
     }
-    #endif
 
     // MARK: - Active filter chips
 
@@ -280,17 +179,11 @@ public struct SearchView: View {
                 onSelect: { video in
                     let captured = displayResults
                     Task { @MainActor in
-                        #if os(tvOS)
                         await vm.recordCurrentSearch()
-                        #endif
                         await CurrentQueueStore.shared.replaceAll(with: captured)
                         let startIdx = captured.firstIndex(where: { $0.id == video.id }) ?? 0
                         let toPlay = await CurrentQueueStore.shared.videoAt(index: startIdx) ?? video
-                        #if os(iOS)
-                        playerRouter.open(video: toPlay, api: api)
-                        #else
                         selectedVideo = toPlay
-                        #endif
                     }
                 },
                 loadMore: vm.loadMore
@@ -300,103 +193,7 @@ public struct SearchView: View {
             }
         }
         .accessibilityIdentifier("search.results")
-        #if os(iOS)
-        .scrollDismissesKeyboard(.immediately)
-        .contentShape(Rectangle())
-        .onTapGesture { isSearchFocused = false }
-        #endif
     }
-
-    #if !os(tvOS)
-    // MARK: - Suggestions list (history + recommended/live)
-
-    private var suggestionsListView: some View {
-        let suggestionsHeader = vm.query.isEmpty ? "Recommended" : "Suggestions"
-        return List {
-            // History section — only shown when there are matching entries
-            if !vm.filteredHistory.isEmpty {
-                Section(header: Text("Recent").font(.caption).foregroundStyle(.secondary)) {
-                    ForEach(vm.filteredHistory) { entry in
-                        Button {
-                            vm.query = entry.query
-                            vm.search()
-                            isSearchFocused = false
-                        } label: {
-                            HStack(spacing: 12) {
-                                Image(systemName: "clock")
-                                    .foregroundStyle(.secondary)
-                                    .frame(width: 20)
-                                Text(entry.query)
-                                    .foregroundStyle(.primary)
-                                Spacer()
-                                #if os(iOS)
-                                Button {
-                                    vm.removeHistoryEntry(entry.query)
-                                } label: {
-                                    Image(systemName: AppSymbol.xmark)
-                                        .foregroundStyle(.secondary)
-                                        .font(.caption)
-                                }
-                                .buttonStyle(.plain)
-                                .accessibilityLabel("Remove \(entry.query) from history")
-                                #endif
-                            }
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("search.history.\(entry.query)")
-                    }
-                    Button(role: .destructive) {
-                        vm.clearHistory()
-                    } label: {
-                        Text("Clear History")
-                            .font(.subheadline)
-                            .frame(maxWidth: .infinity)
-                    }
-                    .accessibilityIdentifier("search.history.clearAll")
-                }
-            }
-
-            // Suggestions / Recommended section (existing behaviour)
-            Section(header: Text(suggestionsHeader).font(.caption).foregroundStyle(.secondary)) {
-                ForEach(vm.suggestions, id: \.self) { suggestion in
-                    Button {
-                        vm.query = suggestion
-                        vm.search()
-                        isSearchFocused = false
-                    } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: AppSymbol.search)
-                                .foregroundStyle(.secondary)
-                                .frame(width: 20)
-                            Text(suggestion)
-                                .foregroundStyle(.primary)
-                            Spacer()
-                            Button {
-                                vm.query = suggestion
-                            } label: {
-                                Image(systemName: "arrow.up.left")
-                                    .foregroundStyle(.secondary)
-                                    .font(.caption)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-        .listStyle(.plain)
-        .accessibilityIdentifier("search.suggestionsContainer")
-        // Tapping empty list space (outside a row) must dismiss the keyboard.
-        // Task #202: the resultsView and noResultsView already had this gesture
-        // but suggestionsListView (shown while keyboard is open) was missing it.
-        // .contentShape(Rectangle()) makes the transparent empty space tappable.
-        .contentShape(Rectangle())
-        .onTapGesture { isSearchFocused = false }
-    }
-    #endif
 
     private var placeholderView: some View {
         VStack(spacing: 16) {
@@ -423,10 +220,6 @@ public struct SearchView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
-        #if os(iOS)
-        .contentShape(Rectangle())
-        .onTapGesture { isSearchFocused = false }
-        #endif
     }
 }
 
@@ -437,7 +230,6 @@ private struct FilterChip: View {
     let onRemove: () -> Void
 
     var body: some View {
-        #if os(tvOS)
         // A single focusable button: the Siri Remote can't reach a tiny inner target.
         Button(action: onRemove) {
             Label {
@@ -446,20 +238,6 @@ private struct FilterChip: View {
                 Image(systemName: AppSymbol.xmark)
             }
         }
-        #else
-        HStack(spacing: 4) {
-            Text(label)
-                .font(.caption)
-            Button(action: onRemove) {
-                Image(systemName: AppSymbol.xmark)
-                    .font(.caption2)
-            }
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 5)
-        .background(.tint.opacity(0.15), in: Capsule())
-        .foregroundStyle(.tint)
-        #endif
     }
 }
 
@@ -522,9 +300,6 @@ struct SearchFilterSheet: View {
                 }
             }
             .navigationTitle("Search filters")
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -535,12 +310,6 @@ struct SearchFilterSheet: View {
                         dismiss()
                     }
                 }
-                #if os(iOS)
-                ToolbarItem(placement: .bottomBar) {
-                    Button("Reset") { draft = .default }
-                        .disabled(draft.isDefault)
-                }
-                #endif
             }
         }
         .presentationDetents([.medium, .large])

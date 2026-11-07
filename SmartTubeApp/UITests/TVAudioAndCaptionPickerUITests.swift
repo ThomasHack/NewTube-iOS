@@ -10,7 +10,6 @@
 //   testAudioTrackPickerOpensFromMoreMenu     — audio-track row opens picker
 //   testAudioTrackPickerDismissesWithMenu     — Menu press dismisses picker
 
-#if os(tvOS)
 import XCTest
 
 final class TVAudioAndCaptionPickerUITests: XCTestCase {
@@ -383,4 +382,3 @@ final class TVAudioAndCaptionPickerUITests: XCTestCase {
             "player.titleLabel must still exist after dismissing audio-track picker")
     }
 }
-#endif  // os(tvOS)

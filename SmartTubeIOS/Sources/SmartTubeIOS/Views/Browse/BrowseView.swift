@@ -16,9 +16,6 @@ public struct BrowseView: View {
     @State private var channelDestination: ChannelDestination?
     @State private var showSignIn = false
     @State private var showError = false
-    #if os(iOS)
-    @Environment(PlayerRouter.self) private var playerRouter
-    #endif
 
     public init() {}
 
@@ -35,11 +32,9 @@ public struct BrowseView: View {
         }
         .navigationTitle(vm.currentSection.title)
         .toolbar { sectionPicker }
-        #if !os(iOS) && !os(macOS)
         .fullScreenCover(item: $selectedVideo) { video in
             PlayerView(video: video, api: api)
         }
-        #endif
         .navigationDestination(item: $selectedPlaylist) { stub in
             PlaylistView(playlistId: stub.id, playlistTitle: stub.title, api: api)
         }
@@ -59,11 +54,9 @@ public struct BrowseView: View {
         .onChange(of: vm.error == nil ? 0 : 1) { _, hasError in
             if hasError == 1 { showError = true }
         }
-        #if !os(macOS)
         .fullScreenCover(item: $shortsPresentation) { target in
             ShortsPlayerView(videos: target.videos, startIndex: target.startIndex, api: api)
         }
-        #endif
         .sheet(isPresented: $showSignIn) { SignInView() }
         .onAppear {
             if vm.videoGroups.isEmpty { vm.loadContent() }
@@ -114,11 +107,7 @@ public struct BrowseView: View {
             let idx = shorts.firstIndex(where: { $0.id == video.id }) ?? 0
             shortsPresentation = ShortsPresentation(videos: shorts, startIndex: idx)
         } else {
-            #if os(iOS)
-            playerRouter.open(video: video, api: api)
-            #else
             selectedVideo = video
-            #endif
         }
     }
 
@@ -141,9 +130,6 @@ public struct BrowseView: View {
         }
         .padding(.horizontal)
         .padding(.vertical, 10)
-        #if !os(tvOS)
-        .background(.bar)
-        #endif
     }
 
     private var emptyState: some View {
@@ -199,20 +185,12 @@ struct VideoGridSection: View {
     var loadMore: (() -> Void)? = nil
 
     @Environment(SettingsStore.self) private var store
-    #if !os(tvOS)
-    @Environment(\.isLandscapeLayout) private var isLandscapeLayout
-    /// Rotated on every UIDevice orientation change so `.id(orientationToken)` forces
-    /// SwiftUI to fully recreate the LazyVGrid, preventing hit-test/layout mismatches
-    /// after rotation on iPad (GitHub issue #82 — wrong video tapped in landscape).
-    @State private var orientationToken = UUID()
-    #endif
 
     var body: some View {
         let compact = store.settings.compactThumbnails
         if compact {
             LazyVStack(spacing: 0) {
                 ForEach(videos) { video in
-                    #if os(tvOS)
                     VideoCardView(video: video, compact: true, onSelect: { onSelect(video) })
                         .padding(.horizontal)
                         .padding(.vertical, 6)
@@ -220,26 +198,11 @@ struct VideoGridSection: View {
                         .onAppear {
                             if video.id == videos.last?.id { loadMore?() }
                         }
-                    #else
-
-                    VideoCardView(video: video, compact: true)
-                        .padding(.horizontal)
-                        .padding(.vertical, 6)
-                        .accessibilityIdentifier("video.card.\(video.id)")
-                        .accessibilityValue(video.isShort ? "short" : "")
-                        .onTapGesture { onSelect(video) }
-                        .onAppear {
-                            if video.id == videos.last?.id { loadMore?() }
-                        }
-                    #endif
                     Divider().padding(.horizontal)
                 }
             }
-            #if os(tvOS)
             .focusSection()
-            #endif
         } else {
-            #if os(tvOS)
             // LazyVGrid on tvOS causes the first row of grid items to appear
             // invisible — the focus engine cannot traverse cells that have not
             // been laid out yet. Use LazyVStack + HStack rows (4 per row) instead,
@@ -268,36 +231,7 @@ struct VideoGridSection: View {
             }
             .padding(.horizontal, 0)
             .padding(.vertical, 8)
-            #if os(tvOS)
             .focusSection()
-            #endif
-            #else
-            LazyVGrid(
-                columns: videoGridColumns(store.settings, landscape: isLandscapeLayout), spacing: videoGridRowSpacing
-            ) {
-                ForEach(videos) { video in
-                    VideoCardView(video: video, compact: false)
-                        .accessibilityIdentifier("video.card.\(video.id)")
-                        .accessibilityValue(video.isShort ? "short" : "")
-                        .onTapGesture { onSelect(video) }
-                        .onAppear {
-                            if video.id == videos.last?.id { loadMore?() }
-                        }
-                }
-            }
-            // Column count now follows isLandscapeLayout (set by a later layout pass than the
-            // orientation notification, and also on iPad split-screen resizes), so reset the
-            // grid's identity on that too — a column change without an identity reset is the
-            // wrong-video-tapped-after-rotation bug (#82).
-            .id("\(orientationToken)-\(isLandscapeLayout)")
-            .padding(.horizontal)
-            .padding(.vertical, 8)
-            #if canImport(UIKit)
-            .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
-                orientationToken = UUID()
-            }
-            #endif
-            #endif
         }
     }
 }
@@ -313,23 +247,14 @@ struct VideoRowSection: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(alignment: .top, spacing: videoGridRowSpacing) {
                 ForEach(videos) { video in
-                    #if os(tvOS)
                     VideoCardView(video: video, compact: false, onSelect: { onSelect(video) })
                         .frame(width: 360)
                         .accessibilityIdentifier("video.card.\(video.id)")
-                    #else
-                    VideoCardView(video: video, compact: false)
-                        .frame(width: 220)
-                        .accessibilityIdentifier("video.card.\(video.id)")
-                        .onTapGesture { onSelect(video) }
-                    #endif
                 }
             }
             .padding(.horizontal)
             .padding(.vertical, 4)
         }
-        #if os(tvOS)
         .focusSection()
-        #endif
     }
 }

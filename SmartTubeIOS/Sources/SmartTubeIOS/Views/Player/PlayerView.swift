@@ -2,11 +2,8 @@ import AVFoundation
 import AVKit
 import SmartTubeIOSCore
 import SwiftUI
-import os
-
-#if canImport(UIKit)
 import UIKit
-#endif
+import os
 
 // MARK: - PlayerView
 //
@@ -16,19 +13,11 @@ import UIKit
 
 public struct PlayerView: View {
     public let video: Video
-    #if os(iOS)
-    @Environment(PlayerStateStore.self) var playerState
-    var vm: PlaybackViewModel { playerState.vm }
-    #else
     @State var vm: PlaybackViewModel
-    #endif
     @Environment(\.scenePhase) var scenePhase
     @Environment(\.dismiss) var dismiss
     @Environment(SettingsStore.self) var store
     @Environment(AuthService.self) var authService
-    #if os(macOS)
-    @Environment(BrowseViewModel.self) var browseVM
-    #endif
     @State var showSpeedPicker = false
     @State var showQualityPicker = false
     @State var showCaptionPicker = false
@@ -41,21 +30,6 @@ public struct PlayerView: View {
     @State var slideOffset: CGFloat = 0
     @State var isTransitioning = false
     @State var channelDestination: ChannelDestination?
-    #if !os(tvOS)
-    #if ENABLE_DOWNLOADS
-    @State var downloadService: VideoDownloadService
-    #endif
-    @State var downloadAlertItem: DownloadAlertItem?
-    #endif
-    #if os(iOS)
-    @State var pipController: AVPictureInPictureController?
-    @State var pipDelegate: PiPDelegate?
-    @State var isPiPActive: Bool = false
-    @State var isLandscapeLocked = false
-    var playerLayer: AVPlayerLayer { playerState.playerHostView.playerLayer }
-    @Environment(\.horizontalSizeClass) var horizontalSizeClass
-    @Environment(\.verticalSizeClass) var verticalSizeClass
-    #endif
     /// True while the app is backgrounded. Prevents `onDisappear` from calling
     /// `suspend()` when iOS fires it as a side-effect of backgrounding rather
     /// than actual navigation away from the player.
@@ -64,15 +38,8 @@ public struct PlayerView: View {
     /// Guards scenePhase handlers so only the visible instance calls handleForeground/handleBackground,
     /// preventing ghost VMs from resuming audio when a new PlayerView is pushed on top.
     @State var isVisible = false
-    #if os(iOS)
-    /// Drives the brief "Fit" / "Fill" toast shown after a double-tap scale toggle.
-    @State var scaleToast: String?
-    /// Drives the brief seek-direction toast shown after a double-tap in the left/right zone.
-    @State var seekToastMessage: String?
-    #endif
     /// Drives the quality-change toast shown after the user picks a resolution.
     @State var qualityToastMessage: String?
-    #if os(tvOS)
     @FocusState var playerFocused: Bool
     /// Which playback control is visually highlighted in the overlay.
     /// nil = not in controls-nav mode; all remote input targets the video layer.
@@ -101,27 +68,15 @@ public struct PlayerView: View {
     @FocusState var captionPickerFocused: Bool
     @FocusState var audioTrackPickerFocused: Bool
     @FocusState var skipToastButtonFocused: Bool
-    #endif
 
     /// Scales player control icon sizes up on iPad so they're easier to tap.
     var controlScale: CGFloat {
-        #if os(iOS)
-        horizontalSizeClass == .regular ? 4.0 / 3.0 : 1.0
-        #else
         1.0
-        #endif
     }
 
     public init(video: Video, api: InnerTubeAPI) {
         self.video = video
-        #if !os(iOS)
         _vm = State(initialValue: PlaybackViewModel(api: api))
-        #endif
-        #if !os(tvOS)
-        #if ENABLE_DOWNLOADS
-        _downloadService = State(initialValue: VideoDownloadService(api: api))
-        #endif
-        #endif
     }
 
     public var body: some View {

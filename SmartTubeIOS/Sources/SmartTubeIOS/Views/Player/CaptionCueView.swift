@@ -10,35 +10,19 @@ public struct CaptionCueView: View {
     public let text: String
 
     private var fontSize: CGFloat {
-        #if os(tvOS)
         36
-        #else
-        17
-        #endif
     }
 
     private var textHorizontalPadding: CGFloat {
-        #if os(tvOS)
         18
-        #else
-        10
-        #endif
     }
 
     private var textVerticalPadding: CGFloat {
-        #if os(tvOS)
         10
-        #else
-        5
-        #endif
     }
 
     private var screenHorizontalPadding: CGFloat {
-        #if os(tvOS)
         80
-        #else
-        24
-        #endif
     }
 
     public init(text: String) {

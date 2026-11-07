@@ -1,10 +1,7 @@
 import AVKit
 import SmartTubeIOSCore
 import SwiftUI
-
-#if canImport(UIKit)
 import UIKit
-#endif
 
 private let pickerLog = AppLogger(category: "PlayerMenu")
 
@@ -34,9 +31,7 @@ extension PlayerView {
             VStack(spacing: 0) {
                 HStack {
                     Button("Cancel") { showQualityPicker = false }
-                        #if os(tvOS)
-                    .buttonStyle(PickerHeaderButtonStyle())
-                        #endif
+                        .buttonStyle(PickerHeaderButtonStyle())
                         .padding()
                     Spacer()
                     Text("Quality")
@@ -68,9 +63,7 @@ extension PlayerView {
                             .padding(.vertical, 12)
                         }
                         .buttonStyle(.plain)
-                        #if os(tvOS)
                         .prefersDefaultFocus(in: qualityPickerNamespace)
-                        #endif
                         Divider()
                         ForEach(vm.availableFormats) { fmt in
                             Button {
@@ -109,10 +102,8 @@ extension PlayerView {
                     }
                 }
                 .frame(maxHeight: 320)
-                #if os(tvOS)
                 .prefersDefaultFocus(in: qualityPickerNamespace)
                 .focused($qualityPickerFocused)
-                #endif
             }
             .frame(maxWidth: moreMenuPortraitWidth)
             .background(.regularMaterial)
@@ -123,13 +114,11 @@ extension PlayerView {
                 // by the time the user taps a resolution, tracks are cached (< 100ms switch).
                 await vm.prefetchAllQualityTracks()
             }
-            #if os(tvOS)
             .focusScope(qualityPickerNamespace)
             .onExitCommand {
                 pickerLog.notice("[qualityPicker] onExitCommand fired — dismissing")
                 showQualityPicker = false
             }
-            #endif
             .padding(.horizontal, 8)
             .padding(.bottom, 8)
         }
@@ -146,9 +135,7 @@ extension PlayerView {
             VStack(spacing: 0) {
                 HStack {
                     Button("Cancel") { showSpeedPicker = false }
-                        #if os(tvOS)
-                    .buttonStyle(PickerHeaderButtonStyle())
-                        #endif
+                        .buttonStyle(PickerHeaderButtonStyle())
                         .padding()
                     Spacer()
                     Text("Playback Speed")
@@ -184,22 +171,18 @@ extension PlayerView {
                     }
                 }
                 .frame(maxHeight: 320)
-                #if os(tvOS)
                 .prefersDefaultFocus(in: speedPickerNamespace)
                 .focused($speedPickerFocused)
-                #endif
             }
             .frame(maxWidth: moreMenuPortraitWidth)
             .background(.regularMaterial)
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .accessibilityIdentifier("player.speedPicker")
-            #if os(tvOS)
             .focusScope(speedPickerNamespace)
             .onExitCommand {
                 pickerLog.notice("[speedPicker] onExitCommand fired — dismissing")
                 showSpeedPicker = false
             }
-            #endif
             .padding(.horizontal, 8)
             .padding(.bottom, 8)
         }
@@ -216,9 +199,7 @@ extension PlayerView {
             VStack(spacing: 0) {
                 HStack {
                     Button("Cancel") { showSleepTimerPicker = false }
-                        #if os(tvOS)
-                    .buttonStyle(PickerHeaderButtonStyle())
-                        #endif
+                        .buttonStyle(PickerHeaderButtonStyle())
                         .padding()
                     Spacer()
                     Text("Sleep Timer")
@@ -246,10 +227,8 @@ extension PlayerView {
                         .padding(.vertical, 12)
                     }
                     .buttonStyle(.plain)
-                    #if os(tvOS)
                     .prefersDefaultFocus(in: sleepTimerNamespace)
                     .focused($sleepTimerPickerFocused)
-                    #endif
                     Divider()
                     ForEach(PlaybackViewModel.sleepTimerOptions, id: \.self) { mins in
                         Button {
@@ -279,13 +258,11 @@ extension PlayerView {
             .background(.regularMaterial)
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .accessibilityIdentifier("player.sleepTimerPicker")
-            #if os(tvOS)
             .focusScope(sleepTimerNamespace)
             .onExitCommand {
                 pickerLog.notice("[sleepTimerPicker] onExitCommand fired — dismissing")
                 showSleepTimerPicker = false
             }
-            #endif
             .padding(.horizontal, 8)
             .padding(.bottom, 8)
         }
@@ -302,9 +279,7 @@ extension PlayerView {
             VStack(spacing: 0) {
                 HStack {
                     Button("Cancel") { showCaptionPicker = false }
-                        #if os(tvOS)
-                    .buttonStyle(PickerHeaderButtonStyle())
-                        #endif
+                        .buttonStyle(PickerHeaderButtonStyle())
                         .padding()
                     Spacer()
                     Text("Captions")
@@ -335,9 +310,7 @@ extension PlayerView {
                         }
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("player.captionPicker.off")
-                        #if os(tvOS)
                         .prefersDefaultFocus(in: captionPickerNamespace)
-                        #endif
                         Divider()
                         ForEach(vm.availableCaptions) { track in
                             Button {
@@ -371,18 +344,14 @@ extension PlayerView {
                     }
                 }
                 .frame(maxHeight: 360)
-                #if os(tvOS)
                 .focused($captionPickerFocused)
-                #endif
             }
             .frame(maxWidth: moreMenuPortraitWidth)
             .background(.regularMaterial)
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .accessibilityIdentifier("player.captionPicker")
-            #if os(tvOS)
             .focusScope(captionPickerNamespace)
             .onExitCommand { showCaptionPicker = false }
-            #endif
             .padding(.horizontal, 8)
             .padding(.bottom, 8)
         }
@@ -399,9 +368,7 @@ extension PlayerView {
             VStack(spacing: 0) {
                 HStack {
                     Button("Cancel") { showAudioTrackPicker = false }
-                        #if os(tvOS)
-                    .buttonStyle(PickerHeaderButtonStyle())
-                        #endif
+                        .buttonStyle(PickerHeaderButtonStyle())
                         .padding()
                     Spacer()
                     Text("Audio Track")
@@ -432,9 +399,7 @@ extension PlayerView {
                         }
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("player.audioTrackPicker.auto")
-                        #if os(tvOS)
                         .prefersDefaultFocus(in: audioTrackPickerNamespace)
-                        #endif
                         Divider()
                         ForEach(vm.availableAudioTracks) { track in
                             Button {
@@ -468,19 +433,15 @@ extension PlayerView {
                     }
                 }
                 .frame(maxHeight: 360)
-                #if os(tvOS)
                 .focused($audioTrackPickerFocused)
-                #endif
             }
             .frame(maxWidth: moreMenuPortraitWidth)
             .background(.regularMaterial)
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("player.audioTrackPicker")
-            #if os(tvOS)
             .focusScope(audioTrackPickerNamespace)
             .onExitCommand { showAudioTrackPicker = false }
-            #endif
             .padding(.horizontal, 8)
             .padding(.bottom, 8)
         }
@@ -489,35 +450,8 @@ extension PlayerView {
 
     // MARK: - Share sheet
 
-    #if os(iOS)
-    func presentShareSheet(url: URL) {
-        let wasPlaying = vm.isPlaying
-        vm.suspend()
-        let vc = UIActivityViewController(activityItems: [url], applicationActivities: nil)
-        vc.completionWithItemsHandler = { _, _, _, _ in
-            if wasPlaying { vm.resume() }
-        }
-        guard
-            let scene = UIApplication.shared.connectedScenes
-                .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene,
-            let root = scene.windows.first(where: \.isKeyWindow)?.rootViewController
-        else { return }
-        var top = root
-        while let presented = top.presentedViewController { top = presented }
-        // On iPad, UIActivityViewController must have a popover source or UIKit crashes.
-        if let popover = vc.popoverPresentationController {
-            popover.sourceView = top.view
-            popover.sourceRect = CGRect(
-                x: top.view.bounds.midX, y: top.view.bounds.midY, width: 0, height: 0
-            )
-            popover.permittedArrowDirections = []
-        }
-        top.present(vc, animated: true)
-    }
-    #endif
 }
 
-#if os(tvOS)
 // MARK: - PickerHeaderButtonStyle (tvOS)
 
 /// Flat style for the Cancel button in picker sheet headers. The default tvOS
@@ -543,4 +477,3 @@ struct PickerHeaderButtonStyle: ButtonStyle {
         }
     }
 }
-#endif

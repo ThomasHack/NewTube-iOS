@@ -2,7 +2,6 @@ import XCTest
 
 // XCUIRemote is tvOS-only. The entire file is guarded so it compiles cleanly
 // for iOS targets that share the UITests/ source directory.
-#if os(tvOS)
 
 // MARK: - TVPlayerSettingsUITests
 //
@@ -358,5 +357,3 @@ final class TVPlayerSettingsUITests: XCTestCase {
         )
     }
 }
-
-#endif  // os(tvOS)

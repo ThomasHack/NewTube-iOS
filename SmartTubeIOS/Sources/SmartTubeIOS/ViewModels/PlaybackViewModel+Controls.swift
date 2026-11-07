@@ -1,10 +1,7 @@
 import AVFoundation
+import MediaPlayer
 import SmartTubeIOSCore
 import os
-
-#if canImport(UIKit)
-import MediaPlayer
-#endif
 
 private let playerLog = AppLogger(category: "Player")
 
@@ -19,17 +16,13 @@ extension PlaybackViewModel {
             player.rate = Float(settings.playbackSpeed)
             isPlaying = true
             showControls()
-            #if canImport(UIKit)
             updateNowPlayingPlayback()
-            #endif
             return
         }
         if isPlaying { player.pause() } else { player.rate = Float(settings.playbackSpeed) }
         isPlaying.toggle()
         showControls()
-        #if canImport(UIKit)
         updateNowPlayingPlayback()
-        #endif
     }
 
     // MARK: - Scrubbing (slider drag)

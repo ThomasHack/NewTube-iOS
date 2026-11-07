@@ -1,4 +1,3 @@
-#if os(tvOS)
 import XCTest
 
 // MARK: - TVHomeFeedUITests
@@ -94,4 +93,3 @@ final class TVHomeFeedUITests: XCTestCase {
     }
 
 }
-#endif

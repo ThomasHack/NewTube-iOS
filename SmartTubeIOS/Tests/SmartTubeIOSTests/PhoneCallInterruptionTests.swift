@@ -1,13 +1,10 @@
 import AVFoundation
 import Foundation
 import Testing
+import UIKit
 
 @testable import SmartTubeIOS
 @testable import SmartTubeIOSCore
-
-#if canImport(UIKit)
-import UIKit
-#endif
 
 // MARK: - PhoneCallInterruptionTests
 //
@@ -51,7 +48,6 @@ struct PhoneCallInterruptionFlagTests {
     }
 }
 
-#if canImport(UIKit)
 @Suite("Phone call interruption — AVAudioSession notification handling (#244)")
 @MainActor
 struct PhoneCallInterruptionNotificationTests {
@@ -119,4 +115,3 @@ struct PhoneCallInterruptionNotificationTests {
         #expect(resumed, "Expected isPlaying=true and isHandlingAudioInterruption=false after .ended with shouldResume")
     }
 }
-#endif

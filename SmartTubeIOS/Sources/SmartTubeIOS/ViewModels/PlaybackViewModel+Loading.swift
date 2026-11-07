@@ -1,11 +1,8 @@
 import AVFoundation
-import SmartTubeIOSCore
-import os
-
-#if canImport(UIKit)
-import UIKit
 import MediaPlayer
-#endif
+import SmartTubeIOSCore
+import UIKit
+import os
 
 private let playerLog = AppLogger(category: "Player")
 
@@ -39,18 +36,6 @@ extension PlaybackViewModel {
         // Cancel any previous in-flight load so we never have two concurrent API
         // fetches for the same (or different) video running at the same time.
         loadTask?.cancel()
-        #if canImport(WebKit)
-        // fix10: preserve the pre-warm task when the same video is re-tapped after stop().
-        // racePathB will await earlyTask.value and get the result when extraction completes
-        // (~0.75s after tap if stop() started it 0.5s earlier) instead of ~1.25s from scratch.
-        // For different-video navigation, cancel as before.
-        if wkHLSEarlyTaskVideoId != video.id {
-            wkHLSEarlyTask?.cancel()
-            wkHLSEarlyTask = nil
-            wkHLSEarlyTaskVideoId = nil
-            wkHLSPermissionDenied = false
-        }
-        #endif
 
         // fix12: Same-video re-open fast path — if stop() parked the AVPlayerItem and it is
         // still .readyToPlay, bypass the entire exhaustiveRetry race (~1.27s saved per hot
@@ -64,11 +49,6 @@ extension PlaybackViewModel {
             playerLog.notice("[fix12] same-video re-open — reusing parked AVPlayerItem for \(video.id)")
             parkedVideoId = nil
             // Cancel the now-useless wkHLS serialExtract started by stop().
-            #if canImport(WebKit)
-            wkHLSEarlyTask?.cancel()
-            wkHLSEarlyTask = nil
-            wkHLSEarlyTaskVideoId = nil
-            #endif
             currentVideo = video
             isLoading = false
             isPlaying = false
@@ -97,17 +77,12 @@ extension PlaybackViewModel {
                     playerLog.notice("[fix12/stall] playbackStalled at t=\(Int(self.currentTime))s #\(self.stallCount)")
                 }
             }
-            #if canImport(UIKit)
             do {
                 try AVAudioSession.sharedInstance().setActive(true)
             } catch {
                 playerLog.error("[fix12] AVAudioSession setActive failed: \(error.localizedDescription)")
             }
             setupRemoteCommandCenter()
-            #if !os(tvOS)
-            UIApplication.shared.isIdleTimerDisabled = true
-            #endif
-            #endif
             player.rate = Float(settings.playbackSpeed)
             isPlaying = true
             return
@@ -173,10 +148,8 @@ extension PlaybackViewModel {
         retryAttempts = 0
         exhaustiveRetryTask?.cancel()
         exhaustiveRetryTask = nil
-        #if os(tvOS)
         tvEmbeddedEarlyTask?.cancel()
         tvEmbeddedEarlyTask = nil
-        #endif
         qualityManager.reset()
         phase2Task?.cancel()
         phase2Task = nil
@@ -209,12 +182,10 @@ extension PlaybackViewModel {
         // UI-testing: re-show controls after load() resets controlsVisible=false.
         // Mirrors the onAppear --uitesting-show-controls handling so controls remain
         // visible across queue advances without relying on a second onAppear trigger.
-        #if !os(iOS)
         if ProcessInfo.processInfo.arguments.contains("--uitesting-show-controls") {
             showControls()
             cancelControlsHide()
         }
-        #endif
         loadTask = Task { await loadAsync(video: video) }
 
         // Kick off a background prefetch for the next video in the queue
@@ -253,13 +224,11 @@ extension PlaybackViewModel {
     /// before the interruption/background transition.
     public func handleForeground() {
         guard player.currentItem != nil else { return }
-        #if canImport(UIKit)
         do {
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {
             playerLog.error("AVAudioSession reactivation failed: \(error.localizedDescription)")
         }
-        #endif
         // Resume only if we consider ourselves to be in playing state.
         // isPlaying is kept in sync with player.rate via KVO, so this only fires
         // when the player was paused while still intending to play (e.g. background transition).
@@ -315,16 +284,7 @@ extension PlaybackViewModel {
         // Firebase: a013be1c, regressed June 8 in 4.4(2) — still happening in 4.6.
         rateObserver?.invalidate()
         rateObserver = nil
-        #if canImport(WebKit)
-        wkHLSEarlyTask?.cancel()
-        wkHLSEarlyTask = nil
-        wkHLSEarlyTaskVideoId = nil
-        #endif
         isLoading = false
-        #if canImport(UIKit)
-        #if !os(tvOS)
-        UIApplication.shared.isIdleTimerDisabled = false
-        #endif
         updateNowPlayingPlayback()
         // Deregister from the global command center so a suspended VM never
         // handles lock screen Play while another VM is the active player.
@@ -337,7 +297,6 @@ extension PlaybackViewModel {
         center.changePlaybackPositionCommand.removeTarget(nil)
         center.nextTrackCommand.removeTarget(nil)
         center.previousTrackCommand.removeTarget(nil)
-        #endif
     }
 
     /// Resumes playback after a `suspend()`. If the player has no current item
@@ -349,22 +308,15 @@ extension PlaybackViewModel {
         }
         playerLog.notice("[resume] resume() called — currentVideo=\(self.currentVideo?.id ?? "nil")")
         wasPlayingBeforeSuspend = false
-        #if canImport(UIKit)
         // Re-register lock screen commands (removed in suspend()).
         setupRemoteCommandCenter()
-        #endif
         // Re-establish the rate KVO observer (invalidated in suspend()) so isPlaying
         // stays in sync with the player again for this resumed session.
         setupRateObserver()
         player.rate = Float(settings.playbackSpeed)
         isPlaying = true
         showControls()
-        #if canImport(UIKit)
-        #if !os(tvOS)
-        UIApplication.shared.isIdleTimerDisabled = true
-        #endif
         updateNowPlayingPlayback()
-        #endif
     }
 
     func loadAsync(video: Video) async {
@@ -386,7 +338,6 @@ extension PlaybackViewModel {
             "[loadAsync] start id=\(video.id) title=\(video.title) player.rate=\(self.player.rate) timeControlStatus=\(self.player.timeControlStatus.rawValue)"
         )
 
-        #if canImport(UIKit)
         // Seed the lock-screen Now Playing widget BEFORE the ~10 s network phase so
         // the user sees the title/channel on the lock screen immediately.
         // stop() calls setActive(false) which tears down the MediaRemote XPC connection;
@@ -400,7 +351,6 @@ extension PlaybackViewModel {
             playerLog.error("[loadAsync] early setActive failed: \(error.localizedDescription)")
         }
         updateNowPlayingInfo()
-        #endif
 
         // Fetch the BotGuard PO token before the primary stream attempt.
         // Awaited (with a 2 s safety timeout) so api.hasPoToken(for:) returns true during
@@ -418,43 +368,6 @@ extension PlaybackViewModel {
                 group.cancelAll()
             }
         }
-        #if canImport(WebKit)
-        // Fire-and-forget: start WKWebView BotGuard pipeline in the background.
-        // Takes 3–8 s; by the time the primary attempt fails and exhaustiveRetry runs,
-        // it may be ready to provide a full getMinter-minted token (CDN-accepted for rqh=1).
-        // Zero impact on primary path timing — runs concurrently.
-        if !BotGuardWebViewRunner.shared.isReady {
-            let capturedVideoIdForWV = video.id
-            Task { @MainActor in
-                await BotGuardWebViewRunner.shared.prepare(for: capturedVideoIdForWV)
-            }
-        }
-        // Fire-and-forget: start WKWebView HLS extraction concurrently with the primary path.
-        // For rqh=1 videos the ~2 s extraction overlaps the primary iOS attempt so the URL
-        // is ready (or nearly ready) by the time exhaustiveRetry reaches Phase -2, saving
-        // the serial 2–4 s wait. For non-rqh=1 videos the task completes silently unused.
-        // Use priorityExtract() (not serialExtract) so earlyTask starts wv.load() IMMEDIATELY
-        // without waiting for any in-flight VideoCardView second-serialExtract. A background
-        // card extraction (e.g. POTUARPb1CU) may have captured pendingSerialTask just before
-        // the tap; chaining onto it (serialExtract's behaviour) delays wv.load() by ~2.3 s,
-        // making CDN trust too stale (~0.5 s) for AndroidVR loadTracks (R12 regression).
-        // priorityExtract registers itself in pendingSerialTask so race-failed handlers still
-        // chain onto it correctly via serialExtract.
-        let capturedVideoIdForHLS = video.id
-        // Reuse an in-flight pre-warm started by stop() for the same video (fix10).
-        // If stop() already started serialExtract for this videoId, wkHLSEarlyTask is
-        // non-nil and for the same video — just let it run; racePathB awaits its value.
-        if wkHLSEarlyTask == nil {
-            wkHLSEarlyTaskVideoId = capturedVideoIdForHLS
-            wkHLSEarlyTask = Task { @MainActor in
-                // priorityExtract bypasses pendingSerialTask chaining → wv.load() starts
-                // immediately at tap time. For pfa/1 rqh=1 videos like _DY9cTWakcM, this
-                // refreshes CDN IP-level trust so it is only ~2.5 s old when AndroidVR
-                // loadTracks runs — within the ~2.5 s trust window.
-                return await YouTubeWebViewHLSExtractor.shared.priorityExtract(videoId: capturedVideoIdForHLS)
-            }
-        }
-        #endif
 
         // Local-file fast path — bypass all network fetches for downloaded videos.
         // The path must be inside Documents/SmartTubeDownloads/ to prevent path-traversal
@@ -542,14 +455,12 @@ extension PlaybackViewModel {
                         }
                     }
                 }
-                #if canImport(UIKit)
                 setupRemoteCommandCenter()
                 do {
                     try AVAudioSession.sharedInstance().setActive(true)
                 } catch {
                     playerLog.error("[loadAsync] local: AVAudioSession setActive failed: \(error.localizedDescription)")
                 }
-                #endif
                 player.rate = Float(settings.playbackSpeed)
                 isPlaying = true
                 // Downloaded videos have no related videos — clear any stale state from a
@@ -557,12 +468,7 @@ extension PlaybackViewModel {
                 // the download ends. (Bug #224: wrong video played after local file ends.)
                 relatedVideos = []
                 hasNext = false
-                #if canImport(UIKit)
-                #if !os(tvOS)
-                UIApplication.shared.isIdleTimerDisabled = true
-                #endif
                 updateNowPlayingInfo()
-                #endif
                 playerLog.notice("[loadAsync] local-file fast path: playing \(localURL.lastPathComponent)")
                 return
             }
@@ -1031,7 +937,6 @@ extension PlaybackViewModel {
             // Falls back to HLS (already in player) on any failure. No-op when disabled.
             await loadAudioOnlyItemIfEnabled()
 
-            #if canImport(UIKit)
             // Re-register lock screen commands before starting playback.
             // Commands are removed in suspend()/stop(); re-registering here
             // ensures they work when load() is called after a stop().
@@ -1045,7 +950,6 @@ extension PlaybackViewModel {
             } catch {
                 playerLog.error("[loadAsync] AVAudioSession setActive(true) failed: \(error.localizedDescription)")
             }
-            #endif
             playerLog.notice(
                 "[loadAsync] setting rate=\(self.settings.playbackSpeed) — player.timeControlStatus=\(self.player.timeControlStatus.rawValue) isAudioOnlyMode=\(self.isAudioOnlyMode)"
             )
@@ -1054,12 +958,7 @@ extension PlaybackViewModel {
             playerLog.notice(
                 "[loadAsync] rate set — player.rate=\(self.player.rate) timeControlStatus=\(self.player.timeControlStatus.rawValue)"
             )
-            #if canImport(UIKit)
-            #if !os(tvOS)
-            UIApplication.shared.isIdleTimerDisabled = true
-            #endif
             updateNowPlayingInfo()
-            #endif
             // Only reschedule the auto-hide timer when controls are already visible.
             // Calling scheduleControlsHide() unconditionally cancels any timer that
             // was started by a user tap during loading, extending the visible window
@@ -1154,13 +1053,11 @@ extension PlaybackViewModel {
         // load() calls replaceCurrentItem(nil) when a different video is requested.
         parkedVideoId = currentVideo?.id
         isPlaying = false
-        #if canImport(UIKit)
         do {
             try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         } catch {
             playerLog.error("AVAudioSession deactivation failed: \(error.localizedDescription)")
         }
-        #endif
         loadTask?.cancel()
         loadTask = nil
         // fix235: Cancel any in-flight exhaustiveRetry so it cannot call replaceCurrentItem
@@ -1191,26 +1088,6 @@ extension PlaybackViewModel {
         // completes (< 1.25s after stop).
         if let stoppedVideoId = currentVideo?.id {
             Task { await VideoPreloadCache.shared.invalidateWKHLSURL(for: stoppedVideoId) }
-            #if canImport(WebKit)
-            wkHLSEarlyTaskVideoId = stoppedVideoId
-            let capturedId = stoppedVideoId
-            wkHLSEarlyTask = Task { @MainActor in
-                guard let url = await YouTubeWebViewHLSExtractor.shared.serialExtract(videoId: capturedId) else {
-                    return nil
-                }
-                // Defense-in-depth: if load() for a different video cancelled this task
-                // between serialExtract's return and the store, bail rather than write
-                // a potentially stale URL into the cache under the wrong key.
-                guard !Task.isCancelled else {
-                    playerLog.notice("[fix10] pre-warm task was cancelled — not caching URL for \(capturedId)")
-                    return nil
-                }
-                // Store the fresh URL so Phase -1a serves from cache on re-tap.
-                await VideoPreloadCache.shared.store(wkHLSManifestURL: url, for: capturedId)
-                playerLog.notice("[fix10] wkHLS pre-warm complete — cached for \(capturedId)")
-                return url
-            }
-            #endif
         }
         itemObserverTask?.cancel()
         itemObserverTask = nil
@@ -1227,10 +1104,6 @@ extension PlaybackViewModel {
         // dependency on that ordering. Re-established defensively in loadAsync().
         rateObserver?.invalidate()
         rateObserver = nil
-        #if canImport(UIKit)
-        #if !os(tvOS)
-        UIApplication.shared.isIdleTimerDisabled = false
-        #endif
         clearNowPlayingInfo()
         let center = MPRemoteCommandCenter.shared()
         center.playCommand.removeTarget(nil)
@@ -1241,7 +1114,6 @@ extension PlaybackViewModel {
         center.changePlaybackPositionCommand.removeTarget(nil)
         center.nextTrackCommand.removeTarget(nil)
         center.previousTrackCommand.removeTarget(nil)
-        #endif
         if let obs = audioSessionObserver {
             NotificationCenter.default.removeObserver(obs)
             audioSessionObserver = nil
@@ -1374,9 +1246,7 @@ extension PlaybackViewModel {
             // state. Without this call the next/prev buttons only appear if hasNext was
             // already true during phase-1 (playlist videos); for home-feed autoplay the
             // buttons are permanently missing.
-            #if canImport(UIKit)
             updateNowPlayingInfo()
-            #endif
 
         }  // end of non-inject related-videos branch
 
@@ -1385,13 +1255,6 @@ extension PlaybackViewModel {
         // Launch WKWebView pre-extraction as soon as relatedVideos is populated.
         // Starting here (before endCards/trackingURLs) gives ~0.6–3 s more lead
         // time for the warm extraction to complete before the user swipes.
-        #if canImport(WebKit)
-        if let firstNeighbour = relatedVideos.first?.id {
-            Task(priority: .background) { [weak self] in
-                await self?.preExtractWKHLSForVideo(firstNeighbour)
-            }
-        }
-        #endif
 
         // --- End cards ---
         if let cachedCards = cached.endCards, !cached.staleFields.contains(.endCards) {

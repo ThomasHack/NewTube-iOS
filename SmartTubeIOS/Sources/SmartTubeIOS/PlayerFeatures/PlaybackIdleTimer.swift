@@ -1,4 +1,3 @@
-#if os(tvOS)
 import UIKit
 
 /// Keeps the tvOS screensaver from starting while any player is playing.
@@ -19,4 +18,3 @@ enum PlaybackIdleTimer {
         UIApplication.shared.isIdleTimerDisabled = !playingOwners.isEmpty
     }
 }
-#endif

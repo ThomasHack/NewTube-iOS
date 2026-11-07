@@ -181,14 +181,6 @@ private struct PreviewEnvironment: ViewModifier {
     @State private var settings = SettingsStore()
     @State private var browseVM = BrowseViewModel(api: PreviewInnerTubeAPI())
     @State private var searchVM = SearchViewModel.preview()
-    #if os(iOS)
-    @State private var playerState: PlayerStateStore
-    @State private var tosState: TOSPlayerStateStore
-    @State private var router: PlayerRouter
-    #endif
-    #if ENABLE_DOWNLOADS
-    @State private var downloads = VideoDownloadService(api: InnerTubeAPI())
-    #endif
 
     init(signedIn: Bool) {
         let auth = AuthService()
@@ -197,17 +189,6 @@ private struct PreviewEnvironment: ViewModifier {
         auth.accessToken = signedIn ? "preview-token" : nil
         auth.accountName = signedIn ? "Preview User" : nil
         _auth = State(initialValue: auth)
-        #if os(iOS)
-        let settings = SettingsStore()
-        let playerState = PlayerStateStore(api: InnerTubeAPI())
-        let tosState = TOSPlayerStateStore()
-        _settings = State(initialValue: settings)
-        _playerState = State(initialValue: playerState)
-        _tosState = State(initialValue: tosState)
-        _router = State(
-            initialValue: PlayerRouter(playerState: playerState, tosState: tosState, settingsStore: settings)
-        )
-        #endif
     }
 
     func body(content: Content) -> some View {
@@ -216,16 +197,8 @@ private struct PreviewEnvironment: ViewModifier {
             .environment(settings)
             .environment(browseVM)
             .environment(searchVM)
-            #if os(iOS)
-        .environment(playerState)
-        .environment(tosState)
-        .environment(router)
-            #endif
-            #if ENABLE_DOWNLOADS
-        .environment(downloads)
-        #endif
-        .tint(settings.settings.accentColor.color)
-        .task(id: auth.accessToken) { await browseVM.updateAuthToken(auth.accessToken) }
+            .tint(settings.settings.accentColor.color)
+            .task(id: auth.accessToken) { await browseVM.updateAuthToken(auth.accessToken) }
     }
 }
 #endif

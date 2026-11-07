@@ -12,12 +12,8 @@ public struct LibraryView: View {
     @Environment(BrowseViewModel.self) private var browseVM
     @Environment(\.innerTubeAPI) private var api
     @Environment(SettingsStore.self) private var store
-    #if os(tvOS)
     // Subscriptions has its own tab on Apple TV.
     @State private var selectedSection: LibrarySection = .history
-    #else
-    @State private var selectedSection: LibrarySection = .subscriptions
-    #endif
     @State private var selectedVideo: Video?
     @State private var selectedPlaylist: Video?
     @State private var channelDestination: ChannelDestination?
@@ -25,12 +21,7 @@ public struct LibraryView: View {
     @State private var savedScrollOffset: CGFloat? = nil
     @State private var restoreOffset: CGFloat? = nil
     @State private var queueVideosCount: Int = 0
-    #if os(iOS)
-    @Environment(PlayerRouter.self) private var playerRouter
-    #endif
-    #if os(tvOS)
     @FocusState private var focusedSection: LibrarySection?
-    #endif
 
     enum LibrarySection: String, CaseIterable, Identifiable {
         case subscriptions = "Subs"
@@ -40,18 +31,10 @@ public struct LibraryView: View {
         case rss = "RSS Feeds"
         case downloads = "Downloads"
 
-        #if os(tvOS)
         // Downloads saves to the Photos library, which tvOS doesn't support.
         static var allCases: [LibrarySection] {
             [.history, .playlists, .channels, .rss]
         }
-        #elseif !ENABLE_DOWNLOADS
-        // Downloads is compiled out of App Store builds (guideline 5.2.3). Exclude the chip by
-        // hiding it from allCases. Channels stays a Home chip on these platforms.
-        static var allCases: [LibrarySection] {
-            [.subscriptions, .history, .playlists, .rss]
-        }
-        #endif
 
         var id: String { rawValue }
         var browseSectionType: BrowseSection.SectionType {
@@ -72,14 +55,10 @@ public struct LibraryView: View {
         Group {
             libraryContent
         }
-        #if os(iOS) || os(tvOS)
         .toolbar(.hidden, for: .navigationBar)
-        #endif
-        #if !os(iOS)
         .navigationDestination(item: $selectedVideo) { video in
             PlayerView(video: video, api: api)
         }
-        #endif
         .navigationDestination(item: $selectedPlaylist) { stub in
             PlaylistView(playlistId: stub.id, playlistTitle: stub.title, api: api)
         }
@@ -94,7 +73,6 @@ public struct LibraryView: View {
 
     private var libraryContent: some View {
         VStack(spacing: 0) {
-            #if os(tvOS)
             HStack(spacing: 8) {
                 ForEach(LibrarySection.allCases) { sec in
                     let isSelected = selectedSection == sec
@@ -131,17 +109,6 @@ public struct LibraryView: View {
             .defaultFocus($focusedSection, selectedSection)
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("library.chipBar")
-            #else
-            Picker("Library Section", selection: $selectedSection) {
-                ForEach(LibrarySection.allCases) { sec in
-                    Text(sec.rawValue).tag(sec)
-                        .accessibilityIdentifier("library.picker.\(sec.rawValue.lowercased())")
-                }
-            }
-            .pickerStyle(.segmented)
-            .accessibilityIdentifier("library.sectionPicker")
-            .padding()
-            #endif
 
             Group {
                 if selectedSection == .rss {
@@ -163,10 +130,8 @@ public struct LibraryView: View {
                     ScrollView {
                         // KVO reader — always present; writes to ScrollOffsetStore
                         // without triggering SwiftUI re-renders on every scroll tick.
-                        #if os(iOS) || os(tvOS)
                         ScrollOffsetReader(store: scrollStore)
                             .frame(width: 0, height: 0)
-                        #endif
 
                         if browseVM.isLoading && videos.isEmpty {
                             ProgressView().frame(maxWidth: .infinity).padding()
@@ -180,11 +145,7 @@ public struct LibraryView: View {
                                 if video.playlistId == video.id {
                                     selectedPlaylist = video
                                 } else {
-                                    #if os(iOS)
-                                    playerRouter.open(video: video, api: api)
-                                    #else
                                     selectedVideo = video
-                                    #endif
                                 }
                             },
                             loadMore: {
@@ -194,12 +155,10 @@ public struct LibraryView: View {
                             }
                         )
                         // Offset restorer — always present; no-op when restoreOffset is nil.
-                        #if os(iOS) || os(tvOS)
                         ScrollOffsetRestorer(targetOffset: restoreOffset) {
                             restoreOffset = nil
                         }
                         .frame(width: 0, height: 0)
-                        #endif
 
                         if browseVM.isLoading && !videos.isEmpty {
                             ProgressView().frame(maxWidth: .infinity).padding()
@@ -227,7 +186,6 @@ public struct LibraryView: View {
                     type: section.browseSectionType
                 ))
         }
-        #if os(tvOS)
         // tvOS: player is opened via navigationDestination(item: $selectedVideo).
         // Save offset when selectedVideo is set; restore when it clears.
         .onChange(of: selectedVideo) { old, new in
@@ -238,16 +196,13 @@ public struct LibraryView: View {
                 savedScrollOffset = nil
             }
         }
-        #endif
         .onDisappear {
             // Snapshot scroll position whenever the Library view leaves the screen
             // (player opening, tab switch, navigation push). At onDisappear time the
             // UIScrollView is still in memory and contentOffset is accurate.
-            #if os(iOS) || os(tvOS)
             if let offset = scrollStore.scrollView?.contentOffset.y, offset > 0 {
                 savedScrollOffset = offset
             }
-            #endif
         }
         .onAppear {
             guard selectedSection != .rss && selectedSection != .downloads else { return }
@@ -259,12 +214,10 @@ public struct LibraryView: View {
                 ))
             // Restore scroll position when returning from the player, another tab,
             // or any navigation that caused onDisappear to fire.
-            #if os(iOS) || os(tvOS)
             if let saved = savedScrollOffset {
                 restoreOffset = saved
                 savedScrollOffset = nil
             }
-            #endif
         }
         .task(id: selectedSection) {
             guard selectedSection == .playlists else { return }
@@ -282,9 +235,7 @@ public struct LibraryView: View {
             ChannelListView(channels: browseVM.subscribedChannels) { channel in
                 channelDestination = ChannelDestination(channelId: channel.id)
             }
-            #if os(tvOS)
             .focusSection()
-            #endif
         }
     }
 
@@ -370,10 +321,6 @@ public struct LibraryView: View {
 
 extension LibraryView {
     @ViewBuilder fileprivate var downloadsContent: some View {
-        #if ENABLE_DOWNLOADS
-        DownloadsView()
-            .environment(DownloadStore.shared)
-        #endif
     }
 }
 

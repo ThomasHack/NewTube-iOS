@@ -25,7 +25,6 @@ struct ChannelDestination: Identifiable, Hashable {
 // MARK: - Shared layout constants
 
 /// tvOS: fixed 4 columns (flexible) — predictable across all TV sizes.
-#if os(tvOS)
 let videoGridColumns = [
     GridItem(.flexible(), spacing: 40),
     GridItem(.flexible(), spacing: 40),
@@ -33,15 +32,6 @@ let videoGridColumns = [
     GridItem(.flexible(), spacing: 40),
 ]
 let videoGridRowSpacing: CGFloat = 40
-#else
-let videoGridRowSpacing: CGFloat = 12
-
-/// Fixed (not adaptive) columns avoid the rotation hit-test mismatch of issue #82.
-func videoGridColumns(_ settings: AppSettings, landscape: Bool) -> [GridItem] {
-    let count = landscape ? settings.gridColumnsLandscape : settings.gridColumnsPortrait
-    return Array(repeating: GridItem(.flexible(), spacing: videoGridRowSpacing), count: count)
-}
-#endif
 
 // MARK: - Layout orientation
 
@@ -95,16 +85,9 @@ extension AppSettings.AccentColorChoice {
 
     /// Pre-tinted, because Picker menus re-tint template images with the current accent.
     var swatch: Image {
-        #if canImport(UIKit)
         let tint = color.map { UIColor($0) } ?? UIColor(named: "AccentColor") ?? .systemBlue
         let base = UIImage(systemName: AppSymbol.colorSwatch) ?? UIImage()
         return Image(uiImage: base.withTintColor(tint, renderingMode: .alwaysOriginal))
-        #else
-        let tint = color.map { NSColor($0) } ?? NSColor(named: "AccentColor") ?? .systemBlue
-        let base = NSImage(systemSymbolName: AppSymbol.colorSwatch, accessibilityDescription: nil)?
-            .withSymbolConfiguration(NSImage.SymbolConfiguration(paletteColors: [tint]))
-        return Image(nsImage: base ?? NSImage())
-        #endif
     }
 }
 

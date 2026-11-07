@@ -1,4 +1,3 @@
-#if os(tvOS)
 import XCTest
 
 // AGENT-POST-RUN-CHECK: ui-tests-with-logs
@@ -220,4 +219,3 @@ final class TVWKHLSReplayRegressionUITests: XCTestCase {
         return cards.firstMatch
     }
 }
-#endif

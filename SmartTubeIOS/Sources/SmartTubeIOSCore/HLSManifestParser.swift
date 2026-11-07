@@ -55,13 +55,6 @@ public func parseHLSMasterManifest(_ manifestText: String, baseURL: URL) -> [Int
                     variants[height] = resolvedURL
                     variantIsH264[height] = pendingIsH264
                 } else {
-                    #if !os(tvOS)
-                    // iOS/macOS: upgrade HEVC variant to H.264 if one arrives later.
-                    if !(variantIsH264[height] ?? false) && pendingIsH264 {
-                        variants[height] = resolvedURL
-                        variantIsH264[height] = true
-                    }
-                    #endif
                 }
             }
             pendingHeight = nil

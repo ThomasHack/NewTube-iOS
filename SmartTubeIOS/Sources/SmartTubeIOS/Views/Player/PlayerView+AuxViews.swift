@@ -1,6 +1,8 @@
 import AVFoundation
+import AVKit
 import SmartTubeIOSCore
 import SwiftUI
+import UIKit
 
 // MARK: - Self-contained auxiliary views used by PlayerView
 //
@@ -161,88 +163,6 @@ struct CommentRowView: View {
 /// Positions YouTube end-screen cards absolutely within the player bounds.
 /// Cards are shown only during their `startMs…endMs` window and dismissed when
 /// the controls overlay is visible (consistent with official YouTube behaviour).
-#if !os(tvOS)
-struct EndCardOverlay: View {
-    let cards: [EndCard]
-    let currentTime: TimeInterval
-    let onSelect: (EndCard) -> Void
-
-    private var visibleCards: [EndCard] {
-        let ms = Int(currentTime * 1000)
-        return cards.filter { $0.style == .video && $0.videoId != nil && ms >= $0.startMs && ms <= $0.endMs }
-    }
-
-    var body: some View {
-        // Self-sizing via an internal GeometryReader avoids passing geo.size from the
-        // outer player GeometryReader. Passing geo.size directly and then setting an
-        // explicit .frame(width: geo.size.width, height: geo.size.height) here created
-        // an AnimatableFrameAttribute that fed back into the outer GR during animations,
-        // causing SIGSEGV/SIGBUS crashes at AttributeGraph recursion level 10.
-        GeometryReader { proxy in
-            ZStack(alignment: .topLeading) {
-                ForEach(visibleCards) { card in
-                    let cardWidth = card.width / 100 * proxy.size.width
-                    let cardHeight = cardWidth / max(card.aspectRatio, 0.1)
-                    let x = card.left / 100 * proxy.size.width
-                    let y = card.top / 100 * proxy.size.height
-                    EndCardButton(card: card, width: cardWidth, height: cardHeight, onSelect: onSelect)
-                        .offset(x: x, y: y)
-                        .transition(.opacity.combined(with: .scale(scale: 0.92)))
-                        .animation(.easeOut(duration: 0.2), value: visibleCards.count)
-                }
-            }
-            .allowsHitTesting(!visibleCards.isEmpty)
-        }
-    }
-}
-
-struct EndCardButton: View {
-    let card: EndCard
-    let width: CGFloat
-    let height: CGFloat
-    let onSelect: (EndCard) -> Void
-
-    var body: some View {
-        Button {
-            onSelect(card)
-        } label: {
-            ZStack(alignment: .bottom) {
-                AsyncImage(url: card.thumbnailURL) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image.resizable().scaledToFill()
-                    default:
-                        Color.gray.opacity(0.4)
-                    }
-                }
-                .frame(width: width, height: height)
-                .clipped()
-
-                if !card.title.isEmpty {
-                    Text(card.title)
-                        .font(.caption2)
-                        .fontWeight(.semibold)
-                        .lineLimit(2)
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 4)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(.black.opacity(0.65))
-                }
-            }
-            .frame(width: width, height: height)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
-            .overlay(
-                RoundedRectangle(cornerRadius: 6)
-                    .stroke(.white.opacity(0.4), lineWidth: 1)
-            )
-            .shadow(color: .black.opacity(0.5), radius: 4, x: 0, y: 2)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("End card: \(card.title)")
-    }
-}
-#endif
 
 // MARK: - AppSettings.VideoGravityMode → AVLayerVideoGravity mapping
 
@@ -253,10 +173,6 @@ extension AppSettings.VideoGravityMode {
 }
 
 // MARK: - AirPlayRoutePickerView
-
-#if canImport(UIKit)
-import UIKit
-import AVKit
 
 /// Wraps `AVRoutePickerView` (the iOS AirPlay button) in a SwiftUI-compatible view.
 struct AirPlayRoutePickerView: UIViewRepresentable {
@@ -274,4 +190,3 @@ struct AirPlayRoutePickerView: UIViewRepresentable {
     }
     func updateUIView(_ uiView: AVRoutePickerView, context: Context) {}
 }
-#endif

@@ -28,13 +28,9 @@ struct ScrollOffsetPreferenceKey: PreferenceKey {
 
 /// Reference-type container that captures a weak reference to the nearest
 /// ancestor `UIScrollView`. All access must happen on the main thread / actor.
-#if os(iOS) || os(tvOS)
 final class ScrollOffsetStore: @unchecked Sendable {
     weak var scrollView: UIScrollView?
 }
-#else
-final class ScrollOffsetStore: @unchecked Sendable {}
-#endif
 
 // MARK: - ScrollOffsetReader
 
@@ -55,7 +51,6 @@ final class ScrollOffsetStore: @unchecked Sendable {}
 /// // leaves the window:
 /// savedOffset = scrollStore.scrollView?.contentOffset.y ?? 0
 /// ```
-#if os(iOS) || os(tvOS)
 struct ScrollOffsetReader: UIViewRepresentable {
     let store: ScrollOffsetStore
 
@@ -83,11 +78,9 @@ struct ScrollOffsetReader: UIViewRepresentable {
         }
     }
 }
-#endif
 
 // MARK: - ScrollOffsetRestorer
 
-#if os(iOS) || os(tvOS)
 struct ScrollOffsetRestorer: UIViewRepresentable {
     /// Desired `contentOffset.y`. Pass `nil` to do nothing.
     let targetOffset: CGFloat?
@@ -117,4 +110,3 @@ struct ScrollOffsetRestorer: UIViewRepresentable {
         }
     }
 }
-#endif
