@@ -135,7 +135,7 @@ final class MockInnerTubeAPI: InnerTubeAPIProtocol {
 
     func fetchChannelVideos(channelId: String, continuationToken: String?) async throws -> VideoGroup {
         calls.append(Call(method: "fetchChannelVideos", args: [channelId, continuationToken ?? "nil"]))
-        if let e = channelVideosError ?? errorToThrow { throw e }
+        if let error = channelVideosError ?? errorToThrow { throw error }
         return channelVideosResult
     }
 
@@ -157,23 +157,23 @@ final class MockInnerTubeAPI: InnerTubeAPIProtocol {
         return playlistVideosResult
     }
 
-    func addToWatchLater(videoId: String) async throws -> String? {
+    func addToWatchLater(videoId: String) throws -> String? {
         calls.append(Call(method: "addToWatchLater", args: [videoId]))
         if let e = errorToThrow { throw e }
         return nil
     }
 
-    func removeFromWatchLater(setVideoId: String) async throws {
+    func removeFromWatchLater(setVideoId: String) throws {
         calls.append(Call(method: "removeFromWatchLater", args: [setVideoId]))
         if let e = errorToThrow { throw e }
     }
 
-    func addToPlaylist(playlistId: String, videoId: String) async throws {
+    func addToPlaylist(playlistId: String, videoId: String) throws {
         calls.append(Call(method: "addToPlaylist", args: [playlistId, videoId]))
         if let e = errorToThrow { throw e }
     }
 
-    func removeFromPlaylist(playlistId: String, setVideoId: String) async throws {
+    func removeFromPlaylist(playlistId: String, setVideoId: String) throws {
         calls.append(Call(method: "removeFromPlaylist", args: [playlistId, setVideoId]))
         if let e = errorToThrow { throw e }
     }
@@ -251,14 +251,15 @@ struct BrowseViewModelTests {
     }
 
     @Test("loadContent for .history calls fetchHistory")
-    func loadHistoryCallsFetch() async {
+    func loadHistoryCallsFetch() async throws {
         let mock = MockInnerTubeAPI()
         mock.historyResult = VideoGroup(title: "History", videos: [makeVideo("histvid_AAAA")])
 
         let section = BrowseSection(id: "history", title: "History", type: .history)
         // Own empty local-history store: the shared one persists entries recorded by other
         // player tests across runs, and local entries are shown first (#150).
-        let emptyLocal = LocalWatchHistoryStore(defaults: UserDefaults(suiteName: "hist-\(UUID().uuidString)")!)
+        let emptyLocal = try LocalWatchHistoryStore(
+            defaults: #require(UserDefaults(suiteName: "hist-\(UUID().uuidString)")))
         let vm = BrowseViewModel(api: mock, initialSection: section, localHistory: emptyLocal)
         vm.loadContent(for: section, refresh: true, source: "test")
         await waitForTasks(until: { vm.videoGroups.first?.videos.first != nil })
@@ -268,11 +269,11 @@ struct BrowseViewModelTests {
     }
 
     @Test("loadContent for .history shows local history first, then account history without duplicates (#150)")
-    func loadHistoryMergesLocalFirst() async {
+    func loadHistoryMergesLocalFirst() async throws {
         let mock = MockInnerTubeAPI()
         mock.historyResult = VideoGroup(
             title: "History", videos: [makeVideo("histvid_AAAA"), makeVideo("histvid_BBBB")])
-        let local = LocalWatchHistoryStore(defaults: UserDefaults(suiteName: "hist-\(UUID().uuidString)")!)
+        let local = try LocalWatchHistoryStore(defaults: #require(UserDefaults(suiteName: "hist-\(UUID().uuidString)")))
         local.record(makeVideo("histvid_BBBB"))  // also in account history → must not duplicate
         local.record(makeVideo("localonly_CCCC"))
 
@@ -285,9 +286,9 @@ struct BrowseViewModelTests {
     }
 
     @Test("loadContent for .history shows local history even when the account fetch yields nothing (#150)")
-    func loadHistoryLocalOnlyWhenRemoteEmpty() async {
+    func loadHistoryLocalOnlyWhenRemoteEmpty() async throws {
         let mock = MockInnerTubeAPI()
-        let local = LocalWatchHistoryStore(defaults: UserDefaults(suiteName: "hist-\(UUID().uuidString)")!)
+        let local = try LocalWatchHistoryStore(defaults: #require(UserDefaults(suiteName: "hist-\(UUID().uuidString)")))
         local.record(makeVideo("localonly_CCCC"))
 
         let section = BrowseSection(id: "history", title: "History", type: .history)
@@ -369,11 +370,12 @@ struct BrowseViewModelTests {
     }
 
     @Test("Watch Later: adds and removes made in the app update the open list at once (#157)")
-    func watchLaterListFollowsAppChanges() async {
+    func watchLaterListFollowsAppChanges() async throws {
         let mock = MockInnerTubeAPI()
         // Its removal notification reaches every open Watch Later list, so no other test may use this ID.
         mock.playlistVideosResult = VideoGroup(title: "Watch Later", videos: [makeVideo("wlremoved_AA")])
-        let membership = WatchLaterMembershipStore(defaults: UserDefaults(suiteName: "wl-\(UUID().uuidString)")!)
+        let membership = try WatchLaterMembershipStore(
+            defaults: #require(UserDefaults(suiteName: "wl-\(UUID().uuidString)")))
         let section = BrowseSection(id: "watchLater", title: "Watch Later", type: .watchLater)
         let vm = BrowseViewModel(api: mock, initialSection: section, watchLaterMembership: membership)
         await vm.updateAuthToken("fake-token")
@@ -390,10 +392,11 @@ struct BrowseViewModelTests {
     }
 
     @Test("Watch Later: a recent save YouTube hasn't indexed yet is shown on top after loading (#157)")
-    func watchLaterLoadShowsUnindexedSave() async {
+    func watchLaterLoadShowsUnindexedSave() async throws {
         let mock = MockInnerTubeAPI()
         mock.playlistVideosResult = VideoGroup(title: "Watch Later", videos: [makeVideo("wlvid_AAAA")])
-        let membership = WatchLaterMembershipStore(defaults: UserDefaults(suiteName: "wl-\(UUID().uuidString)")!)
+        let membership = try WatchLaterMembershipStore(
+            defaults: #require(UserDefaults(suiteName: "wl-\(UUID().uuidString)")))
         membership.markSaved(makeVideo("justsaved_CCCC"), setVideoId: "SETVID_C")
         let section = BrowseSection(id: "watchLater", title: "Watch Later", type: .watchLater)
         let vm = BrowseViewModel(api: mock, initialSection: section, watchLaterMembership: membership)
@@ -404,10 +407,11 @@ struct BrowseViewModelTests {
     }
 
     @Test("Watch Later: an old saved video missing from page 1 does not trigger a retry (#157)")
-    func watchLaterOldSaveDoesNotRetry() async {
+    func watchLaterOldSaveDoesNotRetry() async throws {
         let mock = MockInnerTubeAPI()
         mock.playlistVideosResult = VideoGroup(title: "Watch Later", videos: [makeVideo("wlvid_AAAA")])
-        let membership = WatchLaterMembershipStore(defaults: UserDefaults(suiteName: "wl-\(UUID().uuidString)")!)
+        let membership = try WatchLaterMembershipStore(
+            defaults: #require(UserDefaults(suiteName: "wl-\(UUID().uuidString)")))
         membership.markSaved("oldsave_ZZZZ", at: Date(timeIntervalSinceNow: -3600))
 
         let section = BrowseSection(id: "watchLater", title: "Watch Later", type: .watchLater)
@@ -416,17 +420,20 @@ struct BrowseViewModelTests {
         await waitForTasks()  // updateAuthToken reloads the section; measure only the load below
         mock.calls.removeAll()
         vm.loadContent(for: section, refresh: true, source: "test")
-        await waitForTasks(until: { mock.calls.contains { $0.method == "fetchPlaylistVideos" } })
-        try? await Task.sleep(for: .seconds(2))  // longer than the 1.5 s retry delay
+        // A retry would happen before loading ends, so there's no need to outwait its delay.
+        await waitForTasks(
+            timeout: 5,
+            until: { !vm.isLoading && mock.calls.contains { $0.method == "fetchPlaylistVideos" } })
 
         #expect(mock.calls.filter { $0.method == "fetchPlaylistVideos" }.count == 1)
     }
 
     @Test("Watch Later: a just-saved video missing from the response triggers one re-fetch (#157)")
-    func watchLaterRecentSaveRetriesOnce() async {
+    func watchLaterRecentSaveRetriesOnce() async throws {
         let mock = MockInnerTubeAPI()
         mock.playlistVideosResult = VideoGroup(title: "Watch Later", videos: [makeVideo("wlvid_AAAA")])
-        let membership = WatchLaterMembershipStore(defaults: UserDefaults(suiteName: "wl-\(UUID().uuidString)")!)
+        let membership = try WatchLaterMembershipStore(
+            defaults: #require(UserDefaults(suiteName: "wl-\(UUID().uuidString)")))
         membership.markSaved("justsaved_YYYY")
 
         let section = BrowseSection(id: "watchLater", title: "Watch Later", type: .watchLater)

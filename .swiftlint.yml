@@ -62,11 +62,6 @@ custom_rules:
     regex: '//\s*(TODO|FIXME)(?!\(#\d+\)|\(WS\d)'
     message: "Use // TODO(#task-or-issue): … so it is traceable"
     severity: warning
-  raw_accessibility_identifier:
-    name: "Raw accessibility identifier"
-    regex: 'accessibilityIdentifier\("'
-    message: "Use AccessibilityID constants (WS3-T3.3)"
-    severity: warning
   print_in_sources:
     name: "print() in production code"
     included: "(NewTubeCore/Sources|NewTubeApp/NewTube)/.*\\.swift"

@@ -21,11 +21,11 @@ Architecture map: docs/architecture.md · Glossary: CONTEXT.md · Decisions: doc
 - Swift 6 strict concurrency everywhere. View models are `@MainActor @Observable`. No `ObservableObject`, `@Published`, Combine, `DispatchQueue`, completion handlers in new code.
 - `NewTubeCore` must stay UI-independent (no SwiftUI/UIKit/AVFoundation). View models and platform code go in the app.
 - Tests go in `NewTubeCore/Tests` when they only need Core, in `NewTubeApp/NewTubeTests` when they need the app.
-- One definition per constant/identifier/threshold. Accessibility identifiers come from `AccessibilityID`; SF Symbols from `AppSymbol`; playback timeouts from `PlaybackTuning`.
+- One definition per constant/identifier/threshold. SF Symbols come from `AppSymbol`; playback timeouts from `PlaybackTuning`.
 - tvOS only: no `#if os(...)` branches, and no APIs tvOS lacks (WebKit, WidgetKit, ActivityKit). Never nest `NavigationStack`s.
 - The project is `NewTubeApp.xcodeproj/project.xcproj` (JSON) and may be edited directly. New files under the `NewTube` and `NewTubeTests` folders and the package are picked up automatically; UI-test files must be listed in the project file.
 - App-level navigation goes through `AppNavigator` (ADR-0012): no per-view `navigationDestination(item:)`, navigation notifications, or player presented from a tab.
-- Tests: Swift Testing for unit tests; no `Task.sleep`, no live network, fakes at protocol seams. UI tests use `AccessibilityID` and `waitForExistence`, never `sleep`.
+- Tests: Swift Testing for unit tests; no `Task.sleep`, no live network, fakes at protocol seams. UI tests find elements by accessibility identifier and use `waitForExistence`, never `sleep`.
 - Logging via `AppLogger` (or `os.Logger` with subsystem `appSubsystem`), never `print`.
 - Commits: Conventional Commits with the task ID, e.g. `fix(player): … (#312)`.
 

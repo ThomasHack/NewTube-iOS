@@ -116,30 +116,30 @@ struct SearchView: View {
     private var activeFilterChips: some View {
         if vm.filter.sortOrder != .relevance {
             FilterChip(label: LocalizedStringKey(vm.filter.sortOrder.label)) {
-                var f = vm.filter
-                f.sortOrder = .relevance
-                vm.applyFilter(f)
+                var updated = vm.filter
+                updated.sortOrder = .relevance
+                vm.applyFilter(updated)
             }
         }
         if vm.filter.uploadDate != .anytime {
             FilterChip(label: LocalizedStringKey(vm.filter.uploadDate.label)) {
-                var f = vm.filter
-                f.uploadDate = .anytime
-                vm.applyFilter(f)
+                var updated = vm.filter
+                updated.uploadDate = .anytime
+                vm.applyFilter(updated)
             }
         }
         if vm.filter.type != .any {
             FilterChip(label: LocalizedStringKey(vm.filter.type.label)) {
-                var f = vm.filter
-                f.type = .any
-                vm.applyFilter(f)
+                var updated = vm.filter
+                updated.type = .any
+                vm.applyFilter(updated)
             }
         }
         if vm.filter.duration != .any {
             FilterChip(label: LocalizedStringKey(vm.filter.duration.label)) {
-                var f = vm.filter
-                f.duration = .any
-                vm.applyFilter(f)
+                var updated = vm.filter
+                updated.duration = .any
+                vm.applyFilter(updated)
             }
         }
     }

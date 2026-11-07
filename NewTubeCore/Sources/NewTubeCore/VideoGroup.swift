@@ -52,18 +52,18 @@ public struct BrowseSection: Identifiable, Hashable, Sendable {
     public var type: SectionType
 
     public enum SectionType: String, CaseIterable, Codable, Sendable {
-        case home = "home"
-        case recommended = "recommended"
-        case subscriptions = "subscriptions"
-        case history = "history"
-        case playlists = "playlists"
-        case music = "music"
-        case news = "news"
-        case gaming = "gaming"
-        case live = "live"
-        case sports = "sports"
-        case watchLater = "watchLater"
-        case settings = "settings"
+        case home
+        case recommended
+        case subscriptions
+        case history
+        case playlists
+        case music
+        case news
+        case gaming
+        case live
+        case sports
+        case watchLater
+        case settings
 
         /// Canonical display title — single source of truth used by defaultSections,
         /// allSections, and any code that needs a localised label for a section type.
@@ -234,13 +234,13 @@ public struct SponsorSegment: Identifiable, Codable, Equatable, Sendable {
     public var apiUUID: String?
 
     public enum Category: String, Codable, CaseIterable, Sendable {
-        case sponsor = "sponsor"
+        case sponsor
         case selfPromo = "selfpromo"
-        case interaction = "interaction"
-        case intro = "intro"
-        case outro = "outro"
-        case preview = "preview"
-        case filler = "filler"
+        case interaction
+        case intro
+        case outro
+        case preview
+        case filler
         case musicOfftopic = "music_offtopic"
         case poiHighlight = "poi_highlight"
     }

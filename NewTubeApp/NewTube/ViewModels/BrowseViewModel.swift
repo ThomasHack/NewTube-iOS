@@ -163,8 +163,8 @@ final class BrowseViewModel {
         }
         for key in sectionSnapshots.keys {
             guard var snapshot = sectionSnapshots[key] else { continue }
-            for i in snapshot.videoGroups.indices {
-                snapshot.videoGroups[i].videos.removeAll(where: shouldRemove)
+            for index in snapshot.videoGroups.indices {
+                snapshot.videoGroups[index].videos.removeAll(where: shouldRemove)
             }
             sectionSnapshots[key] = snapshot
         }

@@ -11,8 +11,8 @@ import SwiftUI
 
 struct PINKeypadView: View {
     let title: String
-    var subtitle: String? = nil
-    var errorMessage: String? = nil
+    var subtitle: String?
+    var errorMessage: String?
     /// Fired once exactly `pinLength` digits have been entered. The caller is
     /// responsible for calling `clear()` (via the returned reset) if the PIN was wrong.
     let onSubmit: (String) -> Void

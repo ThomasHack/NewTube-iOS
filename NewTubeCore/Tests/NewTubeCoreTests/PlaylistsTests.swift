@@ -6,7 +6,7 @@ import Testing
 
 // MARK: - Playlist mock data
 
-private nonisolated(unsafe) let mockLibraryResponse: [String: Any] = [
+nonisolated(unsafe) private let mockLibraryResponse: [String: Any] = [
     "contents": [
         "singleColumnBrowseResultsRenderer": [
             "tabs": [
@@ -146,17 +146,23 @@ struct PlaylistsTests {
         let api = InnerTubeAPI()
         let playlists = try await api.parsePlaylistsForTesting(mockLibraryResponse)
 
-        // Give the logging subsystem a moment to flush the entry.
-        try await Task.sleep(for: .milliseconds(200))
-
         let store = try OSLogStore(scope: .currentProcessIdentifier)
         let position = store.position(date: before)
-        let entries = try store.getEntries(at: position)
-            .compactMap { $0 as? OSLogEntryLog }
-            .filter { $0.subsystem == appSubsystem && $0.category == "InnerTube" }
-
         let countMessage = "\(playlists.count) playlists"
-        let matched = entries.contains { $0.composedMessage.contains(countMessage) }
+
+        // Entries reach the store asynchronously, so keep looking until a deadline passes.
+        let clock = ContinuousClock()
+        let deadline = clock.now + .seconds(5)
+        var matched = false
+        while !matched, clock.now < deadline {
+            matched = try store.getEntries(at: position)
+                .compactMap { $0 as? OSLogEntryLog }
+                .contains {
+                    $0.subsystem == appSubsystem && $0.category == "InnerTube"
+                        && $0.composedMessage.contains(countMessage)
+                }
+            await Task.yield()
+        }
         #expect(matched, "Expected a log entry containing '\(countMessage)'")
     }
 }

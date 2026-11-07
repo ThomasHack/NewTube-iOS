@@ -156,7 +156,7 @@ struct PlaylistView: View {
 
 #if DEBUG
 private struct PreviewQueueLoader: QueuedPlaylistLoader {
-    func loadQueuedVideos(for playlistId: String) async -> [Video]? { PreviewData.playlistVideos }
+    func loadQueuedVideos(for playlistId: String) -> [Video]? { PreviewData.playlistVideos }
 }
 
 #Preview("Playlist") {

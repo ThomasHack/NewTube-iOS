@@ -61,9 +61,9 @@ struct NativePlayerController: UIViewControllerRepresentable {
             coordinator.skipSegment = skipSegment
             controller.contextualActions =
                 skipSegment.map { segment in
-                    [
-                        UIAction(title: String(localized: "Skip \(segment.category.displayName)")) {
-                            [weak coordinator] _ in
+                    let title = String(localized: "Skip \(segment.category.displayName)")
+                    return [
+                        UIAction(title: title) { [weak coordinator] _ in
                             coordinator?.perform?(.skipSegment)
                         }
                     ]

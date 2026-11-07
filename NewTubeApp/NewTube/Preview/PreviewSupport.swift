@@ -304,41 +304,41 @@ final class PreviewInnerTubeAPI: InnerTubeAPIProtocol {
 
     private var feed: VideoGroup { VideoGroup(title: "Preview", videos: PreviewData.videos) }
 
-    func setAuthToken(_ token: String?) async {}
-    func setSAPISID(_ value: String?) async {}
+    func setAuthToken(_ token: String?) {}
+    func setSAPISID(_ value: String?) {}
 
-    func fetchHome(continuationToken: String?) async throws -> VideoGroup {
+    func fetchHome(continuationToken: String?) throws -> VideoGroup {
         VideoGroup(title: "Recommended", videos: PreviewData.videos)
     }
-    func fetchHomeRows(continuationToken: String?) async throws -> [VideoGroup] {
+    func fetchHomeRows(continuationToken: String?) throws -> [VideoGroup] {
         [VideoGroup(title: "Recommended", videos: PreviewData.videos)]
     }
-    func fetchSubscriptions(continuationToken: String?) async throws -> VideoGroup { feed }
-    func fetchHistory(continuationToken: String?) async throws -> VideoGroup { feed }
-    func fetchMusic() async throws -> VideoGroup { feed }
-    func fetchGaming() async throws -> VideoGroup { feed }
-    func fetchNews() async throws -> VideoGroup { feed }
-    func fetchLive() async throws -> VideoGroup { feed }
-    func fetchSports() async throws -> VideoGroup { feed }
+    func fetchSubscriptions(continuationToken: String?) throws -> VideoGroup { feed }
+    func fetchHistory(continuationToken: String?) throws -> VideoGroup { feed }
+    func fetchMusic() throws -> VideoGroup { feed }
+    func fetchGaming() throws -> VideoGroup { feed }
+    func fetchNews() throws -> VideoGroup { feed }
+    func fetchLive() throws -> VideoGroup { feed }
+    func fetchSports() throws -> VideoGroup { feed }
 
     func fetchUserPlaylists() async throws -> [PlaylistInfo] {
         try await simulateRequest()
         return playlists
     }
-    func fetchSubscribedChannels() async throws -> [Channel] { channels }
+    func fetchSubscribedChannels() throws -> [Channel] { channels }
 
-    func fetchChannelThumbnailURL(channelId: String) async throws -> URL? { nil }
+    func fetchChannelThumbnailURL(channelId: String) throws -> URL? { nil }
     func fetchChannel(channelId: String) async throws -> (channel: Channel, videos: VideoGroup) {
         try await simulateRequest()
         return (PreviewData.channel, feed)
     }
-    func fetchChannelVideos(channelId: String, continuationToken: String?) async throws -> VideoGroup { feed }
+    func fetchChannelVideos(channelId: String, continuationToken: String?) throws -> VideoGroup { feed }
 
     func search(query: String, continuationToken: String?, filter: SearchFilter) async throws -> VideoGroup {
         try await simulateRequest()
         return VideoGroup(title: "Results", videos: continuationToken == nil ? searchResults : [])
     }
-    func fetchSearchSuggestions(query: String) async throws -> [String] {
+    func fetchSearchSuggestions(query: String) throws -> [String] {
         ["\(query) trailer", "\(query) full movie", "\(query) behind the scenes"]
     }
 
@@ -347,12 +347,12 @@ final class PreviewInnerTubeAPI: InnerTubeAPIProtocol {
         return VideoGroup(title: "Playlist", videos: continuationToken == nil ? playlistVideos : [])
     }
 
-    func addToWatchLater(videoId: String) async throws -> String? { nil }
-    func removeFromWatchLater(setVideoId: String) async throws {}
-    func addToPlaylist(playlistId: String, videoId: String) async throws {}
-    func removeFromPlaylist(playlistId: String, setVideoId: String) async throws {}
-    func sendFeedback(token: String) async throws {}
-    func sendFeedbackForVideo(videoId: String, iconType: String) async throws {}
+    func addToWatchLater(videoId: String) throws -> String? { nil }
+    func removeFromWatchLater(setVideoId: String) throws {}
+    func addToPlaylist(playlistId: String, videoId: String) throws {}
+    func removeFromPlaylist(playlistId: String, setVideoId: String) throws {}
+    func sendFeedback(token: String) throws {}
+    func sendFeedbackForVideo(videoId: String, iconType: String) throws {}
 }
 
 // MARK: - SearchViewModel

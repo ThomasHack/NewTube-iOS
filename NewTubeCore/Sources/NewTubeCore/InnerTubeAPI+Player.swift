@@ -386,16 +386,14 @@ extension InnerTubeAPI {
     ///   - cpn: The same Client Playback Nonce used in `reportPlaybackStarted`.
     ///   - trackingURLs: Tracking URLs from the player response (source of `ei`/`vm`/`of`).
     ///   - lengthSeconds: Total video duration in seconds (`len`).
-    ///   - segmentStart: Playhead position (seconds) when the current play segment began (`st`).
-    ///   - segmentEnd: Playhead position (seconds) when the current play segment ended (`et`/`cmt`).
+    ///   - segment: Playhead positions (seconds) when the current play segment began (`st`) and ended (`et`/`cmt`).
     ///   - final: Marks the video as fully watched (`final=1`).
     public func reportWatchtime(
         videoId: String,
         cpn: String,
         trackingURLs: PlaybackTrackingURLs?,
         lengthSeconds: TimeInterval,
-        segmentStart: TimeInterval,
-        segmentEnd: TimeInterval,
+        segment: (start: TimeInterval, end: TimeInterval),
         final: Bool = false
     ) async {
         guard let session = Self.trackingSession(from: trackingURLs) else {
@@ -406,15 +404,15 @@ extension InnerTubeAPI {
         var params: [String: String] = [
             "docid": videoId,
             "len": Self.formatSeconds(lengthSeconds),
-            "st": Self.formatSeconds(segmentStart),
-            "et": Self.formatSeconds(segmentEnd),
-            "cmt": Self.formatSeconds(segmentEnd),
+            "st": Self.formatSeconds(segment.start),
+            "et": Self.formatSeconds(segment.end),
+            "cmt": Self.formatSeconds(segment.end),
             "cpn": cpn,
         ]
         if final { params["final"] = "1" }
         await pingStatsEndpoint("watchtime", session: session, params: params)
         tubeLog.notice(
-            "reportWatchtime: videoId=\(videoId, privacy: .public) st=\(Int(segmentStart))s et=\(Int(segmentEnd))s final=\(final, privacy: .public)"
+            "reportWatchtime: videoId=\(videoId, privacy: .public) st=\(Int(segment.start))s et=\(Int(segment.end))s final=\(final, privacy: .public)"
         )
     }
 
@@ -841,7 +839,7 @@ extension InnerTubeAPI {
         session: TrackingSession,
         params: [String: String]
     ) async {
-        var comps = URLComponents(string: "https://www.youtube.com/api/stats/\(endpoint)")!
+        guard var comps = URLComponents(string: "https://www.youtube.com/api/stats/\(endpoint)") else { return }
         var items = [
             URLQueryItem(name: "ns", value: "yt"),
             URLQueryItem(name: "ver", value: "2"),
@@ -928,7 +926,7 @@ extension InnerTubeAPI {
     static func statsURLForTesting(
         _ endpoint: String, session: TrackingSession, params: [String: String]
     ) -> URL? {
-        var comps = URLComponents(string: "https://www.youtube.com/api/stats/\(endpoint)")!
+        guard var comps = URLComponents(string: "https://www.youtube.com/api/stats/\(endpoint)") else { return nil }
         var items = [
             URLQueryItem(name: "ns", value: "yt"),
             URLQueryItem(name: "ver", value: "2"),

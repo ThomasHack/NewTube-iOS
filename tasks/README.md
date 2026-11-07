@@ -2,11 +2,6 @@
 
 Remove an item when it's done.
 
-## Tooling
-- [ ] Clear the SwiftLint findings that aren't in the baseline. The build phase shows them as warnings;
-  `pr.yml` still lints with `--strict`. The raw accessibility identifier rule asks for `AccessibilityID`,
-  which doesn't exist in the repo.
-
 ## Localization
 - [ ] Translate "Default Quality" in Settings, which stays English in German.
 

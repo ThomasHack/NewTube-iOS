@@ -4,10 +4,6 @@ import Testing
 @testable import NewTube
 @testable import NewTubeCore
 
-// MARK: - Helpers
-
-/// Yields control enough times so internal @MainActor Tasks spawned by
-/// the ViewModel can complete against an immediately-returning mock API.
 // MARK: - SubscriptionsSortTests
 
 @Suite("Subscriptions Sort Order")
