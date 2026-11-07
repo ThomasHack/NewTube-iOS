@@ -136,22 +136,6 @@ extension InnerTubeAPI {
             }
         }
         let data = try await post(endpoint: "search", body: body)
-        // DEBUG: dump raw search response for #shorts queries so we can inspect
-        // which renderer types YouTube is actually returning.
-        if query == "#shorts", let desktop = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first
-        {
-            let filename =
-                continuationToken == nil
-                ? "shorts_search_p1.json" : "shorts_search_cont_\(Int.random(in: 1000...9999)).json"
-            let url = desktop.appendingPathComponent(filename)
-            if let jsonData = try? JSONSerialization.data(withJSONObject: data, options: [.prettyPrinted, .sortedKeys])
-            {
-                try? jsonData.write(to: url)
-                tubeLog.notice(
-                    "search DEBUG: dumped #shorts response (\(jsonData.count, privacy: .public) bytes) to Desktop/\(filename, privacy: .public)"
-                )
-            }
-        }
         return try parseVideoGroup(from: data, title: "Search: \(query)")
     }
 
