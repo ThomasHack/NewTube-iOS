@@ -41,6 +41,14 @@ extension PlaybackViewModel {
             guard let self, let newRate = change.newValue else { return }
             Task { @MainActor [weak self] in
                 guard let self else { return }
+                // The system player's own controls start playback without going through us.
+                if newRate > 0 {
+                    if !self.isPlaying, !self.isSwappingItem {
+                        self.isPlaying = true
+                        self.updateNowPlayingPlayback()
+                    }
+                    return
+                }
                 // Ignore rate changes that we ourselves triggered (load/pause/resume/stop)
                 // by only acting when the player goes silent unexpectedly while we
                 // believed it was playing.
@@ -59,6 +67,12 @@ extension PlaybackViewModel {
                     && !nearEnd
                 if playerWentSilent {
                     self.isPlaying = false
+                    // The system player pauses when the user pauses or scrubs. Treating that as a
+                    // stall would seek back to the old position and restart playback.
+                    guard Self.rateDropIsStall(self.player.timeControlStatus) else {
+                        self.updateNowPlayingPlayback()
+                        return
+                    }
                     playerLog.notice("[rateObserver] player.rate→0 while isPlaying=true — syncing isPlaying=false")
                     self.stallCount += 1
                     if self.firstRapidStallTime == nil { self.firstRapidStallTime = Date() }
@@ -125,6 +139,11 @@ extension PlaybackViewModel {
                 }
             }
         }
+    }
+
+    /// A paused player was paused on purpose. Only a player waiting for data is stalled.
+    nonisolated static func rateDropIsStall(_ status: AVPlayer.TimeControlStatus) -> Bool {
+        status != .paused
     }
 
     func setupAirPlayObserver() {

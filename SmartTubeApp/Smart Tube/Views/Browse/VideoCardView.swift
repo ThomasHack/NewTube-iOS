@@ -288,16 +288,15 @@ struct VideoCardView: View {
                     }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 10))
-                .overlay(alignment: .bottomTrailing) {
-                    let dur = video.formattedDuration
-                    if !dur.isEmpty { durationBadge(dur) }
-                }
                 .overlay(alignment: .topLeading) {
                     if video.isLive { liveBadge }
                 }
                 .overlay(alignment: .topTrailing) {
                     if WatchLaterMembershipStore.shared.contains(video.id) { watchLaterSavedBadge }
                 }
+                // One layer, so the overlays move with the image when focused.
+                .compositingGroup()
+                .contentShape(.hoverEffect, RoundedRectangle(cornerRadius: 10))
                 .hoverEffect(.highlight)
 
             VStack(alignment: .leading, spacing: 2) {
@@ -334,13 +333,11 @@ struct VideoCardView: View {
                     }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 6))
-                .overlay(alignment: .bottomTrailing) {
-                    let dur = video.formattedDuration
-                    if !dur.isEmpty { durationBadge(dur) }
-                }
                 .overlay(alignment: .topTrailing) {
                     if WatchLaterMembershipStore.shared.contains(video.id) { watchLaterSavedBadge }
                 }
+                .compositingGroup()
+                .contentShape(.hoverEffect, RoundedRectangle(cornerRadius: 6))
                 .hoverEffect(.highlight)
             VStack(alignment: .leading, spacing: 3) {
                 Text(displayTitle)
@@ -450,22 +447,11 @@ struct VideoCardView: View {
         .frame(height: 3)
     }
 
-    /// Views and upload date, e.g. "1.2M views · 2 days ago".
+    /// Views, upload date and length, e.g. "1.2M views · 2 days ago · 12:34".
     private var metadataLine: String {
-        [video.formattedViewCount, uploadDateLabel ?? ""]
+        [video.formattedViewCount, uploadDateLabel ?? "", video.formattedDuration]
             .filter { !$0.isEmpty }
             .joined(separator: " · ")
-    }
-
-    private func durationBadge(_ text: String) -> some View {
-        Text(text)
-            .font(.system(size: 18, weight: .semibold).monospacedDigit())
-            .padding(.horizontal, 4)
-            .padding(.vertical, 2)
-            .background(.black.opacity(0.75))
-            .foregroundStyle(.white)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-            .padding(4)
     }
 
     private var uploadDateLabel: String? {

@@ -14,7 +14,6 @@ struct PlayerItemInfo: Equatable {
     var thumbnailURL: URL?
     var duration: TimeInterval
     var chapters: [Chapter]
-    var sponsorSegments: [SponsorSegment]
 }
 
 // MARK: - NativePlayerController
@@ -106,7 +105,6 @@ struct NativePlayerController: UIViewControllerRepresentable {
             let metadata = PlayerItemMetadata.items(for: info)
             item.externalMetadata = metadata
             item.navigationMarkerGroups = PlayerItemMetadata.chapterMarkers(for: info)
-            item.interstitialTimeRanges = PlayerItemMetadata.segmentRanges(for: info)
 
             artworkTask?.cancel()
             guard let url = info.thumbnailURL else { return }
@@ -151,10 +149,6 @@ enum PlayerItemMetadata {
             )
         }
         return [AVNavigationMarkersGroup(title: nil, timedNavigationMarkers: markers)]
-    }
-
-    static func segmentRanges(for info: PlayerItemInfo) -> [AVInterstitialTimeRange] {
-        info.sponsorSegments.map { AVInterstitialTimeRange(timeRange: timeRange(from: $0.start, to: $0.end)) }
     }
 
     private static func item(_ identifier: AVMetadataIdentifier, _ value: String) -> AVMetadataItem {
