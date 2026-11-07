@@ -10,4 +10,4 @@ paths: ["**/*.swift"]
 - Wrap UIKit-only API in `#if os(iOS)`; provide AppKit/tvOS branches. Never nest `NavigationStack`s.
 - Never hand-edit `project.pbxproj` (a hook blocks it).
 - Tests: Swift Testing for unit tests; no `Task.sleep`, no live network, fakes at protocol seams. UI tests use `AccessibilityID` and `waitForExistence`, never `sleep`.
-- Logging via `os.Logger` (subsystem `AppSubsystem`), never `print`.
+- Logging via `AppLogger` (or `os.Logger` with subsystem `appSubsystem`), never `print`.

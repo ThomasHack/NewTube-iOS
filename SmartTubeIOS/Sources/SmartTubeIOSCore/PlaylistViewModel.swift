@@ -2,7 +2,7 @@ import Foundation
 import Observation
 import os
 
-private let playlistLog = ViewModelLogger(category: "Playlist")
+private let playlistLog = AppLogger(category: "Playlist")
 
 // MARK: - QueuedPlaylistLoader
 //

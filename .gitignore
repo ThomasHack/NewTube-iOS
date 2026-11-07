@@ -50,9 +50,6 @@ AuthKey_*.p8
 # Private signing config (copy from SmartTubeIOSPrivate via setup.sh)
 **/Secrets.xcconfig
 !**/Secrets.xcconfig.example
-# Firebase config (copy from SmartTubeIOSPrivate via setup.sh)
-**/GoogleService-Info.plist
-!**/GoogleService-Info.plist.example
 
 # Simulator
 *.app

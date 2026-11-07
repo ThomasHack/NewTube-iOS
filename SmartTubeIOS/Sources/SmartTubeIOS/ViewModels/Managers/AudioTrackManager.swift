@@ -2,7 +2,7 @@ import AVFoundation
 import SmartTubeIOSCore
 import os
 
-private let playerLog = CrashlyticsLogger(category: "Player")
+private let playerLog = AppLogger(category: "Player")
 
 // MARK: - AudioTrackDelegate
 

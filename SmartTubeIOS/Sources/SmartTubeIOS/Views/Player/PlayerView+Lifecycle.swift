@@ -8,7 +8,7 @@ import os
 import UIKit
 #endif
 
-private let swipeLog = CrashlyticsLogger(category: "Player")
+private let swipeLog = AppLogger(category: "Player")
 
 // MARK: - PlayerView Lifecycle
 extension PlayerView {
@@ -298,7 +298,6 @@ extension PlayerView {
                                 channelTitle: "",
                                 thumbnailURL: card.thumbnailURL
                             )
-                            CrashlyticsLogger.setIntendedVideo(id: videoId, title: card.title)
                             vm.load(video: video)
                         }
                     )

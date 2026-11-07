@@ -7,7 +7,7 @@ import UIKit
 import MediaPlayer
 #endif
 
-private let playerLog = CrashlyticsLogger(category: "Player")
+private let playerLog = AppLogger(category: "Player")
 
 // MARK: - Load Video Lifecycle
 
@@ -31,12 +31,11 @@ extension PlaybackViewModel {
         // If the exact same video is already being loaded, ignore the duplicate call.
         // SwiftUI can trigger load() multiple times during a single navigation (e.g.
         // selectedVideo binding re-evaluated while a queue autoplay is in flight).
-        // Each duplicate spawns its own loadAsync → its own Crashlytics event storm.
+        // Each duplicate would spawn its own loadAsync.
         if currentVideo?.id == video.id, isLoading {
             playerLog.notice("[load] already loading \(video.id) — ignoring duplicate call")
             return
         }
-        CrashlyticsLogger.setVideoContext(id: video.id, title: video.title)
         // Cancel any previous in-flight load so we never have two concurrent API
         // fetches for the same (or different) video running at the same time.
         loadTask?.cancel()
@@ -167,7 +166,6 @@ extension PlaybackViewModel {
         // fix236: Record the intended video at load() time so checkWrongVideoOnFirstPlay()
         // can detect if a stale task swaps currentVideo before readyToPlay fires.
         intendedVideoId = video.id
-        intendedVideoTitle = video.title
         pendingWrongVideoCheck = true
         hasPrevious = !history.isEmpty
         retryAttempts = 0
@@ -510,23 +508,6 @@ extension PlaybackViewModel {
                         playerLog.notice(
                             "[stall] AVPlayerItemPlaybackStalled at t=\(t)s stall#\(self.stallCount) video=\(self.currentVideo?.id ?? "unknown")"
                         )
-                        let stallError = NSError(
-                            domain: "SmartTube.PlaybackStall",
-                            code: 0,
-                            userInfo: [
-                                NSLocalizedDescriptionKey:
-                                    "AVPlayerItemPlaybackStalled at t=\(t)s (stall #\(self.stallCount))"
-                            ]
-                        )
-                        playerLog.recordNonFatal(
-                            stallError,
-                            userInfo: [
-                                "video_id": self.currentVideo?.id ?? "unknown",
-                                "stall_at_time": String(t),
-                                "stall_count": String(self.stallCount),
-                                "video_duration": String(Int(self.duration)),
-                                "stall_trigger": "AVPlayerItemPlaybackStalled",
-                            ])
                         // Stall recovery (#193): wait 2 s for AVPlayer to self-heal;
                         // if still stalled, nudge the pipeline with a near-zero seek
                         // + explicit rate restore. Capped at 3 attempts per item.
@@ -587,7 +568,7 @@ extension PlaybackViewModel {
             // call entirely; partial hits fill only the missing pieces in parallel.
             let cached = await VideoPreloadCache.shared.consume(videoId: video.id)
             // Log the full cache verdict as a single breadcrumb so wrong-video / prefetch-race
-            // scenarios are immediately visible in Firebase reports.
+            // scenarios are immediately visible in the logs.
             let cacheVerdict =
                 "playerInfo=\(cached.playerInfo != nil) nextInfo=\(cached.nextInfo != nil) sponsor=\(cached.sponsorSegments != nil) endCards=\(cached.endCards != nil) tracking=\(cached.trackingURLs != nil) complete=\(cached.isComplete)"
             if cached.playerInfo != nil {
@@ -647,8 +628,8 @@ extension PlaybackViewModel {
                         // including the TV-authenticated path (an authenticated request
                         // carries the same blocked IP and will fail too). Throw immediately
                         // so the error banner appears with the specific VPN message and
-                        // without a "Try Again" button. Suppress Crashlytics recording —
-                        // this is a user-side network condition, not an app bug.
+                        // without a "Try Again" button.
+                        // This is a user-side network condition, not an app bug.
                         playerLog.error("⚠️ iOS client detected IP block — reason: \(reason)")
                         throw error
                     } else if case APIError.unavailable = error, hasAuthToken {
@@ -897,15 +878,6 @@ extension PlaybackViewModel {
                         if self.lastSuccessfulStreamType == "unknown" {
                             self.lastSuccessfulStreamType = isHLS ? "primaryHLS" : "primaryDirect"
                         }
-                        if elapsedMs > 4_000 {
-                            CrashlyticsLogger.recordSlowVideoLoad(
-                                videoId: self.currentVideo?.id ?? "unknown",
-                                elapsedMs: elapsedMs,
-                                streamType: self.lastSuccessfulStreamType,
-                                hasError: item.error != nil,
-                                errorDescription: item.error?.localizedDescription
-                            )
-                        }
                         // Refresh duration from the AVPlayerItem now that it is
                         // ready — the API metadata may have been absent (nil) or
                         // inaccurate, which would leave duration=0 and break scrubbing
@@ -1004,7 +976,7 @@ extension PlaybackViewModel {
                 }
             }
 
-            // Observe playback stalls and record them as Crashlytics non-fatals (bug #193).
+            // Observe playback stalls and attempt recovery (bug #193).
             stallObserverTask?.cancel()
             stallObserverTask = Task { @MainActor [weak self] in
                 let notifications = NotificationCenter.default.notifications(
@@ -1018,23 +990,6 @@ extension PlaybackViewModel {
                     playerLog.notice(
                         "[stall] AVPlayerItemPlaybackStalled at t=\(t)s stall#\(self.stallCount) video=\(self.currentVideo?.id ?? "unknown")"
                     )
-                    let stallError = NSError(
-                        domain: "SmartTube.PlaybackStall",
-                        code: 0,
-                        userInfo: [
-                            NSLocalizedDescriptionKey:
-                                "AVPlayerItemPlaybackStalled at t=\(t)s (stall #\(self.stallCount))"
-                        ]
-                    )
-                    playerLog.recordNonFatal(
-                        stallError,
-                        userInfo: [
-                            "video_id": self.currentVideo?.id ?? "unknown",
-                            "stall_at_time": String(t),
-                            "stall_count": String(self.stallCount),
-                            "video_duration": String(Int(self.duration)),
-                            "stall_trigger": "AVPlayerItemPlaybackStalled",
-                        ])
                     // Stall recovery (#193): wait 2 s for AVPlayer to self-heal;
                     // if still stalled, nudge the pipeline with a near-zero seek
                     // + explicit rate restore. Capped at 3 attempts per item.

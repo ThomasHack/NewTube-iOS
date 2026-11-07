@@ -60,11 +60,6 @@ public struct AppSettings: Codable {
     /// instead restyles the actual on-screen `UITabBar` instance directly. Takes effect
     /// immediately, no restart needed.
     public var disableLiquidGlass: Bool
-    /// #92: when `true`, AppEntry.swift's init() skips `FirebaseApp.configure()` entirely
-    /// so the SDK makes no network calls at launch (fixes a reported startup delay when
-    /// analytics domains are DNS-blocked). Read once at process launch like
-    /// `disableLiquidGlass` above — takes effect on the *next* launch, not live.
-    public var disableAnalytics: Bool
     /// #126: SHA256 hex digest of the Settings-screen parental-control PIN (see
     /// `SettingsPINHasher`). `nil` means no PIN is configured and Settings behaves as
     /// today with no lock. Never stores the raw PIN.
@@ -277,7 +272,6 @@ public struct AppSettings: Codable {
         hideWatchedVideos = false
         hideWatchedThreshold = 0.9
         disableLiquidGlass = false
-        disableAnalytics = false
         settingsPINHash = nil
         hideShorts = false
         hideLiveShorts = false
@@ -366,7 +360,6 @@ extension AppSettings {
         case hideWatchedVideos
         case hideWatchedThreshold
         case disableLiquidGlass
-        case disableAnalytics
         case settingsPINHash
         case hideShorts
         case hideLiveShorts
@@ -420,7 +413,6 @@ extension AppSettings {
         hideWatchedThreshold = c.safeDecode(
             Double.self, forKey: .hideWatchedThreshold, default: d.hideWatchedThreshold)
         disableLiquidGlass = c.safeDecode(Bool.self, forKey: .disableLiquidGlass, default: d.disableLiquidGlass)
-        disableAnalytics = c.safeDecode(Bool.self, forKey: .disableAnalytics, default: d.disableAnalytics)
         settingsPINHash = c.safeDecode(String?.self, forKey: .settingsPINHash, default: d.settingsPINHash)
         hideShorts = c.safeDecode(Bool.self, forKey: .hideShorts, default: d.hideShorts)
         hideLiveShorts = c.safeDecode(Bool.self, forKey: .hideLiveShorts, default: d.hideLiveShorts)
@@ -431,10 +423,14 @@ extension AppSettings {
         accentColor = c.safeDecode(AccentColorChoice.self, forKey: .accentColor, default: d.accentColor)
         let columns = Self.availableGridColumnCounts
         gridColumnsPortrait = min(
-            max(c.safeDecode(Int.self, forKey: .gridColumnsPortrait, default: d.gridColumnsPortrait), columns.lowerBound),
+            max(
+                c.safeDecode(Int.self, forKey: .gridColumnsPortrait, default: d.gridColumnsPortrait), columns.lowerBound
+            ),
             columns.upperBound)
         gridColumnsLandscape = min(
-            max(c.safeDecode(Int.self, forKey: .gridColumnsLandscape, default: d.gridColumnsLandscape), columns.lowerBound),
+            max(
+                c.safeDecode(Int.self, forKey: .gridColumnsLandscape, default: d.gridColumnsLandscape),
+                columns.lowerBound),
             columns.upperBound)
         enabledSections = c.safeDecode(
             [BrowseSection.SectionType].self, forKey: .enabledSections, default: d.enabledSections)

@@ -2,7 +2,7 @@ import Foundation
 import Observation
 import os
 
-private let browseLog = ViewModelLogger(category: "Browse")
+private let browseLog = AppLogger(category: "Browse")
 
 // MARK: - BrowseError
 

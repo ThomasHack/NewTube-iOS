@@ -1,6 +1,6 @@
 import Foundation
 
-private let retryLog = ViewModelLogger(category: "RetryWithBackoff")
+private let retryLog = AppLogger(category: "RetryWithBackoff")
 
 /// Retries `operation` up to `maxAttempts` times on transient URLErrors,
 /// using exponential backoff. Permanent errors (e.g. `APIError`, decoding

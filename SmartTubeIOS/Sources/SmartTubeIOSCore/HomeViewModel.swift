@@ -2,7 +2,7 @@ import Foundation
 import Observation
 import os
 
-private let homeLog = ViewModelLogger(category: "Home")
+private let homeLog = AppLogger(category: "Home")
 
 // MARK: - HomeViewModel
 //

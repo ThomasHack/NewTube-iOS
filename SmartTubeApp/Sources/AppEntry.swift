@@ -1,9 +1,8 @@
-import FirebaseCore
-import FirebaseCrashlytics
 import SmartTubeIOS
 import SmartTubeIOSCore
 import SwiftUI
 import os
+
 #if os(iOS)
 import CoreSpotlight
 #endif
@@ -15,9 +14,7 @@ struct AppEntry: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     #endif
 
-    // Declared without default values so that init() can call FirebaseApp.configure()
-    // before any of these objects are instantiated. @State default values are evaluated
-    // before init() runs, which would trigger Firebase before it is configured.
+    // Declared without default values so that init() can build them in dependency order.
     @State private var api: InnerTubeAPI
     @State private var authService: AuthService
     @State private var browseViewModel: BrowseViewModel
@@ -52,18 +49,7 @@ struct AppEntry: App {
     private static let pendingRSSFeedKey = "pendingRSSFeedURL"
 
     init() {
-        // #92: read the setting before configuring Firebase (and before constructing
-        // anything below that might log through CrashlyticsLogger) so that when
-        // analytics are disabled, FirebaseApp.configure() is never called at all —
-        // no network calls at startup, fixing the delay some users saw when analytics
-        // domains are DNS-blocked. CrashlyticsLogger.isEnabled must be set first so its
-        // methods know to skip Crashlytics.crashlytics() instead of hitting the fatal
-        // "default app not configured" error.
         let settingsStore = SettingsStore()
-        CrashlyticsLogger.isEnabled = !settingsStore.settings.disableAnalytics
-        if CrashlyticsLogger.isEnabled {
-            FirebaseApp.configure()
-        }
         let poTokenProvider: (any PoTokenProvider)? = {
             if let url = settingsStore.settings.poTokenServiceURL {
                 return ServerPoTokenProvider(serviceURL: url)
@@ -150,7 +136,7 @@ struct AppEntry: App {
                 .environment(settingsStore)
                 .environment(\.innerTubeAPI, api)
                 #if ENABLE_DOWNLOADS
-                .environment(cardDownloadService)
+            .environment(cardDownloadService)
                 #endif
                 .onChange(of: authService.accessToken, initial: true) { _, newToken in
                     Task {
@@ -207,7 +193,7 @@ struct AppEntry: App {
                 .environment(settingsStore)
                 .environment(\.innerTubeAPI, api)
                 #if ENABLE_DOWNLOADS
-                .environment(cardDownloadService)
+            .environment(cardDownloadService)
                 #endif
                 .onChange(of: authService.accessToken, initial: true) { _, newToken in
                     Task {
@@ -240,7 +226,7 @@ struct AppEntry: App {
                     .environment(\.innerTubeAPI, api)
                     .environment(playerStateStore)
                     #if ENABLE_DOWNLOADS
-                    .environment(cardDownloadService)
+                .environment(cardDownloadService)
                     #endif
             } else {
                 RootView()
@@ -249,93 +235,93 @@ struct AppEntry: App {
                     .environment(settingsStore)
                     .environment(\.innerTubeAPI, api)
                     #if ENABLE_DOWNLOADS
-                    .environment(cardDownloadService)
+                .environment(cardDownloadService)
                     #endif
                     #if os(iOS)
                 .environment(playerStateStore)
                 .environment(tosPlayerStateStore)
                 .environment(playerRouter)
-                    #endif
-                    .onChange(of: authService.accessToken, initial: true) { _, newToken in
-                        #if os(iOS)
-                        playerStateStore.vm.updateAuthToken(newToken)
-                        #endif
-                        Task {
-                            await api.setAuthToken(newToken)
-                            await browseViewModel.updateAuthToken(newToken)
-                        }
-                    }
-                    .onChange(of: authService.sapisid, initial: true) { _, newSapisid in
-                        #if os(iOS)
-                        playerStateStore.vm.updateSAPISID(newSapisid)
-                        #endif
-                        Task { await api.setSAPISID(newSapisid) }
-                    }
-                    .onChange(of: settingsStore.settings.enabledSections) { _, newSections in
-                        browseViewModel.configureSections(newSections)
-                    }
-                    .onChange(of: settingsStore.settings.historyState, initial: true) { _, newState in
-                        browseViewModel.updateHistoryEnabled(newState == .enabled)
-                    }
-                    .onChange(of: settingsStore.settings.perDeviceRecommendationsEnabled) { _, enabled in
-                        Task {
-                            if !enabled { await api.resetVisitorData() }
-                            browseViewModel.loadContent(refresh: true, source: "perDeviceRecommendationsChanged")
-                        }
-                    }
-                    .onOpenURL { url in handleOpenURL(url) }
+                #endif
+                .onChange(of: authService.accessToken, initial: true) { _, newToken in
                     #if os(iOS)
-                    // Spotlight: tapping a video or channel result opens it.
-                    .onContinueUserActivity(CSSearchableItemActionType) { activity in
-                        guard let id = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String,
-                            let route = SpotlightIndexer.route(forIdentifier: id)
-                        else { return }
-                        handleOpenURL(route.url)
-                    }
-                    // Spotlight: recently watched videos (removed when history is off or cleared)
-                    // and subscribed channels (removed on sign-out).
-                    .onChange(of: LocalWatchHistoryStore.shared.entries.map(\.video.id), initial: true) { _, _ in
-                        syncSpotlightHistory()
-                    }
-                    .onChange(of: settingsStore.settings.historyState) { _, _ in syncSpotlightHistory() }
-                    .onChange(of: browseViewModel.subscribedChannels) { _, channels in
-                        if !channels.isEmpty { SpotlightIndexer.shared.syncChannels(channels) }
-                    }
-                    .onChange(of: authService.isSignedIn) { _, signedIn in
-                        if !signedIn { SpotlightIndexer.shared.syncChannels([]) }
-                    }
+                    playerStateStore.vm.updateAuthToken(newToken)
                     #endif
-                    .onChange(of: scenePhase, initial: true) { _, phase in
-                        if phase == .active {
-                            consumePendingVideoID()
-                            consumePendingVideoFromLaunchArgs()
-                            consumeDeepLinkFromLaunchArgs()
-                            consumeChannelDeepLinkFromLaunchArgs()
-                            consumeQueueInjectFromLaunchArgs()
-                            consumeBotGuardProbeFromLaunchArgs()
-                            authService.handleForeground()
-                            browseViewModel.refreshIfStale()
-                            consumePendingRSSFeedURL()
-                            #if os(iOS)
-                            consumePendingWatchLaterID()
-                            consumePendingQueueVideoID()
-                            if playerStateStore.presentation == .miniPlayer {
-                                playerStateStore.vm.handleForeground()
-                            }
-                            #endif
-                        } else if phase == .background {
-                            #if os(iOS)
-                            if playerStateStore.presentation == .miniPlayer {
-                                playerStateStore.vm.handleBackground()
-                            }
-                            #endif
-                        }
+                    Task {
+                        await api.setAuthToken(newToken)
+                        await browseViewModel.updateAuthToken(newToken)
                     }
-                    .onAppear {
-                        enableShortsIfNeeded()
-                        signOutIfNeeded()
-                    }
+                }
+                .onChange(of: authService.sapisid, initial: true) { _, newSapisid in
                     #if os(iOS)
+                    playerStateStore.vm.updateSAPISID(newSapisid)
+                    #endif
+                    Task { await api.setSAPISID(newSapisid) }
+                }
+                .onChange(of: settingsStore.settings.enabledSections) { _, newSections in
+                    browseViewModel.configureSections(newSections)
+                }
+                .onChange(of: settingsStore.settings.historyState, initial: true) { _, newState in
+                    browseViewModel.updateHistoryEnabled(newState == .enabled)
+                }
+                .onChange(of: settingsStore.settings.perDeviceRecommendationsEnabled) { _, enabled in
+                    Task {
+                        if !enabled { await api.resetVisitorData() }
+                        browseViewModel.loadContent(refresh: true, source: "perDeviceRecommendationsChanged")
+                    }
+                }
+                .onOpenURL { url in handleOpenURL(url) }
+                #if os(iOS)
+                // Spotlight: tapping a video or channel result opens it.
+                .onContinueUserActivity(CSSearchableItemActionType) { activity in
+                    guard let id = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String,
+                        let route = SpotlightIndexer.route(forIdentifier: id)
+                    else { return }
+                    handleOpenURL(route.url)
+                }
+                // Spotlight: recently watched videos (removed when history is off or cleared)
+                // and subscribed channels (removed on sign-out).
+                .onChange(of: LocalWatchHistoryStore.shared.entries.map(\.video.id), initial: true) { _, _ in
+                    syncSpotlightHistory()
+                }
+                .onChange(of: settingsStore.settings.historyState) { _, _ in syncSpotlightHistory() }
+                .onChange(of: browseViewModel.subscribedChannels) { _, channels in
+                    if !channels.isEmpty { SpotlightIndexer.shared.syncChannels(channels) }
+                }
+                .onChange(of: authService.isSignedIn) { _, signedIn in
+                    if !signedIn { SpotlightIndexer.shared.syncChannels([]) }
+                }
+                #endif
+                .onChange(of: scenePhase, initial: true) { _, phase in
+                    if phase == .active {
+                        consumePendingVideoID()
+                        consumePendingVideoFromLaunchArgs()
+                        consumeDeepLinkFromLaunchArgs()
+                        consumeChannelDeepLinkFromLaunchArgs()
+                        consumeQueueInjectFromLaunchArgs()
+                        consumeBotGuardProbeFromLaunchArgs()
+                        authService.handleForeground()
+                        browseViewModel.refreshIfStale()
+                        consumePendingRSSFeedURL()
+                        #if os(iOS)
+                        consumePendingWatchLaterID()
+                        consumePendingQueueVideoID()
+                        if playerStateStore.presentation == .miniPlayer {
+                            playerStateStore.vm.handleForeground()
+                        }
+                        #endif
+                    } else if phase == .background {
+                        #if os(iOS)
+                        if playerStateStore.presentation == .miniPlayer {
+                            playerStateStore.vm.handleBackground()
+                        }
+                        #endif
+                    }
+                }
+                .onAppear {
+                    enableShortsIfNeeded()
+                    signOutIfNeeded()
+                }
+                #if os(iOS)
                 .alert(item: $watchLaterAlert) { item in
                     Alert(
                         title: Text(item.title),
@@ -376,7 +362,8 @@ struct AppEntry: App {
             NotificationCenter.default.post(name: .smartTubeOpenSearch, object: nil, userInfo: ["query": query])
         case .section(let type):
             leaveFullScreenPlayer()
-            NotificationCenter.default.post(name: .smartTubeOpenSection, object: nil, userInfo: ["section": type.rawValue])
+            NotificationCenter.default.post(
+                name: .smartTubeOpenSection, object: nil, userInfo: ["section": type.rawValue])
         case .playWatchLater:
             Task { @MainActor in
                 // Needs a signed-in account; otherwise show the Watch Later section, which

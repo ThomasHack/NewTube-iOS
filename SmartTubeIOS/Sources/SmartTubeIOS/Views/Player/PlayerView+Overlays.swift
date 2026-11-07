@@ -6,7 +6,7 @@ import os
 import UIKit
 #endif
 
-private let menuLog = CrashlyticsLogger(category: "PlayerMenu")
+private let menuLog = AppLogger(category: "PlayerMenu")
 
 // Measures the natural height of moreMenuItems so the sheet hugs its content
 // instead of always expanding to moreMenuMaxHeight.
