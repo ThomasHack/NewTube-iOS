@@ -1,13 +1,13 @@
-// swift-tools-version:6.0
+// swift-tools-version:6.4
 import PackageDescription
 
 let package = Package(
     name: "SmartTubeIOS",
     defaultLocalization: "en",
     platforms: [
-        .iOS(.v17),
-        .macOS(.v14),
-        .tvOS(.v17),
+        .iOS(.v27),
+        .macOS(.v27),
+        .tvOS(.v27),
     ],
     products: [
         // Cross-platform core: models + InnerTube/SponsorBlock services (Foundation only).

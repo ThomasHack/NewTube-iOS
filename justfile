@@ -7,7 +7,7 @@ package   := root + "/SmartTubeIOS"
 derived   := env_var_or_default("SMARTTUBE_DERIVED_DATA", env_var("HOME") + "/DevTemp/smarttube/derived-data/xcode")
 # Single source of truth for the target simulator. Override: `just sim="iPhone 17" test-ui`.
 sim       := env_var_or_default("SMARTTUBE_SIM", "iPhone 17")
-tv_sim    := env_var_or_default("SMARTTUBE_TV_SIM", "Apple TV")
+tv_sim    := env_var_or_default("SMARTTUBE_TV_SIM", "Apple TV 4K (4th generation)")
 workers   := "3"   # 16 GB Mac Mini ceiling; 5 stalls clone boot (docs/running-tests.md)
 
 default:
