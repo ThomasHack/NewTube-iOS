@@ -4,10 +4,10 @@
 
 ## Key files
 
-- **API**: [InnerTubeAPI+Browse.swift](../../SmartTubeCore/Sources/SmartTubeCore/InnerTubeAPI+Browse.swift) (requests), [InnerTubeAPI+VideoRenderers.swift](../../SmartTubeCore/Sources/SmartTubeCore/InnerTubeAPI+VideoRenderers.swift) (parsing)
-- **Models**: [VideoGroup.swift](../../SmartTubeCore/Sources/SmartTubeCore/VideoGroup.swift) (`VideoGroup`, `BrowseSection`), [Video.swift](../../SmartTubeCore/Sources/SmartTubeCore/Video.swift)
-- **View model**: [BrowseViewModel.swift](../../SmartTubeApp/Smart%20Tube/ViewModels/BrowseViewModel.swift)
-- **Views**: [HomeView.swift](../../SmartTubeApp/Smart%20Tube/Views/Home/HomeView.swift)
+- **API**: [InnerTubeAPI+Browse.swift](../../NewTubeCore/Sources/NewTubeCore/InnerTubeAPI+Browse.swift) (requests), [InnerTubeAPI+VideoRenderers.swift](../../NewTubeCore/Sources/NewTubeCore/InnerTubeAPI+VideoRenderers.swift) (parsing)
+- **Models**: [VideoGroup.swift](../../NewTubeCore/Sources/NewTubeCore/VideoGroup.swift) (`VideoGroup`, `BrowseSection`), [Video.swift](../../NewTubeCore/Sources/NewTubeCore/Video.swift)
+- **View model**: [BrowseViewModel.swift](../../NewTubeApp/NewTube/ViewModels/BrowseViewModel.swift)
+- **Views**: [HomeView.swift](../../NewTubeApp/NewTube/Views/Home/HomeView.swift)
 
 ## Models
 

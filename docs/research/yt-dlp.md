@@ -1,10 +1,10 @@
 > status: research reference, not re-verified against current code (2026-09-11)
 
-# yt-dlp — Knowledge Reference for SmartTubeIOS
+# yt-dlp — Knowledge Reference for NewTube
 
 > Research snapshot based on yt-dlp `master` branch (circa May 2026).  
 > Primary sources: [yt-dlp README](https://github.com/yt-dlp/yt-dlp), [`_base.py`](https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/extractor/youtube/_base.py)  
-> Purpose: mine yt-dlp's battle-tested YouTube reverse-engineering for approaches we can apply or watch out for in SmartTubeIOS.
+> Purpose: mine yt-dlp's battle-tested YouTube reverse-engineering for approaches we can apply or watch out for in NewTube.
 
 ---
 
@@ -27,7 +27,7 @@ yt-dlp maintains a `INNERTUBE_CLIENTS` dict in `_base.py` that is the single mos
 | `tv_downgraded` | `TVHTML5` | `5.20260114` | **7** | ✅ (optional) | Cobalt UA, older version; **REQUIRE_AUTH=True**; yt-dlp default authenticated |
 | `tv_simply` | `TVHTML5_SIMPLY` | `1.0` | 75 | — | PO Token required for HTTPS/DASH |
 
-**Relevance to SmartTubeIOS:**
+**Relevance to NewTube:**
 - Our `postPlayer()` uses `IOS` (client 5) — matches `ios` above. yt-dlp shows this now requires PO Tokens for GVS and HLS URLs. Watch for throttled/403 stream URLs in the future.
 - Our `postTV()` uses `TVHTML5` (client 7) with Bearer auth — matches `tv_downgraded` above (yt-dlp uses for free auth accounts). The `tv_downgraded` version string `5.20260114` is older than `tv` (`7.20260114.12.00`); we may want to track which version YouTube prefers.
 - **`android_vr` (client 28) is currently the most permissive unauthenticated client** — no JS player required and no PO Token required. Consider it as a fallback for unauthenticated stream extraction.
@@ -48,7 +48,7 @@ osVersion:     18.3.2.22D82
 userAgent:     com.google.ios.youtube/21.02.3 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X;)
 ```
 
-SmartTubeIOS currently sends a static `clientVersion` in `postPlayer()`. Keeping `clientVersion`, `deviceModel`, and `osVersion` in sync with what yt-dlp ships improves format availability. See [TeamNewPipe/NewPipeExtractor#680](https://github.com/TeamNewPipe/NewPipeExtractor/issues/680#issuecomment-1002724558) for the 60fps unlock mechanism.
+NewTube currently sends a static `clientVersion` in `postPlayer()`. Keeping `clientVersion`, `deviceModel`, and `osVersion` in sync with what yt-dlp ships improves format availability. See [TeamNewPipe/NewPipeExtractor#680](https://github.com/TeamNewPipe/NewPipeExtractor/issues/680#issuecomment-1002724558) for the 60fps unlock mechanism.
 
 ---
 
@@ -66,7 +66,7 @@ Mozilla/5.0 (ChromiumStylePlatform) Cobalt/25.lts.30.1034943-gold (unlike Gecko)
 Mozilla/5.0 (ChromiumStylePlatform) Cobalt/Version
 ```
 
-SmartTubeIOS's `postTV()` should match the Cobalt UA string that `tv_downgraded` uses when sending authenticated requests, as mismatches can cause YouTube to reject or downgrade the token context.
+NewTube's `postTV()` should match the Cobalt UA string that `tv_downgraded` uses when sending authenticated requests, as mismatches can cause YouTube to reject or downgrade the token context.
 
 ---
 
@@ -99,7 +99,7 @@ yt-dlp documents a major YouTube mitigation: stream URLs contain an `n` paramete
 2. Running a JS deobfuscation function to transform the `n` parameter.
 3. Replacing `n=<old>` with `n=<transformed>` in each stream URL.
 
-**SmartTubeIOS approach:** We avoid this by using the **iOS client** (REQUIRE_JS_PLAYER=false) and the **TV client** (Bearer-authenticated). Neither requires JS execution because YouTube serves pre-signed URLs to these clients. This is the same strategy the Android SmartTube uses.
+**NewTube approach:** We avoid this by using the **iOS client** (REQUIRE_JS_PLAYER=false) and the **TV client** (Bearer-authenticated). Neither requires JS execution because YouTube serves pre-signed URLs to these clients. This is the same strategy the Android SmartTube uses.
 
 **Watch out for:** If you ever add a `web` or `mweb` client path, n-sig throttling will apply and you'll need a Swift JS execution layer or a pre-computed transform.
 
@@ -158,7 +158,7 @@ lang, quality, res, fps, hdr:12, vcodec, channels, acodec, size, br, asr, proto,
 
 Note that **Dolby Vision is not preferred by default** (`hdr:12` caps HDR preference at HDR10+). DV formats are not broadly compatible.
 
-**For SmartTubeIOS quality picker:** AVKit on iOS/macOS natively decodes H.264 and H.265 in hardware. AV1 (`av01`) is software-only on iOS < 16 and hardware on A17+ (iPhone 15 Pro). Prefer `hvc1`/`hev1` (H.265) over AV1 for broadest hardware compatibility.
+**For NewTube quality picker:** AVKit on iOS/macOS natively decodes H.264 and H.265 in hardware. AV1 (`av01`) is software-only on iOS < 16 and hardware on A17+ (iPhone 15 Pro). Prefer `hvc1`/`hev1` (H.265) over AV1 for broadest hardware compatibility.
 
 ---
 
@@ -166,13 +166,13 @@ Note that **Dolby Vision is not preferred by default** (`hdr:12` caps HDR prefer
 
 yt-dlp recognises these protocols from the YouTube player response:
 
-| Protocol | Description | SmartTubeIOS notes |
+| Protocol | Description | NewTube notes |
 |---|---|---|
 | `https` | Progressive MP4/m4a, direct URL | Used today via `postPlayer()` |
 | `http_dash_segments` | DASH (MPD) manifest | Available from multiple clients; better adaptive bitrate |
 | `m3u8` / `m3u8_native` | HLS manifest | iOS client returns HLS for live streams; AVPlayer handles natively |
 
-**DASH manifests** in the player response: look for `streamingData.dashManifestUrl`. SmartTubeIOS currently uses `adaptiveFormats` directly, which gives the same DASH segments but pre-enumerated.
+**DASH manifests** in the player response: look for `streamingData.dashManifestUrl`. NewTube currently uses `adaptiveFormats` directly, which gives the same DASH segments but pre-enumerated.
 
 **HLS for live streams:** The iOS client (`IOS`, client 5) returns `streamingData.hlsManifestUrl` for live content. AVPlayer can consume this `.m3u8` directly — no custom segment downloader needed.
 
@@ -186,7 +186,7 @@ yt-dlp extracts `visitorData` from InnerTube responses and includes it as `X-Goo
 X-Goog-Visitor-Id: <visitorData>
 ```
 
-**SmartTubeIOS:** Our current implementation does not thread `visitorData` across requests. For some content (mixes, recommendations), YouTube may return different results or errors without a consistent visitor context. Consider extracting and threading `responseContext.visitorData` from the first InnerTube response.
+**NewTube:** Our current implementation does not thread `visitorData` across requests. For some content (mixes, recommendations), YouTube may return different results or errors without a consistent visitor context. Consider extracting and threading `responseContext.visitorData` from the first InnerTube response.
 
 ---
 
@@ -199,7 +199,7 @@ yt-dlp sets a `SOCS=CAI` cookie on `.youtube.com` for unauthenticated requests. 
 // Set-Cookie: SOCS=CAI; Domain=.youtube.com; Secure
 ```
 
-This affects SmartTubeIOS for EU users. If home feed or search fails silently, check whether consent cookie injection is needed.
+This affects NewTube for EU users. If home feed or search fails silently, check whether consent cookie injection is needed.
 
 ---
 
@@ -225,7 +225,7 @@ yt-dlp extracts captions from `streamingData` → no; from `captions.playerCapti
 
 ## 12. Chapter Markers
 
-yt-dlp uses `macroMarkersListItemRenderer` from the `/next` endpoint (same as SmartTubeIOS), confirming our approach is correct. The parser looks for:
+yt-dlp uses `macroMarkersListItemRenderer` from the `/next` endpoint (same as NewTube), confirming our approach is correct. The parser looks for:
 
 ```
 response → engagementPanels → engagementPanelSectionListRenderer
@@ -253,30 +253,30 @@ Use `onTap.watchEndpoint.startTimeSeconds` (integer) as the canonical chapter st
 
 yt-dlp has native `--sponsorblock-mark` / `--sponsorblock-remove` options using the [SponsorBlock API](https://sponsor.ajay.app/).
 
-**Categories yt-dlp supports** (same as what SmartTubeIOS implements):
+**Categories yt-dlp supports** (same as what NewTube implements):
 `sponsor`, `intro`, `outro`, `selfpromo`, `preview`, `filler`, `interaction`, `music_offtopic`, `hook`, `poi_highlight`, `chapter`
 
 **Action types:** `skip`, `poi` (point of interest / highlight), `full` (entire video is category), `mute`
 
-The API endpoint SmartTubeIOS uses (`https://sponsor.ajay.app/api/skipSegments`) is the same one yt-dlp queries. No changes needed here — our implementation is aligned.
+The API endpoint NewTube uses (`https://sponsor.ajay.app/api/skipSegments`) is the same one yt-dlp queries. No changes needed here — our implementation is aligned.
 
 ---
 
 ## 14. Known YouTube Client Anti-Abuse Patterns
 
-Patterns yt-dlp works around that SmartTubeIOS should be aware of:
+Patterns yt-dlp works around that NewTube should be aware of:
 
 ### 14a. `android_vr` SABR Streams
 When `android_vr` clientVersion exceeds `1.65`, YouTube returns SABR (Server-Adaptive Bitrate Rate) streams instead of regular HTTPS URLs. SABR is a proprietary streaming protocol that requires a custom downloader. **Stay on `1.65.10` if using `android_vr`.**
 
 ### 14b. Rate Limiting (HTTP 429)
-yt-dlp retries on 429 responses. For InnerTube, 429 typically means too many requests too fast. SmartTubeIOS should add a small inter-request delay when paginating continuations.
+yt-dlp retries on 429 responses. For InnerTube, 429 typically means too many requests too fast. NewTube should add a small inter-request delay when paginating continuations.
 
 ### 14c. `tv` Client `appInstallData` 
 yt-dlp has a workaround: when using the `tv` client unauthenticated, it strips `appInstallData` from `INNERTUBE_CONTEXT.client.configInfo` to avoid a known issue. If unauthenticated TV requests fail (403), try omitting `configInfo` entirely from the context.
 
 ### 14d. Cookie Rotation Warning
-yt-dlp detects when YouTube rotates auth cookies mid-session (login info cleared). SmartTubeIOS uses Bearer tokens (not cookies), so this specific issue doesn't apply — but token expiry/401 handling is the equivalent.
+yt-dlp detects when YouTube rotates auth cookies mid-session (login info cleared). NewTube uses Bearer tokens (not cookies), so this specific issue doesn't apply — but token expiry/401 handling is the equivalent.
 
 ---
 
@@ -291,7 +291,7 @@ yt-dlp detects when YouTube rotates auth cookies mid-session (login info cleared
 
 ---
 
-## 16. Approaches That Can Help SmartTubeIOS
+## 16. Approaches That Can Help NewTube
 
 ### Short-term
 1. **Track `clientVersion` for iOS client** — update periodically to match yt-dlp's `ios` entry. An outdated version may lose access to new formats or trigger bot detection.
@@ -305,7 +305,7 @@ yt-dlp detects when YouTube rotates auth cookies mid-session (login info cleared
 7. **DASH manifest URL** — `streamingData.dashManifestUrl` (when present) provides the full adaptive manifest. Parsing it gives segment URLs without enumerating `adaptiveFormats`. Useful for future adaptive streaming support.
 
 ### Long-term
-8. **PO Token infrastructure** — if PO Token enforcement reaches all clients including TV, SmartTubeIOS will need to implement token generation. Study [yt-dlp/wiki/PO-Token-Guide](https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide) for the current state. A JS execution layer (WKWebView or JavaScriptCore) would be the iOS-native approach.
+8. **PO Token infrastructure** — if PO Token enforcement reaches all clients including TV, NewTube will need to implement token generation. Study [yt-dlp/wiki/PO-Token-Guide](https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide) for the current state. A JS execution layer (WKWebView or JavaScriptCore) would be the iOS-native approach.
 9. **n-sig deobfuscation (if ever needed)** — only needed if switching to a `web`-family client. The JS function name is found via regex in the player JS. This is a significant complexity addition — avoid web clients.
 
 ---

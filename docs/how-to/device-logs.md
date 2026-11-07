@@ -12,16 +12,16 @@ logged, not just whether an assertion passed.
 `xcresulttool`:
 
 ```bash
-RESULT=/tmp/smarttube-test-$(date +%s).xcresult
+RESULT=/tmp/newtube-test-$(date +%s).xcresult
 xcodebuild test \
-  -workspace SmartTube.xcworkspace -scheme SmartTube \
+  -workspace NewTube.xcworkspace -scheme NewTube \
   -destination "id=<SIMULATOR_UDID>" \  # see docs/how-to/run-tests.md#target-simulator
-  -only-testing:SmartTubeUITests/<SuiteClass>/<testMethod> \
-  -resultBundlePath "$RESULT" 2>&1 | tee /tmp/smarttube-test-xcodebuild.log
+  -only-testing:NewTubeUITests/<SuiteClass>/<testMethod> \
+  -resultBundlePath "$RESULT" 2>&1 | tee /tmp/newtube-test-xcodebuild.log
 
-LOG_DIR=/tmp/smarttube-diag-$(date +%s)
+LOG_DIR=/tmp/newtube-diag-$(date +%s)
 xcrun xcresulttool export diagnostics --path "$RESULT" --output-path "$LOG_DIR"
-APP_LOG=$(find "$LOG_DIR" -name "*smarttube*" -o -name "*com.void*" 2>/dev/null | grep -v "Runner\|UITests" | head -1)
+APP_LOG=$(find "$LOG_DIR" -name "*newtube*" -o -name "*com.void*" 2>/dev/null | grep -v "Runner\|UITests" | head -1)
 wc -l "$APP_LOG"
 ```
 

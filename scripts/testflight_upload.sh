@@ -6,23 +6,23 @@
 #
 # Sets CURRENT_PROJECT_VERSION, archives Release for generic tvOS, then exports with method app-store-connect /
 # destination upload and automatic signing, through the Apple account signed in to Xcode
-# (Settings > Accounts). Output under ~/DevTemp/smarttube. Commit the project file after.
+# (Settings > Accounts). Output under ~/DevTemp/newtube. Commit the project file after.
 set -uo pipefail
 BUILD="${1:?usage: scripts/testflight_upload.sh <build number>}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-D="$HOME/DevTemp/smarttube"
+D="$HOME/DevTemp/newtube"
 OUT="$D/scratch/testflight"
-PROJECT="$ROOT/SmartTubeApp/SmartTubeApp.xcodeproj/project.xcproj"
+PROJECT="$ROOT/NewTubeApp/NewTubeApp.xcodeproj/project.xcproj"
 mkdir -p "$OUT" "$D/logs"
 
 sed -i '' -E "s/\"CURRENT_PROJECT_VERSION\": \"[0-9]+\"/\"CURRENT_PROJECT_VERSION\": \"$BUILD\"/" "$PROJECT"
 VERSION=$(sed -nE 's/.*"MARKETING_VERSION": "([0-9.]+)".*/\1/p' "$PROJECT" | head -1)
 TEAM=$(sed -nE 's/.*"DEVELOPMENT_TEAM": "([A-Z0-9]+)".*/\1/p' "$PROJECT" | head -1)
 
-ARCHIVE="$OUT/SmartTube-$VERSION-$BUILD.xcarchive"
+ARCHIVE="$OUT/NewTube-$VERSION-$BUILD.xcarchive"
 rm -rf "$ARCHIVE" "$OUT/export-$BUILD"
 echo "archiving $VERSION ($BUILD)..."
-/usr/bin/xcodebuild -workspace "$ROOT/SmartTube.xcworkspace" -scheme "Smart Tube" -configuration Release \
+/usr/bin/xcodebuild -workspace "$ROOT/NewTube.xcworkspace" -scheme "NewTube" -configuration Release \
     -destination 'generic/platform=tvOS' -derivedDataPath "$D/derived-data/archive" \
     -archivePath "$ARCHIVE" -allowProvisioningUpdates archive >"$D/logs/archive-$BUILD.log" 2>&1 \
     || { grep -E 'error:' "$D/logs/archive-$BUILD.log" | head -8; echo "archive failed: $D/logs/archive-$BUILD.log" >&2; exit 1; }

@@ -6,7 +6,7 @@
 
 ## What's actually automated today
 
-1. Bump the version in `SmartTubeApp/SmartTubeApp.xcodeproj/project.xcproj` — `MARKETING_VERSION`
+1. Bump the version in `NewTubeApp/NewTubeApp.xcodeproj/project.xcproj` — `MARKETING_VERSION`
    (user-facing, e.g. `5.6`) and `CURRENT_PROJECT_VERSION` (build number, monotonic integer).
 2. `git-cliff --config cliff.toml --unreleased --prepend CHANGELOG.md` regenerates the `Unreleased` section of `CHANGELOG.md` from Conventional
    Commits since the last tag (`cliff.toml`, WS1-T1.7). Review and edit before committing — it's a

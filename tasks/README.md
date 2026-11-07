@@ -11,10 +11,10 @@ Remove an item when it's done.
 - [ ] Translate "Default Quality" in Settings, which stays English in German.
 
 ## Cleanup
-- [ ] Delete `yt.solver.lib.min.js` and `yt.solver.core.min.js` from `SmartTubeApp/Smart Tube/Resources/`
+- [ ] Delete `yt.solver.lib.min.js` and `yt.solver.core.min.js` from `NewTubeApp/NewTube/Resources/`
   if they're confirmed unused. No code references them, but they still ship in the app.
-- [ ] Move `LocalSubscriptionFeedServiceTests` to `SmartTubeCore/Tests`. It tests Core code but sits in
-  `SmartTubeApp/SmartTubeTests` because it shares `MockInnerTubeAPI` with the view model tests, so it
+- [ ] Move `LocalSubscriptionFeedServiceTests` to `NewTubeCore/Tests`. It tests Core code but sits in
+  `NewTubeApp/NewTubeTests` because it shares `MockInnerTubeAPI` with the view model tests, so it
   needs its own fake or a shared test-support target.
 
 ## Release
@@ -27,5 +27,5 @@ Remove an item when it's done.
   cached data would load fastest.
 
 ## UI tests (last, once everything else is fine)
-- [ ] Bring back `SmartTubeTVUITests`. It's disabled in `SmartTube.xctestplan`, and it's out of date after
+- [ ] Bring back `NewTubeTVUITests`. It's disabled in `NewTube.xctestplan`, and it's out of date after
   the navigation, player and Shorts changes.

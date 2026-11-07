@@ -4,7 +4,7 @@
 
 > **What it unlocks:** native adaptive streaming at any quality without the WKWebView extraction layer — the same CDN access Android has.
 
-> **Baseline commit (SmartTube):** `bce51e1b3cc1c9483fdbc4a2c40f4c9ccd13b173` — "Enhance audio track handling for YouTube HLS manifests"
+> **Baseline commit (NewTube):** `bce51e1b3cc1c9483fdbc4a2c40f4c9ccd13b173` — "Enhance audio track handling for YouTube HLS manifests"
 
 ---
 

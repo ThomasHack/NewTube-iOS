@@ -64,7 +64,7 @@ let isShort: Bool = {
 ```
 
 ### 2. Add Regression Tests
-Create a test case in SmartTubeCoreTests.swift that:
+Create a test case in NewTubeCoreTests.swift that:
 - Builds a videoRenderer with overlay style == "SHORTS" but duration > 180s
 - Confirms it's tagged isShort = false
 - Tests the boundary case: exactly 180s should be isShort = true
@@ -79,8 +79,8 @@ if isShort {
 ```
 
 ## Files to Modify
-1. [InnerTubeAPI+VideoRenderers.swift](../../SmartTubeCore/Sources/SmartTubeCore/InnerTubeAPI+VideoRenderers.swift) — parseVideoRenderer function
-2. [SmartTubeCoreTests.swift](../../SmartTubeCore/Tests/SmartTubeCoreTests/SmartTubeCoreTests.swift) — add regression test case
+1. [InnerTubeAPI+VideoRenderers.swift](../../NewTubeCore/Sources/NewTubeCore/InnerTubeAPI+VideoRenderers.swift) — parseVideoRenderer function
+2. [NewTubeCoreTests.swift](../../NewTubeCore/Tests/NewTubeCoreTests/NewTubeCoreTests.swift) — add regression test case
 
 ## Why This Works
 - Shorts have a hard max-length of 180s (YouTube's official limit)

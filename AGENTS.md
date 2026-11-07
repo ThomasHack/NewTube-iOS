@@ -1,29 +1,29 @@
-# SmartTube — agent guide
+# NewTube — agent guide
 
-Native Swift/SwiftUI YouTube client for tvOS (27+) only; see ADR-0010. Package `SmartTubeCore/` holds
-UI-independent models, API clients and stores. Xcode project `SmartTubeApp/` holds everything else:
-`Smart Tube` (tvOS app: views, view models, services; module `SmartTube`), `SmartTubeTests` (hosted
-unit tests), `SmartTubeTVUITests`. See ADR-0011 before adding a package.
+Native Swift/SwiftUI YouTube client for tvOS (27+) only; see ADR-0010. Package `NewTubeCore/` holds
+UI-independent models, API clients and stores. Xcode project `NewTubeApp/` holds everything else:
+`NewTube` (tvOS app: views, view models, services; module `NewTube`), `NewTubeTests` (hosted
+unit tests), `NewTubeTVUITests`. See ADR-0011 before adding a package.
 Architecture map: docs/architecture.md · Glossary: CONTEXT.md · Decisions: docs/adr/ · Plan: docs/modernization/
 
 ## Commands
-- Build: `xcodebuild build -workspace SmartTube.xcworkspace -scheme "Smart Tube" -destination "platform=tvOS Simulator,name=Apple TV 4K (4th generation)" CODE_SIGNING_ALLOWED=NO -quiet`
-- App unit tests: the same with `test` and `-only-testing:SmartTubeTests`, or `-only-testing:SmartTubeTests/<Suite>` for one suite.
-- Core unit tests, from `SmartTubeCore/`: `xcodebuild test -scheme SmartTubeCore -destination "platform=tvOS Simulator,name=Apple TV 4K (4th generation)" CODE_SIGNING_ALLOWED=NO`
+- Build: `xcodebuild build -workspace NewTube.xcworkspace -scheme "NewTube" -destination "platform=tvOS Simulator,name=Apple TV 4K (4th generation)" CODE_SIGNING_ALLOWED=NO -quiet`
+- App unit tests: the same with `test` and `-only-testing:NewTubeTests`, or `-only-testing:NewTubeTests/<Suite>` for one suite.
+- Core unit tests, from `NewTubeCore/`: `xcodebuild test -scheme NewTubeCore -destination "platform=tvOS Simulator,name=Apple TV 4K (4th generation)" CODE_SIGNING_ALLOWED=NO`
 - Format: `xcrun swift-format format --in-place --configuration .swift-format <file>`.
 - SwiftLint runs as a build phase of the app target. Its findings are warnings.
 
 ## When to run tests
 - Unit tests: only after finishing a larger task. During a task, compile the affected target instead.
-- UI tests: don't run them while navigation and large parts of the app are being reworked; the maintainer tests manually. They're disabled in `SmartTube.xctestplan` and may be out of date.
+- UI tests: don't run them while navigation and large parts of the app are being reworked; the maintainer tests manually. They're disabled in `NewTube.xctestplan` and may be out of date.
 
 ## Rules that differ from defaults
 - Swift 6 strict concurrency everywhere. View models are `@MainActor @Observable`. No `ObservableObject`, `@Published`, Combine, `DispatchQueue`, completion handlers in new code.
-- `SmartTubeCore` must stay UI-independent (no SwiftUI/UIKit/AVFoundation). View models and platform code go in the app.
-- Tests go in `SmartTubeCore/Tests` when they only need Core, in `SmartTubeApp/SmartTubeTests` when they need the app.
+- `NewTubeCore` must stay UI-independent (no SwiftUI/UIKit/AVFoundation). View models and platform code go in the app.
+- Tests go in `NewTubeCore/Tests` when they only need Core, in `NewTubeApp/NewTubeTests` when they need the app.
 - One definition per constant/identifier/threshold. Accessibility identifiers come from `AccessibilityID`; SF Symbols from `AppSymbol`; playback timeouts from `PlaybackTuning`.
 - tvOS only: no `#if os(...)` branches, and no APIs tvOS lacks (WebKit, WidgetKit, ActivityKit). Never nest `NavigationStack`s.
-- The project is `SmartTubeApp.xcodeproj/project.xcproj` (JSON) and may be edited directly. New files under the `Smart Tube` and `SmartTubeTests` folders and the package are picked up automatically; UI-test files must be listed in the project file.
+- The project is `NewTubeApp.xcodeproj/project.xcproj` (JSON) and may be edited directly. New files under the `NewTube` and `NewTubeTests` folders and the package are picked up automatically; UI-test files must be listed in the project file.
 - App-level navigation goes through `AppNavigator` (ADR-0012): no per-view `navigationDestination(item:)`, navigation notifications, or player presented from a tab.
 - Tests: Swift Testing for unit tests; no `Task.sleep`, no live network, fakes at protocol seams. UI tests use `AccessibilityID` and `waitForExistence`, never `sleep`.
 - Logging via `AppLogger` (or `os.Logger` with subsystem `appSubsystem`), never `print`.

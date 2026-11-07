@@ -14,11 +14,11 @@ develops for Apple TV, so the other platforms cost complexity and no longer give
 
 ## Decision
 
-SmartTube builds for tvOS only. The iOS/Mac app, widget, Share and Safari extension targets are
+NewTube builds for tvOS only. The iOS/Mac app, widget, Share and Safari extension targets are
 gone, along with all code that was never compiled for tvOS. `Package.swift` declares only tvOS, and
 source files no longer use platform conditionals. `AVPlayer` is the only playback path.
 
-The package and folder names (`SmartTubeIOS`, `SmartTubeIOSCore`) stay for now, to keep this change
+The package and folder names (`NewTube`, `NewTubeCore`) stay for now, to keep this change
 reviewable; ADR-0011 has since renamed them. The InnerTube `iOS` client profile also stays: it identifies an API client, not a
 platform this app runs on.
 

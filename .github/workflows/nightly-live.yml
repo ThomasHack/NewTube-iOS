@@ -14,9 +14,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Live UI suite
-        run: xcodebuild test -workspace SmartTube.xcworkspace -scheme "Smart Tube" -destination "platform=tvOS Simulator,name=Apple TV 4K (4th generation)" -only-testing:SmartTubeTVUITests -parallel-testing-enabled YES -parallel-testing-worker-count 3 -resultBundlePath ~/DevTemp/smarttube/logs/smarttube-live.xcresult CODE_SIGNING_ALLOWED=NO
+        run: xcodebuild test -workspace NewTube.xcworkspace -scheme "NewTube" -destination "platform=tvOS Simulator,name=Apple TV 4K (4th generation)" -only-testing:NewTubeTVUITests -parallel-testing-enabled YES -parallel-testing-worker-count 3 -resultBundlePath ~/DevTemp/newtube/logs/newtube-live.xcresult CODE_SIGNING_ALLOWED=NO
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: live-xcresult
-          path: ~/DevTemp/smarttube/logs/smarttube-live.xcresult
+          path: ~/DevTemp/newtube/logs/newtube-live.xcresult

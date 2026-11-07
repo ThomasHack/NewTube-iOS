@@ -8,7 +8,7 @@ deciders: maintainer
 ## Context and problem statement
 
 Documentation and conventions were split across two repos in a way that didn't match who reads
-them: the public `SmartTube/` repo (code, what cloud agents like Copilot/Codex can see) had
+them: the public `NewTube/` repo (code, what cloud agents like Copilot/Codex can see) had
 sparse, sometimes-wrong instruction files, while the private `SmartTubeIOSPrivate/` repo held the
 bulk of conventions, architecture notes, and the modernization plan itself — invisible to any
 agent that only has the public checkout. `docs/modernization/PLAN.md` DEC-2 asks whether to move

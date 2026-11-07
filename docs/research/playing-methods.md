@@ -2,7 +2,7 @@
 
 # Video Stream Playing Methods
 
-> SmartTubeIOS — all known paths from video ID to AVPlayer playback.
+> NewTube — all known paths from video ID to AVPlayer playback.
 > Last updated: 2026-06-05
 
 ## Overview
@@ -102,20 +102,20 @@ Video IDs in the probe matrix:
 # Run the full probe matrix (iOS simulator) — MUST use -parallel-testing-enabled NO
 # Parallel workers cause simulator clone crashes and 90s timeouts.
 xcodebuild test \
-  -workspace SmartTube.xcworkspace \
-  -scheme "SmartTube" \
+  -workspace NewTube.xcworkspace \
+  -scheme "NewTube" \
   -destination "id=6CEE2FAC-7D50-4BD0-95E2-1361EDD7FAF6" \
-  -only-testing:SmartTubeUITests/StreamMethodProbeUITests \
+  -only-testing:NewTubeUITests/StreamMethodProbeUITests \
   -parallel-testing-enabled NO \
   -resultBundlePath /tmp/probe-full.xcresult \
   2>&1 | tee /tmp/probe-full.log
 
 # Run a single (method, video) probe
 xcodebuild test \
-  -workspace SmartTube.xcworkspace \
-  -scheme "SmartTube" \
+  -workspace NewTube.xcworkspace \
+  -scheme "NewTube" \
   -destination "id=6CEE2FAC-7D50-4BD0-95E2-1361EDD7FAF6" \
-  -only-testing:SmartTubeUITests/StreamMethodProbeUITests/testProbe_tvembedded__Wu8xNx4njoM \
+  -only-testing:NewTubeUITests/StreamMethodProbeUITests/testProbe_tvembedded__Wu8xNx4njoM \
   -parallel-testing-enabled NO \
   -resultBundlePath /tmp/probe-single.xcresult
 ```
@@ -175,9 +175,9 @@ Cell format: `✅ PASS (resolution)` / `❌ FAIL` / `⏱ TIMEOUT`
 To re-run and extract resolutions with the timing fix applied:
 ```bash
 # Run
-xcodebuild test -workspace SmartTube.xcworkspace -scheme "SmartTube" \
+xcodebuild test -workspace NewTube.xcworkspace -scheme "NewTube" \
   -destination "id=6CEE2FAC-7D50-4BD0-95E2-1361EDD7FAF6" \
-  -only-testing:SmartTubeUITests/StreamMethodProbeUITests \
+  -only-testing:NewTubeUITests/StreamMethodProbeUITests \
   -parallel-testing-enabled NO -resultBundlePath /tmp/probe-full.xcresult
 
 # Extract resolutions via Python script

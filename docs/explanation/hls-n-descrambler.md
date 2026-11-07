@@ -7,7 +7,7 @@
 - WebSafari client (WEB nameID=1 + macOS Safari UA) → `hlsManifestUrl` with 6 HLS variants → descramble n → AVPlayer plays 1080p
 
 ## YouTubeNDescrambler.swift
-- Location: `SmartTubeApp/Smart Tube/Services/`
+- Location: `NewTubeApp/NewTube/Services/`
 - Simulator-only (`#if targetEnvironment(simulator)`)
 - Downloads player.js (version from youtube.com homepage), cached to `/tmp/yt_player_VERSION.js`
 - Finds yt-dlp EJS solver scripts via `posix_spawn`+`/usr/bin/find`

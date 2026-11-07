@@ -7,11 +7,11 @@
 
 ```mermaid
 graph TD
-    subgraph Apps["App target (SmartTubeApp/)"]
-        UI["Smart Tube<br/>Views, ViewModels, Services"]
+    subgraph Apps["App target (NewTubeApp/)"]
+        UI["NewTube<br/>Views, ViewModels, Services"]
     end
-    subgraph Pkg["SmartTubeCore/ (Swift Package)"]
-        Core["SmartTubeCore<br/>Models, InnerTube API, Stores, Decision engines"]
+    subgraph Pkg["NewTubeCore/ (Swift Package)"]
+        Core["NewTubeCore<br/>Models, InnerTube API, Stores, Decision engines"]
     end
     subgraph Ext["External systems"]
         InnerTube["InnerTube endpoints<br/>(youtubei.googleapis.com, www.youtube.com)"]
@@ -27,18 +27,18 @@ graph TD
 
 tvOS is the only platform (ADR-0010). ADR-0011 explains why there is one package.
 
-Dependency direction: the app depends on `SmartTubeCore`. Core can't see app code, because the package boundary enforces that; it also must not import SwiftUI, UIKit or AVFoundation, which is a review rule.
+Dependency direction: the app depends on `NewTubeCore`. Core can't see app code, because the package boundary enforces that; it also must not import SwiftUI, UIKit or AVFoundation, which is a review rule.
 
 ## Modules
 
 | Module / area | Directory | Owner workstream | Notes |
 |---|---|---|---|
-| `SmartTubeCore` | `SmartTubeCore/Sources/SmartTubeCore/` | WS6 (core hardening), WS3 (tests) | No UI or AVFoundation; also uses JavaScriptCore, Network, CryptoKit and Observation |
-| App (views/view models/services) | `SmartTubeApp/Smart Tube/` | WS7 (UI/composition), WS4/WS5 (player) | |
-| Playback (`PlaybackViewModel` + AVPlayer path) | `SmartTubeApp/Smart Tube/ViewModels/PlaybackViewModel*.swift` | WS4 (seams/pipeline), WS5 (session) | The critical path — see below |
-| Stream resolution (JS extractors, descramblers) | `SmartTubeApp/Smart Tube/Services/YouTube*.swift` | WS4 | New `StreamResolver` target planned (WS8) |
-| Composition root | `SmartTubeApp/Smart Tube/Smart_TubeApp.swift` | WS7, WS1 | |
-| Tests | `SmartTubeCore/Tests/`, `SmartTubeApp/SmartTubeTests/`, `SmartTubeApp/UITests/` | WS3 | |
+| `NewTubeCore` | `NewTubeCore/Sources/NewTubeCore/` | WS6 (core hardening), WS3 (tests) | No UI or AVFoundation; also uses JavaScriptCore, Network, CryptoKit and Observation |
+| App (views/view models/services) | `NewTubeApp/NewTube/` | WS7 (UI/composition), WS4/WS5 (player) | |
+| Playback (`PlaybackViewModel` + AVPlayer path) | `NewTubeApp/NewTube/ViewModels/PlaybackViewModel*.swift` | WS4 (seams/pipeline), WS5 (session) | The critical path — see below |
+| Stream resolution (JS extractors, descramblers) | `NewTubeApp/NewTube/Services/YouTube*.swift` | WS4 | New `StreamResolver` target planned (WS8) |
+| Composition root | `NewTubeApp/NewTube/NewTubeApp.swift` | WS7, WS1 | |
+| Tests | `NewTubeCore/Tests/`, `NewTubeApp/NewTubeTests/`, `NewTubeApp/UITests/` | WS3 | |
 | Tooling / CI | repo root, `.github/`, `scripts/` | WS1 | |
 | Docs / tasks | `docs/**`, `tasks/**` | WS2 | |
 

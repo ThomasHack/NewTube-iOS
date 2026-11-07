@@ -2,7 +2,7 @@
 
 # Changelog: [2.6] – 2026-05-14 (current release section)
 
-- Safari Web Extension (intercepts YouTube URLs → opens in SmartTube)
+- Safari Web Extension (intercepts YouTube URLs → opens in NewTube)
 - Auto quality caps at display native resolution (displayMaxVideoHeight())
 - Fix DASH manual quality switching broken (AndroidVR client + playerInfo.formats URL resolution)
 - Fix DASH quality switch silently rebuilding at wrong resolution (height guard in reloadDASHItem)

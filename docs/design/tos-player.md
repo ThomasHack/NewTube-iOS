@@ -88,17 +88,17 @@ to the standard `PlayerView`. The guard clears when a different video is opened.
 
 ## Test
 
-`SmartTubeUITests/TOSPlayerUITests.swift` → `testTOSPlayerPlaysFirstHomeVideo`
+`NewTubeUITests/TOSPlayerUITests.swift` → `testTOSPlayerPlaysFirstHomeVideo`
 
 Run on the macOS destination **only** (the test class is `#if os(macOS)`; running on an
 iOS simulator produces 0 tests and a false "TEST SUCCEEDED"):
 
 ```bash
 xcodebuild test-without-building \
-  -workspace SmartTube.xcworkspace \
-  -scheme SmartTube \
+  -workspace NewTube.xcworkspace \
+  -scheme NewTube \
   -destination "id=00008132-0016591E3CFB801C" \
-  -only-testing:SmartTubeUITests/TOSPlayerUITests/testTOSPlayerPlaysFirstHomeVideo \
+  -only-testing:NewTubeUITests/TOSPlayerUITests/testTOSPlayerPlaysFirstHomeVideo \
   -resultBundlePath /tmp/tos-test-$(date +%s).xcresult
 ```
 

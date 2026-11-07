@@ -1,0 +1,42 @@
+{
+  "configurations" : [
+    {
+      "id" : "A1B2C3D4-E5F6-7890-ABCD-EF1234567890",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "attachmentLifetime" : "keepAlways",
+    "commandLineArguments" : [
+      {
+        "argument" : "--uitesting-stats-for-nerds",
+        "enabled" : true
+      }
+    ],
+    "preferredScreenCaptureFormat" : "screenshot",
+    "screenshotPolicy" : "always",
+    "uiTestingScreenshotsLifetime" : "keepAlways",
+    "userAttachmentLifetime" : "keepAlways"
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:NewTubeApp.xcodeproj",
+        "identifier" : "1A2B3C4D5E6F1A2B3C4D5E74",
+        "name" : "NewTubeTests"
+      }
+    },
+    {
+      "enabled" : false,
+      "target" : {
+        "containerPath" : "container:NewTubeApp.xcodeproj",
+        "identifier" : "1A2B3C4D5E6F1A2B3C4D5E64",
+        "name" : "NewTubeTVUITests"
+      }
+    }
+  ],
+  "version" : 1
+}

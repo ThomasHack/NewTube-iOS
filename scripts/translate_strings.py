@@ -16,7 +16,7 @@ import sys
 import time
 from pathlib import Path
 
-XCSTRINGS_PATH = Path(__file__).resolve().parent.parent / "SmartTubeApp" / "Smart Tube" / "Localizable.xcstrings"
+XCSTRINGS_PATH = Path(__file__).resolve().parent.parent / "NewTubeApp" / "NewTube" / "Localizable.xcstrings"
 
 # xcstrings lang code → GoogleTranslator lang code
 LANG_MAP = {

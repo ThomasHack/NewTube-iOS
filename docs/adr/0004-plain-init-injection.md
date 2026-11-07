@@ -10,7 +10,7 @@ deciders: maintainer
 `docs/modernization/PLAN.md` DEC-7 asks whether to adopt a DI helper library (e.g. Factory) or
 keep plain `init` injection as seams get added across WS4/WS6/WS7. Today, dependency injection
 is inconsistent: `AppEntry.swift` does manual constructor injection reasonably well, but it's
-duplicated in `Smart_TubeApp.swift` and again in a dead, drifted `SmartTubeIOS/SmartTubeApp.swift`
+duplicated in `NewTubeApp.swift` and again in a dead, drifted `NewTube/NewTubeApp.swift`
 (`docs/modernization/AUDIT.md` §2.3), and most services (`AuthService`, `SettingsStore`,
 `CrashlyticsLogger`) reach directly for `.shared`/static singletons instead of being injected.
 

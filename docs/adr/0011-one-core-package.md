@@ -7,17 +7,17 @@ deciders: maintainer
 
 ## Context and problem statement
 
-The package split into `SmartTubeIOSCore` and `SmartTubeIOS` existed to share code between iOS, Mac,
+The package split into `NewTubeCore` and `NewTube` existed to share code between iOS, Mac,
 tvOS and extension targets. After ADR-0010 only one app consumes it, so a package around the UI layer
 isolates nothing. It costs `public` on every shared declaration and a resource bundle separate from
 the app's. Core had also picked up view models and SwiftUI and AVFoundation imports.
 
 ## Decision
 
-`SmartTubeCore` is the only package: models, API clients, stores and decision logic that don't need
-UI or AVFoundation. Views, view models and services live in the `Smart Tube` app target (module
-`SmartTube`). Tests go next to the code they need: `SmartTubeCore/Tests` or the hosted
-`SmartTubeApp/SmartTubeTests`. Add another package only when code has a second consumer or a boundary
+`NewTubeCore` is the only package: models, API clients, stores and decision logic that don't need
+UI or AVFoundation. Views, view models and services live in the `NewTube` app target (module
+`NewTube`). Tests go next to the code they need: `NewTubeCore/Tests` or the hosted
+`NewTubeApp/NewTubeTests`. Add another package only when code has a second consumer or a boundary
 the compiler should enforce.
 
 ## Consequences

@@ -19,7 +19,7 @@ Every workaround we've added in the last two sessions is a patch over this funda
 
 | Workaround | Why it exists | Why it's fragile |
 |---|---|---|
-| `HLSVariantProxy` + `smarttubehls://` | Rewrite n-scrambled URLs in variant playlist before AVPlayer sees them | AVPlayer still fetches segments with its own headers, not iOS YouTube UA |
+| `HLSVariantProxy` + `newtubehls://` | Rewrite n-scrambled URLs in variant playlist before AVPlayer sees them | AVPlayer still fetches segments with its own headers, not iOS YouTube UA |
 | `YouTubeNDescrambler.swift` (Deno) | Descramble the n parameter so CDN accepts the URL | Deno returns empty output in app spawn context (HOME env mismatch); even correct n gets 403 from simulator URLSession |
 | `#if targetEnvironment(simulator)` blocks everywhere | Different code path for simulator because CDN rejects simulator URLSession | Simulator and device code diverge, bugs hide in the gap |
 | `rqh=1` unconditional skip | All adaptive streams 403 or stall without `pot=` token | Locks us to muxed 360p for any video YouTube CDN-protects (which is most of them) |
@@ -140,7 +140,7 @@ www.youtube.com + SAPISID (yt-dlp):     WEB_CREATOR returns rqh=0 ✓  ← but w
 | Problem | How AetherEngine fixes it |
 |---|---|
 | AVPlayer segment requests missing YouTube UA → CDN 403 | AetherEngine's `AVIOReader` attaches headers to all fetches; AVPlayer sees only localhost |
-| `HLSVariantProxy` + `smarttubehls://` fragility | Replaced by AetherEngine's `HLSLocalServer` (production-grade local HTTP server) |
+| `HLSVariantProxy` + `newtubehls://` fragility | Replaced by AetherEngine's `HLSLocalServer` (production-grade local HTTP server) |
 | `#if targetEnvironment(simulator)` code paths in `PlaybackViewModel+Fallback.swift` | Removed — single code path works in both simulator and device |
 | `AVMutableComposition` for DASH video+audio (when pot= available) | Replaced by FFmpeg demux + mux; no more `loadTracks` timeouts or composition race conditions |
 | AV1 / VP9 format rejection by AVPlayer HLS pipeline | AetherEngine routes these through libavcodec SW decode |
@@ -151,7 +151,7 @@ www.youtube.com + SAPISID (yt-dlp):     WEB_CREATOR returns rqh=0 ✓  ← but w
 
 | Problem | What's still needed |
 |---|---|
-| `rqh=1` CDN enforcement | Still needs `pot=` Proof-of-Origin tokens. `BotGuardClient.swift` exists in `SmartTubeIOSCore` — it needs to be wired to add `pot=` to adaptive stream URLs before passing to AetherEngine. AetherEngine doesn't bypass CDN bot detection, it just sends the right headers. |
+| `rqh=1` CDN enforcement | Still needs `pot=` Proof-of-Origin tokens. `BotGuardClient.swift` exists in `NewTubeCore` — it needs to be wired to add `pot=` to adaptive stream URLs before passing to AetherEngine. AetherEngine doesn't bypass CDN bot detection, it just sends the right headers. |
 | n-parameter scrambling | AetherEngine's AVIO sends the URL as-is to the CDN. A scrambled n will still get 403. We need to pre-descramble n **before** handing the URL to AetherEngine. **However:** with the correct User-Agent attached to all requests, the most likely reason descrambled-n URLs got 403 from iOS Simulator (wrong headers on segment fetches) is eliminated. The Deno approach should be reconsidered: `JavaScriptCore` can run the player.js n-descrambler synchronously without a subprocess dependency. |
 | InnerTube authentication / login flow | Unchanged |
 
@@ -164,14 +164,14 @@ www.youtube.com + SAPISID (yt-dlp):     WEB_CREATOR returns rqh=0 ✓  ← but w
 - `YouTubeNDescrambler.swift` — the posix_spawn + Deno path replaced with JavaScriptCore (see Phase 2 note below); the `spawnAndRead` helper removed
 
 ### Files added
-- `SmartTubeIOS/Sources/SmartTubeIOS/Playback/AetherPlayer.swift` — thin wrapper around `AetherEngine.AetherPlayerView` + `AetherEngine` instance; exposes the published state (`$state`, `$currentTime`, `$duration`, `$currentAVPlayer`) in terms the existing `PlaybackViewModel` observer chain already understands
+- `NewTube/Sources/NewTube/Playback/AetherPlayer.swift` — thin wrapper around `AetherEngine.AetherPlayerView` + `AetherEngine` instance; exposes the published state (`$state`, `$currentTime`, `$duration`, `$currentAVPlayer`) in terms the existing `PlaybackViewModel` observer chain already understands
 
 ### Files modified
-- `SmartTubeIOS/Package.swift` — add AetherEngine SPM dependency
+- `NewTube/Package.swift` — add AetherEngine SPM dependency
 - `PlaybackViewModel+Fallback.swift` — `attemptURL` uses `AetherPlayer.load(url:options:)` instead of `AVURLAsset`; quality hints removed (AetherEngine uses its own quality selection or we pass a specific variant URL)
 - `PlaybackQualityManager.swift` — `reloadHLSItem` / `reloadDASHItem` delegate to `AetherPlayer.reloadAtCurrentPosition()` or `AetherPlayer.load(url:startPosition:)`
 - `PlaybackViewModel+Loading.swift` — `AVPlayer` reference replaced by `AetherEngine.$currentAVPlayer` where used for `MPNowPlayingSession`, AirPlay, PiP hooks
-- `SmartTubeIOS/Package.swift` — new dependency block
+- `NewTube/Package.swift` — new dependency block
 
 ---
 
@@ -182,13 +182,13 @@ www.youtube.com + SAPISID (yt-dlp):     WEB_CREATOR returns rqh=0 ✓  ← but w
 **Goal:** Verify empirically that AetherEngine's `AVIOReader` with YouTube UA headers gets 200 on `manifest.googlevideo.com` segment URLs where iOS Simulator URLSession currently gets 403. If this works, the entire architectural case is confirmed.
 
 **Steps:**
-1. Add to `SmartTubeIOS/Package.swift`:
+1. Add to `NewTube/Package.swift`:
    ```swift
    .package(url: "https://github.com/superuser404notfound/AetherEngine", branch: "main")
    ```
-   and add `"AetherEngine"` to the `SmartTubeIOS` target dependencies.
+   and add `"AetherEngine"` to the `NewTube` target dependencies.
 
-2. Write a minimal test in `SmartTubeIOSTests` or a debug screen:
+2. Write a minimal test in `NewTubeTests` or a debug screen:
    - Call `fetchPlayerInfoWebSafari(videoId: "Wu8xNx4njoM")` to get a fresh `hlsManifestUrl`
    - Pre-descramble n (from terminal, one-shot, paste the result) OR pass the scrambled URL directly
    - Create `let engine = try AetherEngine()` and call:
@@ -296,7 +296,7 @@ www.youtube.com + SAPISID (yt-dlp):     WEB_CREATOR returns rqh=0 ✓  ← but w
    `FFmpegBuild` (LGPL FFmpeg 8.1: avcodec + avformat + avutil + swresample + swscale) adds ~35–55 MB to the archive. Confirm this is acceptable before merging Phase 2. Use `otool -l` on the binary to measure.
 
 4. **LGPL compliance.**  
-   The App Store / DRM Exception in AetherEngine's license grants permission to distribute through the App Store without fulfilling LGPL §4–6 (object file distribution). However, modifications to AetherEngine itself must be released under LGPL. Wrapper code in `SmartTubeIOS` is not a modification and is not subject to LGPL.  
+   The App Store / DRM Exception in AetherEngine's license grants permission to distribute through the App Store without fulfilling LGPL §4–6 (object file distribution). However, modifications to AetherEngine itself must be released under LGPL. Wrapper code in `NewTube` is not a modification and is not subject to LGPL.  
    **Decision:** If we need to modify AetherEngine internals (e.g., add `avformat_set_options` for headers), we must publish that diff. A PR upstream is the cleanest path.
 
 5. **`MPNowPlayingSession`, AirPlay, Picture-in-Picture hooks.**  
@@ -582,7 +582,7 @@ They will be skipped as they may yield HTTP Error 403.
 
 **Result:** FAILED — `360p` (`640×360`)
 
-**Full device log path:** `/tmp/smarttube-diag-1779541572/`
+**Full device log path:** `/tmp/newtube-diag-1779541572/`
 
 **Retry chain observed:**
 ```
@@ -614,7 +614,7 @@ Android[1]/muxed → ✅ itag=18 360p 446kbps — playback started
 The test CANNOT pass for `Wu8xNx4njoM` without authentication. All unauthenticated clients return rqh=1 adaptive for this non-embeddable video.
 
 **Required user action:**
-1. Open the SmartTube app on the iPhone 17 simulator (UDID: `6CEE2FAC-7D50-4BD0-95E2-1361EDD7FAF6`)
+1. Open the NewTube app on the iPhone 17 simulator (UDID: `6CEE2FAC-7D50-4BD0-95E2-1361EDD7FAF6`)
 2. Sign in using the TV device code flow (Settings → Account → Sign In)
 3. Auth token stored in Keychain — persists across test runs (not cleared by `--uitesting-reset-settings`)
 4. Run `testAutoQualityAbove360p` again — Phase 0b (WebAuth) will be tried with Bearer + X-Goog-AuthUser:0
@@ -702,7 +702,7 @@ X-Goog-AuthUser: 0
 **Expected result:** Multilogin now returns HTTP 200 with a JSON cookie list → SAPISID extracted → WEB_CREATOR SAPISIDHASH auth enabled → rqh=0 adaptive → ≥720p.
 
 **Files changed:**
-- `SmartTubeIOS/Sources/SmartTubeIOS/Services/AuthService+YouTubeCookies.swift`
+- `NewTube/Sources/NewTube/Services/AuthService+YouTubeCookies.swift`
 
 **Build:** Clean (4.80s), no errors.
 
@@ -756,7 +756,7 @@ X-Goog-AuthUser: 0
 
 **Infrastructure issue (separate from code):** Parallel testing (`-parallel-testing-enabled YES`) was broken across all 5 runs — `FBSOpenApplicationServiceErrorDomain RequestDenied` on the cloned simulator. iOS 26 beta known instability. Single-worker (`-parallel-testing-enabled NO`) was used with user's explicit approval.
 
-**Retry chain observed from live device log capture (`/tmp/smarttube_testlog.txt`, 12,690 lines):**
+**Retry chain observed from live device log capture (`/tmp/newtube_testlog.txt`, 12,690 lines):**
 ```
 19:57:53.243  [cookies] Fetching YouTube web session cookies for SAPISIDHASH auth  ✓ (expired-token fix working)
 19:57:53.432  [cookies] OAuthLogin did not redirect (HTTP 403) — trying Multilogin fallback
@@ -801,7 +801,7 @@ var scope = "http://gdata.youtube.com https://www.googleapis.com/auth/youtube-pa
 **Effect:** Tokens issued on the NEXT sign-in will include the `youtube` scope. Multilogin should accept these tokens and return SAPISID.
 
 **⚠️ Required user action:** The current Keychain token has the OLD scope. Multilogin will continue to return 400 with the old token. The user must:
-1. Open SmartTube on the simulator
+1. Open NewTube on the simulator
 2. Sign **out** (Settings → Account → Sign Out)
 3. Sign **in** again (TV device code flow — new token issued with `youtube` scope)
 4. Then run the test — Multilogin should now return 200 + SAPISID → WebCreator SAPISIDHASH → ≥720p
@@ -809,7 +809,7 @@ var scope = "http://gdata.youtube.com https://www.googleapis.com/auth/youtube-pa
 **Build:** Clean (3.53s, 0 errors).
 
 **Files changed:**
-- `SmartTubeIOS/Sources/SmartTubeIOS/Services/AuthService.swift`
+- `NewTube/Sources/NewTube/Services/AuthService.swift`
 
 ---
 
@@ -843,8 +843,8 @@ let token = try await validAccessToken()  // refreshes token if expired
 **Result:** `fetchYouTubeWebCookies` now fires on every app launch when signed in and SAPISID is nil, regardless of token expiry. The token refresh and Multilogin call happen atomically in sequence.
 
 **Files changed:**
-- `SmartTubeIOS/Sources/SmartTubeIOS/Services/AuthService+Keychain.swift`
-- `SmartTubeIOS/Sources/SmartTubeIOS/Services/AuthService+YouTubeCookies.swift`
+- `NewTube/Sources/NewTube/Services/AuthService+Keychain.swift`
+- `NewTube/Sources/NewTube/Services/AuthService+YouTubeCookies.swift`
 
 ---
 
@@ -872,7 +872,7 @@ let token = try await validAccessToken()  // refreshes token if expired
 
 The Keychain token has the old scope (`gdata.youtube.com + youtube-paid-content`). Multilogin will continue to reject it until a new token with `youtube` scope is issued:
 
-1. Open SmartTube on the iPhone 17 simulator
+1. Open NewTube on the iPhone 17 simulator
 2. Settings → Account → **Sign Out**
 3. Settings → Account → **Sign In** (TV device code — completes sign-in with new `youtube` scope)
 4. Run `testAutoQualityAbove360p`
@@ -990,8 +990,8 @@ POST /player [WebCreator] auth=SAPISIDHASH
 ```
 
 **Files changed:**
-- `SmartTubeIOS/Sources/SmartTubeIOS/Services/AuthService.swift`
-- `SmartTubeIOS/Sources/SmartTubeIOS/Services/AuthService+YouTubeCookies.swift`
+- `NewTube/Sources/NewTube/Services/AuthService.swift`
+- `NewTube/Sources/NewTube/Services/AuthService+YouTubeCookies.swift`
 
 ---
 
@@ -1052,8 +1052,8 @@ New scope: `"openid https://www.googleapis.com/auth/accounts.reauth http://gdata
 **⚠️ Required user action:** Sign out + sign in AGAIN. The `accounts.reauth` scope was just added. Current token will NOT have it. A new sign-in will tell us if Google grants it.
 
 **Files changed:**
-- `SmartTubeIOS/Sources/SmartTubeIOS/ViewModels/PlaybackViewModel+Fallback.swift`
-- `SmartTubeIOS/Sources/SmartTubeIOS/Services/AuthService.swift`
+- `NewTube/Sources/NewTube/ViewModels/PlaybackViewModel+Fallback.swift`
+- `NewTube/Sources/NewTube/Services/AuthService.swift`
 
 ---
 
@@ -1092,7 +1092,7 @@ With SAPISID:
 **Next action required:** User must sign out + sign in to get a new token with `accounts.reauth` scope (added in Decision 15). If Google grants this scope for the YouTube TV client, Multilogin will succeed → SAPISID obtained → WebCreator authenticated → rqh=0 streams → test passes.
 
 **Files changed:**
-- `SmartTubeIOS/Sources/SmartTubeIOS/ViewModels/PlaybackViewModel+Fallback.swift` — rqh detection bug fix
+- `NewTube/Sources/NewTube/ViewModels/PlaybackViewModel+Fallback.swift` — rqh detection bug fix
 
 ---
 
@@ -1107,7 +1107,7 @@ With SAPISID:
 **Consequence:** Multilogin path is permanently blocked for the YouTube TV OAuth client. SAPISID cannot be obtained via any Google account cookie establishment endpoint with this token.
 
 **Files changed:**
-- `SmartTubeIOS/Sources/SmartTubeIOS/Services/AuthService.swift` — accounts.reauth scope removed
+- `NewTube/Sources/NewTube/Services/AuthService.swift` — accounts.reauth scope removed
 
 ---
 
@@ -1138,4 +1138,4 @@ With SAPISID:
 **Build:** Clean (1.67s)
 
 **Files changed:**
-- `SmartTubeIOS/Sources/SmartTubeIOS/ViewModels/PlaybackViewModel+Fallback.swift`
+- `NewTube/Sources/NewTube/ViewModels/PlaybackViewModel+Fallback.swift`

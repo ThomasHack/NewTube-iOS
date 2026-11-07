@@ -14,7 +14,7 @@ Tests take a lot of time, so run them deliberately:
 - **Unit tests:** only after finishing a larger task. During a task, compiling the affected target
   is enough.
 - **UI tests:** not during the current rework of navigation and large parts of the app. The
-  maintainer tests manually. `SmartTubeTVUITests` is disabled in `SmartTube.xctestplan`; set
+  maintainer tests manually. `NewTubeTVUITests` is disabled in `NewTube.xctestplan`; set
   `"enabled"` back to `true` there to bring it back. These tests may be out of date until then.
 
 ## Target simulator
@@ -40,14 +40,14 @@ raise it without more RAM.
 ## Commands
 
 ```bash
-# SmartTubeTests, hosted by the app. The host launches an empty scene, so a test run doesn't start
+# NewTubeTests, hosted by the app. The host launches an empty scene, so a test run doesn't start
 # sign-in or network work. Add /<Suite> for one suite.
-xcodebuild test -workspace SmartTube.xcworkspace -scheme "Smart Tube" \
-  -destination "platform=tvOS Simulator,name=Apple TV 4K (4th generation)" -only-testing:SmartTubeTests CODE_SIGNING_ALLOWED=NO
+xcodebuild test -workspace NewTube.xcworkspace -scheme "NewTube" \
+  -destination "platform=tvOS Simulator,name=Apple TV 4K (4th generation)" -only-testing:NewTubeTests CODE_SIGNING_ALLOWED=NO
 
-# SmartTubeCore tests, which run without the app. `swift test` isn't supported, because the package
+# NewTubeCore tests, which run without the app. `swift test` isn't supported, because the package
 # only declares tvOS and SwiftPM builds for the host Mac.
-cd SmartTubeCore && xcodebuild test -scheme SmartTubeCore \
+cd NewTubeCore && xcodebuild test -scheme NewTubeCore \
   -destination "platform=tvOS Simulator,name=Apple TV 4K (4th generation)" CODE_SIGNING_ALLOWED=NO
 ```
 

@@ -21,7 +21,7 @@ out of scope).
 ## Consequences
 
 - Good: the `@Observable` migration is already complete — zero `ObservableObject` in the
-  codebase (verified: `grep -rc ObservableObject SmartTubeIOS/Sources` is 0 except doc comments
+  codebase (verified: `grep -rc ObservableObject NewTube/Sources` is 0 except doc comments
   referencing the old pattern). No new framework dependency or learning curve.
 - Good: `@Observable` integrates directly with SwiftUI's diffing without a Combine bridge.
 - Bad: MVVM alone doesn't prevent the god-object growth seen in `PlaybackViewModel` (6,024 LOC,

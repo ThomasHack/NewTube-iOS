@@ -2,7 +2,7 @@
 
 # Android Repository References
 
-These are the original Android-based repositories that SmartTube was built on.
+These are the original Android-based repositories that NewTube was built on.
 They are preserved here for reference — useful if any business logic, API handling, or protocol details need to be consulted during iOS development.
 
 ## Original SmartTube Android App
@@ -186,4 +186,4 @@ Android selects codec by merging both MP4 and WebM groups into the same MPD and 
   5. Call `webPoSignalOutput[0](integrityTokenBytes)` → `getMinter` → `mintCallback(videoIdBytes)` → base64 PO token (~110–128 bytes)
 - **WAA API key (public):** `AIzaSyDyT5W0Jh49F30Pqqtyfdf7pDLFKLJoAnw`
 - **YouTube requestKey (stable):** `O43z0dpjhgX20SCx4KAo`
-- **iOS port:** `BotGuardClient.swift` in `SmartTubeIOSCore` — implements `PoTokenProvider` via JavaScriptCore, synchronous JS execution + semaphore-bridged URLSession calls on `jsQueue`.
+- **iOS port:** `BotGuardClient.swift` in `NewTubeCore` — implements `PoTokenProvider` via JavaScriptCore, synchronous JS execution + semaphore-bridged URLSession calls on `jsQueue`.

@@ -291,7 +291,7 @@ There is always one "All Channels" profile (constant `MAIN_PROFILE_ID`). When yo
 
 4. **Local-first persistence model** — NeDB approach maps well to our iOS CoreData/SwiftData local-first model for subscriptions and history.
 
-5. **Subscription profiles** — The concept of grouping subscriptions into profiles with independent feeds is a UX pattern worth evaluating for SmartTubeIOS.
+5. **Subscription profiles** — The concept of grouping subscriptions into profiles with independent feeds is a UX pattern worth evaluating for NewTube.
 
 6. **`youtubei.js` library** — Same library drives the local extractor. Worth monitoring for iOS-compatible TypeScript usage or adapting its protocol logic.
 

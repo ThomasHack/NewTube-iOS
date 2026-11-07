@@ -15,7 +15,7 @@ structure that was never real.
 
 ## Decision
 
-`SmartTubeApp/SmartTubeApp.xcodeproj` (7 targets: iOS+Catalyst app, tvOS app, Share extension,
+`NewTubeApp/NewTubeApp.xcodeproj` (7 targets: iOS+Catalyst app, tvOS app, Share extension,
 Safari extension, Download widget, two UI-test targets) is edited only through Xcode. No
 Tuist, XcodeGen, or other project-generation tool. Agents must not hand-edit `project.pbxproj`
 (enforced by the `block-pbxproj.sh` PreToolUse hook, WS1-T1.5); building and testing goes

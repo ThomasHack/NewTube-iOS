@@ -28,7 +28,7 @@
 
 The strings file lives at:
 ```
-SmartTubeApp/Smart Tube/Localizable.xcstrings
+NewTubeApp/NewTube/Localizable.xcstrings
 ```
 
 ---
@@ -97,7 +97,7 @@ Overwrites every entry for that language, even ones that already exist.
 
 2. Add the language to `knownRegions` in the Xcode project file:
    ```
-   SmartTube/SmartTubeApp/SmartTubeApp.xcodeproj/project.pbxproj
+   NewTube/NewTubeApp/NewTubeApp.xcodeproj/project.pbxproj
    ```
    Find the `knownRegions` block and add the new code:
    ```
@@ -139,7 +139,7 @@ Xcode will extract it into `Localizable.xcstrings` with an empty `localizations`
 ## Checking coverage
 
 ```bash
-cd "SmartTubeApp/Smart Tube"
+cd "NewTubeApp/NewTube"
 python3 - <<'EOF'
 import json
 with open('Localizable.xcstrings') as f:

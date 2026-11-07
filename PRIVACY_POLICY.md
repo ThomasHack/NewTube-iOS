@@ -4,7 +4,7 @@ Last updated: May 03, 2026
 
 This Privacy Policy describes Our policies and procedures regarding Your use of the Service and tells You about Your privacy rights and how the law protects You.
 
-We believe in full transparency: **Smart Tube does not collect, store, transmit, or share any personal data or usage data whatsoever.** This document exists to formally state that commitment and explain what it means for You.
+We believe in full transparency: **NewTube does not collect, store, transmit, or share any personal data or usage data whatsoever.** This document exists to formally state that commitment and explain what it means for You.
 
 ## Interpretation and Definitions
 
@@ -16,7 +16,7 @@ The words whose initial letters are capitalized have meanings defined under the 
 
 For the purposes of this Privacy Policy:
 
-- **Application** refers to Smart Tube, the software program provided by the Company.
+- **Application** refers to NewTube, the software program provided by the Company.
 - **Company** (referred to as either "the Company", "We", "Us" or "Our" in this Privacy Policy) refers to Smart Tube BDP.
 - **Country** refers to: Serbia
 - **Device** means any device that can access the Service such as a computer, a cell phone or a digital tablet.
@@ -29,7 +29,7 @@ For the purposes of this Privacy Policy:
 
 **We do not collect any personal data.**
 
-Smart Tube does not collect, store, transmit, or share any personal information or usage data. Specifically:
+NewTube does not collect, store, transmit, or share any personal information or usage data. Specifically:
 
 - We do **not** collect Personal Data (such as names, email addresses, phone numbers, or any other identifiable information).
 - We do **not** collect Usage Data (such as IP addresses, device identifiers, browser type, browser version, or diagnostic data).

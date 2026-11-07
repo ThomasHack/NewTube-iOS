@@ -1,4 +1,4 @@
-# SmartTube
+# NewTube
 
 A native Swift/SwiftUI YouTube client for **Apple TV**.  
 Zero ads. SponsorBlock auto-skip. DeArrow community titles. Google sign-in. Up to 8K.
@@ -65,9 +65,9 @@ Inspired by the original [SmartTube Android app](https://github.com/yuliskov/Sma
 ## Project Structure
 
 ```
-SmartTubeCore/         Swift Package — models, InnerTube API, SponsorBlock, stores
-SmartTubeApp/          Xcode project — Apple TV app (views, view models, services) and its tests
-SmartTube.xcworkspace/ Xcode workspace (references both above)
+NewTubeCore/         Swift Package — models, InnerTube API, SponsorBlock, stores
+NewTubeApp/          Xcode project — Apple TV app (views, view models, services) and its tests
+NewTube.xcworkspace/ Xcode workspace (references both above)
 ```
 
 ---
@@ -87,17 +87,17 @@ SmartTube.xcworkspace/ Xcode workspace (references both above)
 ```bash
 git clone https://github.com/milika/SmartTubeIOS
 cd SmartTubeIOS
-open SmartTube.xcworkspace
+open NewTube.xcworkspace
 ```
 
 ### Signing
 
 The project requires an Apple Developer Team ID to build.  
-Copy `SmartTubeApp/Config/Secrets.xcconfig.example` to `SmartTubeApp/Config/Secrets.xcconfig` and fill in your Team ID:
+Copy `NewTubeApp/Config/Secrets.xcconfig.example` to `NewTubeApp/Config/Secrets.xcconfig` and fill in your Team ID:
 
 ```
 DEVELOPMENT_TEAM = YOUR_TEAM_ID
-SMARTTUBE_TV_TEAM = YOUR_TEAM_ID
+NEWTUBE_TV_TEAM = YOUR_TEAM_ID
 ```
 
 `Secrets.xcconfig` is gitignored and will never be committed.
@@ -119,7 +119,7 @@ See [CHANGELOG.md](CHANGELOG.md) for a full version history.
 
 ## Support
 
-If SmartTube is useful to you and you'd like to support its development, there's a [Ko-fi](https://ko-fi.com/milikadelic).
+If NewTube is useful to you and you'd like to support its development, there's a [Ko-fi](https://ko-fi.com/milikadelic).
 
 ---
 

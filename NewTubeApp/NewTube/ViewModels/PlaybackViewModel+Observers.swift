@@ -1,0 +1,157 @@
+import AVFoundation
+import MediaPlayer
+import NewTubeCore
+import os
+
+private let playerLog = AppLogger(category: "Player")
+
+// MARK: - AVPlayer Observers
+
+extension PlaybackViewModel {
+
+    func setupTimeObserver() {
+        let interval = CMTime(seconds: 0.5, preferredTimescale: 600)
+        timeObserver = player.addPeriodicTimeObserver(forInterval: interval, queue: nil) { [weak self] time in
+            guard let self else { return }
+            let seconds = time.seconds
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                guard !self.sponsorBlockManager.isSkippingSegment else { return }
+                // Suspend time updates during a quality-change transition: the new
+                // AVPlayerItem is not yet ready and player.currentTime() may return 0
+                // or a stale value. currentTime is restored by qualityItemDidBecomeReady.
+                guard !self.isQualityChangePending else { return }
+                self.currentTime = seconds
+                self.checkSponsorSkip(at: seconds)
+                self.updateCaptionCue(for: seconds)
+                if self.statsForNerdsVisible { self.updateStatsSnapshot() }
+                if self.isPlaying, self.settings.historyState == .enabled, self.duration > 0 {
+                    await self.tracker.checkpointIfDue(position: seconds, duration: self.duration)
+                }
+            }
+        }
+    }
+
+    func setupRateObserver() {
+        // KVO on player.rate so isPlaying stays in sync when the system externally
+        // pauses the player (e.g. headphones removed, audio session interruption ends
+        // without shouldResume). Without this, isPlaying stays true while the player
+        // is actually silent, causing handleForeground() to re-start a ghost session.
+        rateObserver = player.observe(\.rate, options: [.new]) { [weak self] _, change in
+            guard let self, let newRate = change.newValue else { return }
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                // The system player's own controls start playback without going through us.
+                if newRate > 0 {
+                    if !self.isPlaying, !self.isSwappingItem {
+                        self.isPlaying = true
+                        self.updateNowPlayingPlayback()
+                    }
+                    return
+                }
+                // Ignore rate changes that we ourselves triggered (load/pause/resume/stop)
+                // by only acting when the player goes silent unexpectedly while we
+                // believed it was playing.
+                //
+                // Also ignore rate→0 when currentTime is within 1 s of the total
+                // duration: that's the video naturally reaching its end, not a stall.
+                // In that case AVFoundation will post didPlayToEndTimeNotification
+                // immediately after, which calls handlePlaybackEnd() correctly.
+                // Without this guard the recovery logic seeks back by ~1 s and fights
+                // the natural ending, causing repeated spurious stall reports and
+                // blocking the end-of-video / autoplay-next flow (crash log confirmed
+                // via Crashlytics: stall #1–4 at t=15s for a 15.3 s video).
+                let nearEnd = self.duration > 0 && self.currentTime >= self.duration - 1.0
+                let playerWentSilent =
+                    newRate == 0 && self.isPlaying && !self.isSwappingItem && !self.isHandlingAudioInterruption
+                    && !nearEnd
+                if playerWentSilent {
+                    self.isPlaying = false
+                    // The system player pauses when the user pauses or scrubs. Treating that as a
+                    // stall would seek back to the old position and restart playback.
+                    guard Self.rateDropIsStall(self.player.timeControlStatus) else {
+                        self.updateNowPlayingPlayback()
+                        return
+                    }
+                    playerLog.notice("[rateObserver] player.rate→0 while isPlaying=true — syncing isPlaying=false")
+                    self.stallCount += 1
+                    if self.firstRapidStallTime == nil { self.firstRapidStallTime = Date() }
+                    let t = Int(self.currentTime)
+                    playerLog.error(
+                        "[stall] player.rate→0 while isPlaying=true at t=\(t)s stall#\(self.stallCount) video=\(self.currentVideo?.id ?? "nil")"
+                    )
+                    self.updateNowPlayingPlayback()
+                    // Stall recovery: mirror the AVPlayerItemPlaybackStalled path (#193).
+                    // Wait 2 s for the system to self-heal (audio route change, interruption
+                    // resume, etc.), then nudge the pipeline if still stalled. Guard on
+                    // !isPlaying (already set above) rather than isPlaying, and also on
+                    // !isSwappingItem to avoid interfering with intentional item swaps.
+                    // Capped at 3 attempts per item, same as the notification-based path.
+                    let recoveryCount = self.stallCount
+                    let elapsed = self.firstRapidStallTime.map { Date().timeIntervalSince($0) } ?? 0
+                    let isRapidRepeat = elapsed < 30
+                    if recoveryCount >= 3 && isRapidRepeat && self.exhaustiveRetryTask == nil {
+                        // Rapid stall loop: seeks are re-stalling immediately because the
+                        // format URL is expired or rate-limited (CDN returns the same broken
+                        // URL after each seek). Escalate to exhaustiveRetry instead of
+                        // another wasted seek. Guard on exhaustiveRetryTask == nil to avoid
+                        // launching duplicate retries if further stalls fire during retry.
+                        if let video = self.currentVideo {
+                            playerLog.notice(
+                                "[rateObserver] rapid stall loop — \(recoveryCount) stalls in \(Int(elapsed))s — escalating to exhaustiveRetry"
+                            )
+                            let loopError = NSError(
+                                domain: "NewTube.PlaybackStall",
+                                code: 2,
+                                userInfo: [
+                                    NSLocalizedDescriptionKey:
+                                        "Stall loop \(recoveryCount)× in \(Int(elapsed))s — format unrecoverable, escalating"
+                                ]
+                            )
+                            self.exhaustiveRetryTask = Task {
+                                await self.exhaustiveRetry(video: video, originalError: loopError)
+                            }
+                        }
+                    } else if recoveryCount <= 3 {
+                        Task { @MainActor [weak self] in
+                            try? await Task.sleep(nanoseconds: 2_000_000_000)
+                            guard let self, !self.isPlaying, self.player.rate == 0,
+                                !self.isQualityChangePending, !self.isSwappingItem
+                            else { return }
+                            let seekT = self.currentTime
+                            playerLog.notice(
+                                "[rateObserver] recovery#\(recoveryCount): seeking to \(seekT)s to flush pipeline")
+                            self.player.seek(
+                                to: CMTime(seconds: seekT, preferredTimescale: 600),
+                                toleranceBefore: .zero,
+                                toleranceAfter: CMTime(seconds: 1, preferredTimescale: 600)
+                            ) { [weak self] _ in
+                                Task { @MainActor [weak self] in
+                                    guard let self, !self.isPlaying, self.player.rate == 0 else { return }
+                                    self.player.rate = Float(self.settings.playbackSpeed)
+                                    self.isPlaying = true
+                                    playerLog.notice(
+                                        "[rateObserver] recovery#\(recoveryCount): rate restored, isPlaying=true")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// A paused player was paused on purpose. Only a player waiting for data is stalled.
+    nonisolated static func rateDropIsStall(_ status: AVPlayer.TimeControlStatus) -> Bool {
+        status != .paused
+    }
+
+    func setupAirPlayObserver() {
+        airPlayObserver = player.observe(\.isExternalPlaybackActive, options: [.new]) { [weak self] _, change in
+            guard let self, let active = change.newValue else { return }
+            Task { @MainActor [weak self] in
+                self?.isAirPlaying = active
+            }
+        }
+    }
+}
