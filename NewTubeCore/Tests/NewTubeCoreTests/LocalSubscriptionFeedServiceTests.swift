@@ -41,7 +41,7 @@ struct LocalSubscriptionFeedServiceTests {
     func fetchFeedEmptyStore() async {
         let store = makeStore()
         let cache = makeCache()
-        let api = MockInnerTubeAPI()
+        let api = FakeChannelVideosAPI()
         let service = LocalSubscriptionFeedService()
 
         let videos = await service.fetchFeed(store: store, cache: cache, api: api)
@@ -54,7 +54,7 @@ struct LocalSubscriptionFeedServiceTests {
     func fetchFeedCacheHit() async {
         let store = makeStore()
         let cache = makeCache()
-        let api = MockInnerTubeAPI()
+        let api = FakeChannelVideosAPI()
 
         let channel = makeChannel(id: "UCcache1")
         await store.follow(channel)
@@ -79,7 +79,7 @@ struct LocalSubscriptionFeedServiceTests {
     func fetchFeedInnerTubeFallback() async {
         let store = makeStore()
         let cache = makeCache()
-        let api = MockInnerTubeAPI()
+        let api = FakeChannelVideosAPI()
 
         // Configure mock to return a video for channel videos
         let mockVideo = Video(id: "vid-innertube", title: "InnerTube Video", channelTitle: "Channel")
@@ -108,7 +108,7 @@ struct LocalSubscriptionFeedServiceTests {
     func fetchFeedDeduplicates() async {
         let store = makeStore()
         let cache = makeCache()
-        let api = MockInnerTubeAPI()
+        let api = FakeChannelVideosAPI()
 
         // Two channels, both with the same video in cache
         await store.follow(makeChannel(id: "UC1"))
@@ -131,7 +131,7 @@ struct LocalSubscriptionFeedServiceTests {
     func fetchFeedPreservesArrivalOrder() async {
         let store = makeStore()
         let cache = makeCache()
-        let api = MockInnerTubeAPI()
+        let api = FakeChannelVideosAPI()
 
         await store.follow(makeChannel(id: "UCsort"))
 
@@ -160,7 +160,7 @@ struct LocalSubscriptionFeedServiceTests {
         let channelId = "UCtest1111111111111111111"
         let store = makeStore()
         let cache = makeCache()
-        let api = MockInnerTubeAPI()
+        let api = FakeChannelVideosAPI()
         await store.follow(makeChannel(id: channelId))
 
         let uploadsXML = rssXML(channelId: channelId, videoIds: ["vid1", "vid2"])
@@ -184,7 +184,7 @@ struct LocalSubscriptionFeedServiceTests {
         let channelId = "UCtest2222222222222222222"
         let store = makeStore()
         let cache = makeCache()
-        let api = MockInnerTubeAPI()
+        let api = FakeChannelVideosAPI()
         await store.follow(makeChannel(id: channelId))
 
         let uploadsXML = rssXML(channelId: channelId, videoIds: ["vid1", "vid2"])
@@ -227,8 +227,8 @@ struct LocalSubscriptionFeedServiceTests {
 /// URLProtocol subclass that fails every request immediately.
 /// Used to force the InnerTube fallback path in feed service tests.
 private final class AlwaysFailURLProtocol: URLProtocol {
-    override class func canInit(with request: URLRequest) -> Bool { true }
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override static func canInit(with request: URLRequest) -> Bool { true }
+    override static func canonicalRequest(for request: URLRequest) -> URLRequest { request }
     override func startLoading() {
         client?.urlProtocol(self, didFailWithError: URLError(.notConnectedToInternet))
     }
@@ -243,15 +243,14 @@ private final class RouterURLProtocol: URLProtocol {
     /// Map from URL absolute string → response body. Set before creating the session.
     nonisolated(unsafe) static var routes: [String: Data] = [:]
 
-    override class func canInit(with request: URLRequest) -> Bool { true }
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override static func canInit(with request: URLRequest) -> Bool { true }
+    override static func canonicalRequest(for request: URLRequest) -> URLRequest { request }
 
     override func startLoading() {
         let key = request.url?.absoluteString ?? ""
-        if let data = Self.routes[key] {
-            let response = HTTPURLResponse(
-                url: request.url!, statusCode: 200,
-                httpVersion: "HTTP/1.1", headerFields: nil)!
+        if let data = Self.routes[key], let url = request.url,
+            let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: nil)
+        {
             client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
             client?.urlProtocol(self, didLoad: data)
             client?.urlProtocolDidFinishLoading(self)
@@ -260,4 +259,52 @@ private final class RouterURLProtocol: URLProtocol {
         }
     }
     override func stopLoading() {}
+}
+
+// MARK: - FakeChannelVideosAPI
+
+/// Only `fetchChannelVideos` matters to the feed service; everything else returns nothing.
+@MainActor
+private final class FakeChannelVideosAPI: InnerTubeAPIProtocol {
+    struct Call: Equatable {
+        let method: String
+        let args: [String]
+    }
+
+    private(set) var calls: [Call] = []
+    var channelVideosResult = VideoGroup(title: "ChVideos", videos: [])
+
+    func fetchChannelVideos(channelId: String, continuationToken: String?) -> VideoGroup {
+        calls.append(Call(method: "fetchChannelVideos", args: [channelId, continuationToken ?? "nil"]))
+        return channelVideosResult
+    }
+
+    private var empty: VideoGroup { VideoGroup(title: "", videos: []) }
+
+    func setAuthToken(_ token: String?) {}
+    func setSAPISID(_ value: String?) {}
+    func fetchHome(continuationToken: String?) -> VideoGroup { empty }
+    func fetchHomeRows(continuationToken: String?) -> [VideoGroup] { [] }
+    func fetchSubscriptions(continuationToken: String?) -> VideoGroup { empty }
+    func fetchHistory(continuationToken: String?) -> VideoGroup { empty }
+    func fetchMusic() -> VideoGroup { empty }
+    func fetchGaming() -> VideoGroup { empty }
+    func fetchNews() -> VideoGroup { empty }
+    func fetchLive() -> VideoGroup { empty }
+    func fetchSports() -> VideoGroup { empty }
+    func fetchUserPlaylists() -> [PlaylistInfo] { [] }
+    func fetchSubscribedChannels() -> [Channel] { [] }
+    func fetchChannelThumbnailURL(channelId: String) -> URL? { nil }
+    func fetchChannel(channelId: String) throws -> (channel: Channel, videos: VideoGroup) {
+        throw URLError(.unsupportedURL)
+    }
+    func search(query: String, continuationToken: String?, filter: SearchFilter) -> VideoGroup { empty }
+    func fetchSearchSuggestions(query: String) -> [String] { [] }
+    func fetchPlaylistVideos(playlistId: String, continuationToken: String?) -> VideoGroup { empty }
+    func addToWatchLater(videoId: String) -> String? { nil }
+    func removeFromWatchLater(setVideoId: String) {}
+    func addToPlaylist(playlistId: String, videoId: String) {}
+    func removeFromPlaylist(playlistId: String, setVideoId: String) {}
+    func sendFeedback(token: String) {}
+    func sendFeedbackForVideo(videoId: String, iconType: String) {}
 }

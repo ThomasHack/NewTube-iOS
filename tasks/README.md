@@ -2,15 +2,8 @@
 
 Remove an item when it's done.
 
-## Cleanup
-- [ ] Delete `yt.solver.lib.min.js` and `yt.solver.core.min.js` from `NewTubeApp/NewTube/Resources/`
-  if they're confirmed unused. No code references them, but they still ship in the app.
-- [ ] Move `LocalSubscriptionFeedServiceTests` to `NewTubeCore/Tests`. It tests Core code but sits in
-  `NewTubeApp/NewTubeTests` because it shares `MockInnerTubeAPI` with the view model tests, so it
-  needs its own fake or a shared test-support target.
-
 ## Release
-- [ ] Publish `tvos-refresh`, which has no remote branch yet: `git push -u origin tvos-refresh`.
+- [ ] Push `tvos-refresh`, which is ahead of `origin/tvos-refresh`, and merge it when it's ready.
 
 ## Top Shelf
 - [ ] Add a Top Shelf extension (`TVTopShelfContentProvider`): rows for the home screen, with a URL
