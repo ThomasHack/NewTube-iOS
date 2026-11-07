@@ -60,6 +60,9 @@ public final class PlaybackViewModel {
     var pendingWrongVideoCheck: Bool = false
     public internal(set) var isPlaying: Bool = false {
         didSet {
+            #if os(tvOS)
+            PlaybackIdleTimer.setPlaying(isPlaying, owner: ObjectIdentifier(self))
+            #endif
             guard isPlaying, !oldValue else { return }
             // fix13: Cross-process Darwin notification for regression-test timing.
             // XCTDarwinNotificationExpectation in WKHLSReplayRegressionUITests receives
@@ -486,6 +489,10 @@ public final class PlaybackViewModel {
         rateObserver?.invalidate()
         airPlayObserver?.invalidate()
         if let obs = audioSessionObserver { NotificationCenter.default.removeObserver(obs) }
+        #if os(tvOS)
+        let owner = ObjectIdentifier(self)
+        Task { @MainActor in PlaybackIdleTimer.setPlaying(false, owner: owner) }
+        #endif
         #if canImport(UIKit)
         let center = MPRemoteCommandCenter.shared()
         center.playCommand.removeTarget(nil)

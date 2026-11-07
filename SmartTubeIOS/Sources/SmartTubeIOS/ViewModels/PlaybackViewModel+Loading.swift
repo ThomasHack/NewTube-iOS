@@ -104,7 +104,9 @@ extension PlaybackViewModel {
                 playerLog.error("[fix12] AVAudioSession setActive failed: \(error.localizedDescription)")
             }
             setupRemoteCommandCenter()
+            #if !os(tvOS)
             UIApplication.shared.isIdleTimerDisabled = true
+            #endif
             #endif
             player.rate = Float(settings.playbackSpeed)
             isPlaying = true
@@ -320,7 +322,9 @@ extension PlaybackViewModel {
         #endif
         isLoading = false
         #if canImport(UIKit)
+        #if !os(tvOS)
         UIApplication.shared.isIdleTimerDisabled = false
+        #endif
         updateNowPlayingPlayback()
         // Deregister from the global command center so a suspended VM never
         // handles lock screen Play while another VM is the active player.
@@ -356,7 +360,9 @@ extension PlaybackViewModel {
         isPlaying = true
         showControls()
         #if canImport(UIKit)
+        #if !os(tvOS)
         UIApplication.shared.isIdleTimerDisabled = true
+        #endif
         updateNowPlayingPlayback()
         #endif
     }
@@ -552,7 +558,9 @@ extension PlaybackViewModel {
                 relatedVideos = []
                 hasNext = false
                 #if canImport(UIKit)
+                #if !os(tvOS)
                 UIApplication.shared.isIdleTimerDisabled = true
+                #endif
                 updateNowPlayingInfo()
                 #endif
                 playerLog.notice("[loadAsync] local-file fast path: playing \(localURL.lastPathComponent)")
@@ -1047,7 +1055,9 @@ extension PlaybackViewModel {
                 "[loadAsync] rate set — player.rate=\(self.player.rate) timeControlStatus=\(self.player.timeControlStatus.rawValue)"
             )
             #if canImport(UIKit)
+            #if !os(tvOS)
             UIApplication.shared.isIdleTimerDisabled = true
+            #endif
             updateNowPlayingInfo()
             #endif
             // Only reschedule the auto-hide timer when controls are already visible.
@@ -1218,7 +1228,9 @@ extension PlaybackViewModel {
         rateObserver?.invalidate()
         rateObserver = nil
         #if canImport(UIKit)
+        #if !os(tvOS)
         UIApplication.shared.isIdleTimerDisabled = false
+        #endif
         clearNowPlayingInfo()
         let center = MPRemoteCommandCenter.shared()
         center.playCommand.removeTarget(nil)
