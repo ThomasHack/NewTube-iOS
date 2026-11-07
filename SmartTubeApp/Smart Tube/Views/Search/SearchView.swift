@@ -8,10 +8,8 @@ import SwiftUI
 
 struct SearchView: View {
     @Environment(SearchViewModel.self) private var vm
-    @Environment(\.innerTubeAPI) private var api
+    @Environment(AppNavigator.self) private var navigator
     @Environment(SettingsStore.self) private var store
-    @State private var selectedVideo: Video?
-    @State private var channelDestination: ChannelDestination?
     @State private var showFilterSheet = false
 
     init() {}
@@ -37,10 +35,13 @@ struct SearchView: View {
         .searchable(text: $vm.query, prompt: "Search YouTube")
         .autocorrectionDisabled()
         .searchSuggestions {
-            if !vm.query.isEmpty {
-                ForEach(vm.suggestions, id: \.self) { suggestion in
-                    Text(suggestion).searchCompletion(suggestion)
+            if vm.query.isEmpty {
+                ForEach(vm.history) { entry in
+                    Label(entry.query, systemImage: AppSymbol.clock).searchCompletion(entry.query)
                 }
+            }
+            ForEach(vm.suggestions, id: \.self) { suggestion in
+                Label(suggestion, systemImage: AppSymbol.search).searchCompletion(suggestion)
             }
         }
         .onSubmit(of: .search) {
@@ -51,16 +52,6 @@ struct SearchView: View {
             }
         }
         .task(id: vm.query) { await vm.searchAsYouType() }
-        .navigationDestination(item: $selectedVideo) { video in
-            PlayerView(video: video, api: api)
-        }
-        .navigationDestination(item: $channelDestination) { dest in
-            ChannelView(channelId: dest.channelId)
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .openChannel)) { note in
-            guard let channelId = note.userInfo?["channelId"] as? String, !channelId.isEmpty else { return }
-            channelDestination = ChannelDestination(channelId: channelId)
-        }
         .sheet(isPresented: $showFilterSheet) {
             SearchFilterSheet(current: vm.filter) { newFilter in
                 vm.applyFilter(newFilter)
@@ -88,38 +79,26 @@ struct SearchView: View {
         .focusSection()
     }
 
-    // MARK: - tvOS idle content (recent + recommended searches)
+    // MARK: - Idle content
 
+    /// Has nothing focusable besides clearing the history. Recent and recommended searches are
+    /// search suggestions, because a list of buttons here took focus from the system keyboard.
     private var tvIdleView: some View {
-        List {
+        VStack(spacing: 24) {
+            ContentUnavailableView(
+                "Search YouTube",
+                systemImage: AppSymbol.search,
+                description: Text("Use the keyboard above, or pick a suggestion.")
+            )
             if !vm.history.isEmpty {
-                Section("Recent") {
-                    ForEach(vm.history) { entry in
-                        tvQueryButton(entry.query, systemImage: AppSymbol.clock)
-                            .accessibilityIdentifier("search.history.\(entry.query)")
-                    }
-                    Button("Clear History", role: .destructive) {
-                        vm.clearHistory()
-                    }
-                    .accessibilityIdentifier("search.history.clearAll")
+                Button("Clear History", role: .destructive) {
+                    vm.clearHistory()
                 }
-            }
-            Section("Recommended") {
-                ForEach(vm.suggestions, id: \.self) { suggestion in
-                    tvQueryButton(suggestion, systemImage: AppSymbol.search)
-                }
+                .accessibilityIdentifier("search.history.clearAll")
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .accessibilityIdentifier("search.suggestionsContainer")
-    }
-
-    private func tvQueryButton(_ query: String, systemImage: String) -> some View {
-        Button {
-            vm.query = query
-            vm.search()
-        } label: {
-            Label(query, systemImage: systemImage)
-        }
     }
 
     // MARK: - Active filter chips
@@ -163,12 +142,9 @@ struct SearchView: View {
     // MARK: - Results
 
     private var resultsView: some View {
-        let hideShorts = store.settings.hideShorts
-        let hideLiveShorts = store.settings.hideLiveShorts
         let hideVideoPremieres = store.settings.hideVideoPremieres
         let displayResults = vm.results
-            .filter { !hideShorts || !$0.isShort }
-            .filter { !hideLiveShorts || !($0.isLive && $0.isShort) }
+            .filter { !$0.isShort }
             .filter { !hideVideoPremieres || !$0.isUpcoming }
         return ScrollView {
             if (vm.isLoading || vm.isAwaitingSearch) && vm.results.isEmpty {
@@ -183,7 +159,7 @@ struct SearchView: View {
                         await CurrentQueueStore.shared.replaceAll(with: captured)
                         let startIdx = captured.firstIndex(where: { $0.id == video.id }) ?? 0
                         let toPlay = await CurrentQueueStore.shared.videoAt(index: startIdx) ?? video
-                        selectedVideo = toPlay
+                        navigator.play(toPlay)
                     }
                 },
                 loadMore: vm.loadMore
@@ -320,20 +296,27 @@ struct SearchFilterSheet: View {
 // MARK: - Previews
 
 #if DEBUG
-#Preview("Idle") {
+#Preview("Idle – With history") {
     NavigationStack { SearchView() }
         .previewEnvironment()
 }
-
 #Preview("Results") {
     NavigationStack { SearchView() }
         .environment(SearchViewModel.preview(query: "open movies"))
         .previewEnvironment()
 }
-
+#Preview("Loading") {
+    NavigationStack { SearchView() }
+        .environment(SearchViewModel.preview(query: "open movies", hangs: true))
+        .previewEnvironment()
+}
 #Preview("No results") {
     NavigationStack { SearchView() }
         .environment(SearchViewModel.preview(query: "zzzzzz", results: []))
+        .previewEnvironment()
+}
+#Preview("Filter sheet") {
+    SearchFilterSheet(current: .default) { _ in }
         .previewEnvironment()
 }
 #endif

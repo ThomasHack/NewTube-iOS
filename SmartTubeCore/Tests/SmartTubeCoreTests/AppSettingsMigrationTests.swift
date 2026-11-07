@@ -42,7 +42,6 @@ struct AppSettingsMigrationTests {
                 "shuffleEnabled": false,
                 "defaultSection": "subscriptions",
                 "compactThumbnails": true,
-                "hideShorts": true,
                 "perDeviceRecommendationsEnabled": false,
                 "themeName": "Dark",
                 "enabledSections": ["home", "subscriptions"],
@@ -69,7 +68,6 @@ struct AppSettingsMigrationTests {
         #expect(settings.controlsHideTimeout == 6)
         #expect(settings.videoGravityMode == .fill)
         #expect(settings.loopEnabled == true)
-        #expect(settings.hideShorts == true)
         #expect(settings.themeName == .dark)
         #expect(settings.historyState == .disabled)
         #expect(settings.sponsorBlockEnabled == false)
@@ -106,7 +104,6 @@ struct AppSettingsMigrationTests {
                 "shuffleEnabled": false,
                 "defaultSection": "home",
                 "compactThumbnails": false,
-                "hideShorts": false,
                 "perDeviceRecommendationsEnabled": true,
                 "themeName": "System",
                 "enabledSections": [],
@@ -152,7 +149,6 @@ struct AppSettingsMigrationTests {
         original.seekForwardSeconds = 60
         original.controlsHideTimeout = 8
         original.videoGravityMode = .fill
-        original.hideShorts = true
         original.themeName = .dark
         original.historyState = .disabled
         original.sponsorBlockEnabled = false
@@ -171,7 +167,6 @@ struct AppSettingsMigrationTests {
         #expect(decoded.seekForwardSeconds == original.seekForwardSeconds)
         #expect(decoded.controlsHideTimeout == original.controlsHideTimeout)
         #expect(decoded.videoGravityMode == original.videoGravityMode)
-        #expect(decoded.hideShorts == original.hideShorts)
         #expect(decoded.themeName == original.themeName)
         #expect(decoded.historyState == original.historyState)
         #expect(decoded.sponsorBlockEnabled == original.sponsorBlockEnabled)

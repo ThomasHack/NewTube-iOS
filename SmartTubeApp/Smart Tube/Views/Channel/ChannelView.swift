@@ -6,38 +6,23 @@ import SwiftUI
 // Displays channel info, subscriber count and a grid of recent uploads.
 // Mirrors the Android `ChannelFragment`.
 
-// MARK: - ChannelFilter
-
-private enum ChannelFilter: String, CaseIterable {
-    case all = "All"
-    case shorts = "Shorts"
-}
-
 struct ChannelView: View {
     let channelId: String
-    @State private var vm = ChannelViewModel()
-    @State private var selectedVideo: Video?
-    @State private var shortsPresentation: ShortsPresentation?
-    @State private var channelDestination: ChannelDestination?
-    @State private var filter: ChannelFilter = .all
+    let vm: ChannelViewModel
     @State private var isFollowedLocally = false
     @Environment(SettingsStore.self) private var store
     @Environment(AuthService.self) private var auth
-    @Environment(\.innerTubeAPI) private var api
+    @Environment(AppNavigator.self) private var navigator
+    @Environment(SidebarChannelsViewModel.self) private var sidebarChannels
 
-    init(channelId: String) {
-        self.channelId = channelId
-    }
-
-    /// Injects the view model directly so previews can supply sample data.
     init(channelId: String, viewModel: ChannelViewModel) {
         self.channelId = channelId
-        _vm = State(initialValue: viewModel)
+        vm = viewModel
     }
 
     var body: some View {
         Group {
-            if vm.isLoading && vm.channel == nil {
+            if vm.channel == nil && vm.error == nil {
                 ProgressView("Loading channel…")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .accessibilityIdentifier("channel.view")
@@ -45,76 +30,30 @@ struct ChannelView: View {
                 content
             }
         }
-        .navigationTitle(vm.channel?.title ?? "Channel")
-        .onAppear { vm.load(channelId: channelId) }
+        .toolbar(.hidden, for: .navigationBar)
+        .onAppear { vm.loadIfStale(channelId: channelId) }
         .task(id: vm.channel?.id) {
             guard let id = vm.channel?.id else { return }
             isFollowedLocally = await LocalSubscriptionStore.shared.isFollowing(id)
         }
-        .fullScreenCover(item: $selectedVideo) { video in
-            PlayerView(video: video, api: api)
-        }
-        .navigationDestination(item: $channelDestination) { dest in
-            ChannelView(channelId: dest.channelId)
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .openChannel)) { note in
-            guard let channelId = note.userInfo?["channelId"] as? String, !channelId.isEmpty else { return }
-            channelDestination = ChannelDestination(channelId: channelId)
-        }
-        .fullScreenCover(item: $shortsPresentation) { target in
-            ShortsPlayerView(videos: target.videos, startIndex: target.startIndex, api: api)
-        }
         .alert("Error", isPresented: .constant(vm.error != nil), presenting: vm.error) { _ in
-            Button("Retry") { vm.load(channelId: channelId) }
-            Button("Dismiss", role: .cancel) {}
+            Button("Retry") {
+                vm.error = nil
+                vm.load(channelId: channelId)
+            }
+            Button("Dismiss", role: .cancel) { vm.error = nil }
         } message: { err in
             Text(err.localizedDescription)
-        }
-        .toolbar {
-            if let channel = vm.channel {
-                ToolbarItem(placement: .topBarTrailing) {
-                    let isExcluded = store.settings.sponsorBlockExcludedChannels[channel.id] != nil
-                    Button {
-                        toggleSponsorBlockExclusion(for: channel)
-                    } label: {
-                        Label(
-                            isExcluded ? "Remove SponsorBlock Exclusion" : "Exclude from SponsorBlock",
-                            systemImage: isExcluded
-                                ? "person.crop.circle.badge.checkmark" : "person.crop.circle.badge.minus"
-                        )
-                    }
-                    .accessibilityIdentifier("channel.sponsorBlockButton")
-                }
-            }
         }
     }
 
     private var content: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
-                // Channel header
                 if let channel = vm.channel {
                     channelHeader(channel)
                 }
-
-                // All / Shorts filter
-                Picker("Filter", selection: $filter) {
-                    ForEach(ChannelFilter.allCases, id: \.self) { tab in
-                        Text(tab.rawValue).tag(tab)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal)
-                .padding(.vertical, 10)
-                .accessibilityIdentifier("channel.filterPicker")
-
-                let filtered = filteredVideos
-                if filter == .shorts {
-                    shortsGrid(filtered)
-                } else {
-                    videosGrid(filtered)
-                }
-
+                videosGrid(vm.videos.filter { !$0.isShort })
                 if vm.isLoading {
                     ProgressView().frame(maxWidth: .infinity).padding()
                 }
@@ -122,15 +61,6 @@ struct ChannelView: View {
         }
         .refreshable { vm.load(channelId: channelId) }
         .accessibilityIdentifier("channel.view")
-    }
-
-    // MARK: - Filtered data
-
-    private var filteredVideos: [Video] {
-        switch filter {
-        case .all: return vm.videos.filter { !store.settings.hideShorts || !$0.isShort }
-        case .shorts: return vm.shorts
-        }
     }
 
     // MARK: - Grid layouts
@@ -141,15 +71,12 @@ struct ChannelView: View {
             if compact {
                 LazyVStack(spacing: 0) {
                     ForEach(videos) { video in
-                        VideoCardView(video: video, compact: true)
+                        VideoCardView(video: video, compact: true, onSelect: { navigator.play(video) })
                             .padding(.horizontal)
                             .padding(.vertical, 6)
                             .accessibilityIdentifier("video.card.\(video.id)")
-                            .onTapGesture {
-                                selectedVideo = video
-                            }
                             .onAppear {
-                                if video.id == vm.videos.last?.id { vm.loadMore() }
+                                if video.id == videos.last?.id { vm.loadMore() }
                             }
                         Divider().padding(.horizontal)
                     }
@@ -161,7 +88,7 @@ struct ChannelView: View {
                         let rowVideos = Array(videos[startIdx..<min(startIdx + columnCount, videos.count)])
                         HStack(alignment: .top, spacing: 12) {
                             ForEach(rowVideos) { video in
-                                VideoCardView(video: video, compact: false, onSelect: { selectedVideo = video })
+                                VideoCardView(video: video, compact: false, onSelect: { navigator.play(video) })
                                     .frame(maxWidth: .infinity)
                                     .accessibilityIdentifier("video.card.\(video.id)")
                             }
@@ -173,31 +100,13 @@ struct ChannelView: View {
                             }
                         }
                         .onAppear {
-                            if rowVideos.last?.id == vm.videos.last?.id { vm.loadMore() }
+                            if rowVideos.last?.id == videos.last?.id { vm.loadMore() }
                         }
                     }
                 }
                 .padding()
             }
         }
-    }
-
-    private func shortsGrid(_ videos: [Video]) -> some View {
-        let columns = [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)]
-        return LazyVGrid(columns: columns, spacing: 8) {
-            ForEach(videos) { video in
-                VideoCardView(video: video)
-                    .aspectRatio(9 / 16, contentMode: .fit)
-                    .onTapGesture { selectShort(video, from: videos) }
-            }
-        }
-        .padding(.horizontal)
-        .accessibilityIdentifier("channel.videoGrid")
-    }
-
-    private func selectShort(_ video: Video, from videos: [Video]) {
-        let idx = videos.firstIndex(where: { $0.id == video.id }) ?? 0
-        shortsPresentation = ShortsPresentation(videos: videos, startIndex: idx)
     }
 
     private func toggleSponsorBlockExclusion(for channel: Channel) {
@@ -236,22 +145,37 @@ struct ChannelView: View {
                 }
             }
             Spacer()
-            if !auth.isSignedIn {
-                Button {
-                    Task { await toggleFollow(channel) }
-                } label: {
-                    Label(
-                        isFollowedLocally ? "Unfollow" : "Follow",
-                        systemImage: isFollowedLocally ? "bell.slash" : "bell"
-                    )
+            HStack(spacing: 24) {
+                if !auth.isSignedIn {
+                    Button {
+                        Task { await toggleFollow(channel) }
+                    } label: {
+                        Label(
+                            isFollowedLocally ? "Unfollow" : "Follow",
+                            systemImage: isFollowedLocally ? "bell.slash" : "bell"
+                        )
+                    }
+                    .accessibilityIdentifier("channel.followButton")
                 }
-                .buttonStyle(.bordered)
-                .accessibilityIdentifier("channel.followButton")
+                sponsorBlockButton(channel)
             }
         }
         .padding()
-        .background(.background)
         .accessibilityIdentifier("channel.header")
+    }
+
+    private func sponsorBlockButton(_ channel: Channel) -> some View {
+        let isExcluded = store.settings.sponsorBlockExcludedChannels[channel.id] != nil
+        return Button {
+            toggleSponsorBlockExclusion(for: channel)
+        } label: {
+            Label(
+                isExcluded ? "Remove SponsorBlock Exclusion" : "Exclude from SponsorBlock",
+                systemImage: isExcluded
+                    ? "person.crop.circle.badge.checkmark" : "person.crop.circle.badge.minus"
+            )
+        }
+        .accessibilityIdentifier("channel.sponsorBlockButton")
     }
 
     private func toggleFollow(_ channel: Channel) async {
@@ -267,16 +191,45 @@ struct ChannelView: View {
             await LocalSubscriptionStore.shared.follow(local)
             isFollowedLocally = true
         }
+        await sidebarChannels.reload()
     }
 }
 
 // MARK: - Previews
 
 #if DEBUG
-#Preview {
+#Preview("Channel") {
+    NavigationStack { ChannelView(channelId: PreviewData.channel.id, viewModel: .preview()) }
+        .previewEnvironment()
+}
+#Preview("Signed out – Follow button") {
+    NavigationStack { ChannelView(channelId: PreviewData.channel.id, viewModel: .preview()) }
+        .previewEnvironment(signedIn: false)
+}
+#Preview("Excluded from SponsorBlock") {
+    NavigationStack { ChannelView(channelId: PreviewData.channel.id, viewModel: .preview()) }
+        .previewEnvironment { $0.sponsorBlockExcludedChannels = [PreviewData.channel.id: PreviewData.channel.title] }
+}
+#Preview("Long name") {
     NavigationStack {
-        ChannelView(channelId: PreviewData.channel.id, viewModel: ChannelViewModel(api: PreviewInnerTubeAPI()))
+        ChannelView(
+            channelId: PreviewData.longNamedChannel.id, viewModel: .preview(channel: PreviewData.longNamedChannel))
     }
     .previewEnvironment()
+}
+#Preview("No videos") {
+    NavigationStack { ChannelView(channelId: PreviewData.channel.id, viewModel: .preview(videos: [])) }
+        .previewEnvironment()
+}
+#Preview("Loading") {
+    NavigationStack {
+        ChannelView(
+            channelId: PreviewData.channel.id, viewModel: ChannelViewModel(api: PreviewInnerTubeAPI(hangs: true)))
+    }
+    .previewEnvironment()
+}
+#Preview("Error") {
+    NavigationStack { ChannelView(channelId: PreviewData.channel.id, viewModel: .previewFailed()) }
+        .previewEnvironment()
 }
 #endif

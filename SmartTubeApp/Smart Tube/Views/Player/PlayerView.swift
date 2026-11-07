@@ -18,6 +18,7 @@ struct PlayerView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(SettingsStore.self) var store
     @Environment(AuthService.self) var authService
+    @Environment(AppNavigator.self) var navigator
     @State var showSpeedPicker = false
     @State var showQualityPicker = false
     @State var showCaptionPicker = false
@@ -29,7 +30,6 @@ struct PlayerView: View {
     @State var showCommentsSheet = false
     @State var slideOffset: CGFloat = 0
     @State var isTransitioning = false
-    @State var channelDestination: ChannelDestination?
     /// True while the app is backgrounded. Prevents `onDisappear` from calling
     /// `suspend()` when the system fires it as a side-effect of backgrounding rather
     /// than actual navigation away from the player.
@@ -45,8 +45,8 @@ struct PlayerView: View {
     /// nil = not in controls-nav mode; all remote input targets the video layer.
     @State var highlightedControl: TVPlayerControl? = nil
     /// Namespace for the player ZStack itself, used with `.focusScope` +
-    /// `.prefersDefaultFocus` so the ZStack claims default focus when pushed via
-    /// NavigationStack — preventing any child view from stealing focus first.
+    /// `.prefersDefaultFocus` so the ZStack claims default focus when presented,
+    /// preventing any child view from stealing focus first.
     @Namespace var playerBodyNamespace
     /// Namespace IDs used with `.focusScope` on picker overlays so the tvOS focus
     /// engine moves focus into the overlay when it opens.
@@ -90,3 +90,28 @@ struct PlayerView: View {
     // captionPickerOverlay / audioTrackPickerOverlay / presentShareSheet(url:)
     // → PlayerView+PickerOverlays.swift
 }
+
+// MARK: - Preview state
+
+#if DEBUG
+extension PlayerView {
+    enum PreviewOverlay {
+        case none, moreMenu, speed, quality, captions, audioTrack, sleepTimer, description
+    }
+
+    /// A player already showing `vm`'s state, which doesn't load a video because `vm` has it as
+    /// its current one.
+    init(preview vm: PlaybackViewModel, overlay: PreviewOverlay = .none, highlightedControl: TVPlayerControl? = nil) {
+        self.init(video: vm.currentVideo ?? PreviewData.playerVideo, api: vm.api)
+        _vm = State(initialValue: vm)
+        _showMoreMenu = State(initialValue: overlay == .moreMenu)
+        _showSpeedPicker = State(initialValue: overlay == .speed)
+        _showQualityPicker = State(initialValue: overlay == .quality)
+        _showCaptionPicker = State(initialValue: overlay == .captions)
+        _showAudioTrackPicker = State(initialValue: overlay == .audioTrack)
+        _showSleepTimerPicker = State(initialValue: overlay == .sleepTimer)
+        _showDescriptionSheet = State(initialValue: overlay == .description)
+        _highlightedControl = State(initialValue: highlightedControl)
+    }
+}
+#endif

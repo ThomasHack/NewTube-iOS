@@ -77,3 +77,21 @@ private extension View {
         }
     }
 }
+
+// MARK: - Previews
+
+#if DEBUG
+private struct CommentsOverlayPreview: View {
+    let comments: [Comment]
+    var isLoading = false
+    @Namespace private var namespace
+
+    var body: some View {
+        CommentsOverlayView(comments: comments, isLoading: isLoading, onDismiss: {}, focusNamespace: namespace)
+    }
+}
+
+#Preview("Comments") { CommentsOverlayPreview(comments: PreviewData.comments) }
+#Preview("Comments – Loading") { CommentsOverlayPreview(comments: [], isLoading: true) }
+#Preview("Comments – None") { CommentsOverlayPreview(comments: []) }
+#endif

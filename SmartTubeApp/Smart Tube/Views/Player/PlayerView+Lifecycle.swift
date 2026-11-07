@@ -152,7 +152,7 @@ extension PlayerView {
             // When an overlay (more menu, quality, speed, sleep timer) is visible, focus is
             // yielded so the overlay's buttons are reachable by the Siri Remote.
             // `.focusScope` + `.prefersDefaultFocus` ensure the ZStack actively claims
-            // default focus when pushed via NavigationStack, rather than waiting for the
+            // default focus when presented, rather than waiting for the
             // focus engine to pick a child element or leaving focus on the previous screen.
             .focusScope(playerBodyNamespace)
             .prefersDefaultFocus(in: playerBodyNamespace)
@@ -387,110 +387,101 @@ extension PlayerView {
     }
 
     var bodyWithLifecycleModifiers: some View {
-        // Group branches by platform so each branch has its own type-inference scope.
-        // Platform-specific toolbar and nav-bar modifiers live inside each branch to
-        // avoid conditional-compilation mid-chain (not allowed outside @ViewBuilder).
-        Group {
-            tvosPlayerChangeModifiers
-                .toolbar(.hidden, for: .tabBar)
-        }
-        // Always-visible title badge so XCUITest can read the current video title
-        // without waiting for the controls overlay to be shown.
-        // Also provides an always-accessible back button for UI automation.
-        .overlay(alignment: .topLeading) {
-            titleAndBackButtonOverlay
-        }
-        .onAppear {
-            swipeLog.notice("[PlayerView] onAppear id=\(video.id)")
-            isVisible = true
-            playerFocused = true
-            if vm.currentVideoId == video.id {
-                // Spurious appear (e.g. a sheet temporarily covered us) — only resume
-                // if playback was active before the view disappeared, so an intentional
-                // user pause is not overridden (e.g. pause → background → foreground).
-                if vm.wasPlayingBeforeSuspend {
-                    vm.resume()
+        tvosPlayerChangeModifiers
+            // Always-visible title badge so XCUITest can read the current video title
+            // without waiting for the controls overlay to be shown.
+            // Also provides an always-accessible back button for UI automation.
+            .overlay(alignment: .topLeading) {
+                titleAndBackButtonOverlay
+            }
+            .onAppear {
+                swipeLog.notice("[PlayerView] onAppear id=\(video.id)")
+                isVisible = true
+                playerFocused = true
+                if vm.currentVideoId == video.id {
+                    // Spurious appear (e.g. a sheet temporarily covered us) — only resume
+                    // if playback was active before the view disappeared, so an intentional
+                    // user pause is not overridden (e.g. pause → background → foreground).
+                    if vm.wasPlayingBeforeSuspend {
+                        vm.resume()
+                    }
+                } else {
+                    vm.load(video: video)
                 }
-            } else {
-                vm.load(video: video)
-            }
-            vm.setPlaybackSpeed(store.settings.playbackSpeed)
-            vm.updateSettings(store.settings)
-            vm.updateAuthToken(authService.accessToken)
-            // UI testing only: force-show controls so the test can find player.nextBtn.
-            if ProcessInfo.processInfo.arguments.contains("--uitesting-show-controls") {
-                swipeLog.notice("[PlayerView] --uitesting-show-controls — showing controls")
-                vm.showControls()
-                vm.cancelControlsHide()
-            }
-            // UI testing only: force-show controls and/or the more menu so tests can
-            // verify focus routing without relying on gesture delivery, which is
-            // unreliable on the tvOS simulator.
-            // Called AFTER load() so it runs after controlsVisible is reset to false.
-            // cancelControlsHide() keeps the overlay permanently on screen for tests
-            // that need to interact with controls elements.
-            if ProcessInfo.processInfo.arguments.contains("--uitesting-show-controls") {
-                swipeLog.notice("[tv] --uitesting-show-controls launch arg detected — calling showControls()")
-                vm.showControls()
-                vm.cancelControlsHide()
-            }
-            if ProcessInfo.processInfo.arguments.contains("--uitesting-open-more-menu") {
-                swipeLog.notice(
-                    "[tv] --uitesting-open-more-menu launch arg detected — scheduling showMoreMenu=true after focus settles"
-                )
-                Task { @MainActor in
-                    // Brief delay lets the player body establish focus (via .prefersDefaultFocus)
-                    // before the overlay opens, so moreMenuNamespace can attract focus correctly.
-                    try? await Task.sleep(nanoseconds: 600_000_000)
-                    swipeLog.notice("[tv] --uitesting-open-more-menu: setting showMoreMenu=true")
-                    showMoreMenu = true
+                vm.setPlaybackSpeed(store.settings.playbackSpeed)
+                vm.updateSettings(store.settings)
+                vm.updateAuthToken(authService.accessToken)
+                // UI testing only: force-show controls so the test can find player.nextBtn.
+                if ProcessInfo.processInfo.arguments.contains("--uitesting-show-controls") {
+                    swipeLog.notice("[PlayerView] --uitesting-show-controls — showing controls")
+                    vm.showControls()
+                    vm.cancelControlsHide()
                 }
-            }
-            if ProcessInfo.processInfo.arguments.contains("--uitesting-open-sleep-timer-picker") {
-                swipeLog.notice(
-                    "[tv] --uitesting-open-sleep-timer-picker launch arg detected — scheduling showSleepTimerPicker=true"
-                )
-                Task { @MainActor in
-                    try? await Task.sleep(nanoseconds: 600_000_000)
-                    swipeLog.notice("[tv] --uitesting-open-sleep-timer-picker: setting showSleepTimerPicker=true")
-                    showSleepTimerPicker = true
+                // UI testing only: force-show controls and/or the more menu so tests can
+                // verify focus routing without relying on gesture delivery, which is
+                // unreliable on the tvOS simulator.
+                // Called AFTER load() so it runs after controlsVisible is reset to false.
+                // cancelControlsHide() keeps the overlay permanently on screen for tests
+                // that need to interact with controls elements.
+                if ProcessInfo.processInfo.arguments.contains("--uitesting-show-controls") {
+                    swipeLog.notice("[tv] --uitesting-show-controls launch arg detected — calling showControls()")
+                    vm.showControls()
+                    vm.cancelControlsHide()
+                }
+                if ProcessInfo.processInfo.arguments.contains("--uitesting-open-more-menu") {
+                    swipeLog.notice(
+                        "[tv] --uitesting-open-more-menu launch arg detected — scheduling showMoreMenu=true after focus settles"
+                    )
+                    Task { @MainActor in
+                        // Brief delay lets the player body establish focus (via .prefersDefaultFocus)
+                        // before the overlay opens, so moreMenuNamespace can attract focus correctly.
+                        try? await Task.sleep(nanoseconds: 600_000_000)
+                        swipeLog.notice("[tv] --uitesting-open-more-menu: setting showMoreMenu=true")
+                        showMoreMenu = true
+                    }
+                }
+                if ProcessInfo.processInfo.arguments.contains("--uitesting-open-sleep-timer-picker") {
+                    swipeLog.notice(
+                        "[tv] --uitesting-open-sleep-timer-picker launch arg detected — scheduling showSleepTimerPicker=true"
+                    )
+                    Task { @MainActor in
+                        try? await Task.sleep(nanoseconds: 600_000_000)
+                        swipeLog.notice("[tv] --uitesting-open-sleep-timer-picker: setting showSleepTimerPicker=true")
+                        showSleepTimerPicker = true
+                    }
                 }
             }
-        }
-        .onDisappear {
-            swipeLog.notice("[PlayerView] onDisappear id=\(video.id) isInBackground=\(isInBackground)")
-            isVisible = false
-            guard !isInBackground else { return }
-            vm.suspend()
-        }
-        .onChange(of: scenePhase) { _, phase in
-            switch phase {
-            case .background:
-                isInBackground = true
-                if isVisible { vm.handleBackground() }
-            case .active:
-                isInBackground = false
-                if isVisible { vm.handleForeground() }
-            default:
-                break
+            .onDisappear {
+                swipeLog.notice("[PlayerView] onDisappear id=\(video.id) isInBackground=\(isInBackground)")
+                isVisible = false
+                guard !isInBackground else { return }
+                vm.suspend()
             }
-        }
-        .navigationDestination(item: $channelDestination) { dest in
-            ChannelView(channelId: dest.channelId)
-        }
-        // Intercept smarttube://seek/<seconds> links emitted by timestamp spans in
-        // descriptions and comments, and forward them to the player seek function.
-        .environment(
-            \.openURL,
-            OpenURLAction { url in
-                if url.scheme == "smarttube", url.host == "seek",
-                    let seconds = TimeInterval(url.lastPathComponent)
-                {
-                    vm.seek(to: seconds)
-                    return .handled
+            .onChange(of: scenePhase) { _, phase in
+                switch phase {
+                case .background:
+                    isInBackground = true
+                    if isVisible { vm.handleBackground() }
+                case .active:
+                    isInBackground = false
+                    if isVisible { vm.handleForeground() }
+                default:
+                    break
                 }
-                return .systemAction
-            })
+            }
+            // Intercept smarttube://seek/<seconds> links emitted by timestamp spans in
+            // descriptions and comments, and forward them to the player seek function.
+            .environment(
+                \.openURL,
+                OpenURLAction { url in
+                    if url.scheme == "smarttube", url.host == "seek",
+                        let seconds = TimeInterval(url.lastPathComponent)
+                    {
+                        vm.seek(to: seconds)
+                        return .handled
+                    }
+                    return .systemAction
+                })
     }
 
     // MARK: - Controls overlay
@@ -503,7 +494,6 @@ extension PlayerView {
             safeAreaInsets: safeAreaInsets,
             video: video,
             showMoreMenu: $showMoreMenu,
-            channelDestination: $channelDestination,
             vm: vm,
             highlightedControl: $highlightedControl
         )

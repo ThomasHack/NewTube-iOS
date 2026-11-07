@@ -1083,16 +1083,15 @@ extension PlaybackViewModel {
             guard !Task.isCancelled else { return }
 
             if let nextInfo, !nextInfo.relatedVideos.isEmpty {
-                relatedVideos = nextInfo.relatedVideos.filter { $0.id != video.id }
+                relatedVideos = nextInfo.relatedVideos.filter { $0.id != video.id && !$0.isShort }
                 hasNext = !relatedVideos.isEmpty
             } else {
                 let fallbackQuery = video.title.isEmpty ? nil : video.title
                 if let query = fallbackQuery {
                     let searched = try? await api.search(query: query)
                     relatedVideos =
-                        searched?.videos.filter { $0.id != video.id }.prefix(InnerTubeClients.maxVideoResults).map {
-                            $0
-                        } ?? []
+                        searched?.videos.filter { $0.id != video.id && !$0.isShort }
+                        .prefix(InnerTubeClients.maxVideoResults).map { $0 } ?? []
                     hasNext = !relatedVideos.isEmpty
                 }
             }

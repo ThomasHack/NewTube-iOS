@@ -10,7 +10,6 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(AuthService.self) private var auth
     @Environment(SettingsStore.self) private var store
-    @State private var showSignIn = false
     @State private var showGithubQR = false
     /// #126: whether the current visit to this screen has already passed the PIN
     /// check. Reset to `false` on `.onDisappear` (see body) so leaving and coming back
@@ -36,15 +35,17 @@ struct SettingsView: View {
     }
 
     private var settingsForm: some View {
-        Form {
-            accountSection
-            playerSection
-            generalSection
-            uiSection
-            sponsorBlockSection
-            deArrowSection
-            parentalControlsSection
-            aboutSection
+        SettingsPageLayout {
+            Form {
+                accountSection
+                playerSection
+                generalSection
+                uiSection
+                sponsorBlockSection
+                deArrowSection
+                parentalControlsSection
+                aboutSection
+            }
         }
         // Hide the blank navigation bar — a visible one conflicts with the TabView tab bar
         // scroll-hide animation (issue #102 / gh-34).
@@ -80,38 +81,7 @@ struct SettingsView: View {
     // MARK: - Account
 
     private var accountSection: some View {
-        Section("Account") {
-            if auth.isSignedIn {
-                HStack {
-                    let avatarSize: CGFloat = 64
-                    AsyncImage(url: auth.accountAvatarURL) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image.resizable().scaledToFill()
-                        case .failure, .empty:
-                            Circle().fill(Color.secondary.opacity(0.3))
-                                .overlay(Image(systemName: "person.fill").foregroundStyle(.secondary))
-                        @unknown default:
-                            Circle().fill(Color.secondary.opacity(0.3))
-                        }
-                    }
-                    .frame(width: avatarSize, height: avatarSize)
-                    .clipShape(Circle())
-                    Text(auth.accountName ?? "Unknown")
-                }
-                NavigationLink {
-                    ChannelSwitcherView()
-                } label: {
-                    LabeledContent("Channel", value: auth.activeChannel?.name ?? "")
-                }
-                .accessibilityIdentifier("settings.channelLink")
-                Button("Sign Out", role: .destructive) { auth.signOut() }
-            } else {
-                Button("Sign in with Google") { showSignIn = true }
-                    .accessibilityIdentifier("settings.signInButton")
-                    .sheet(isPresented: $showSignIn) { SignInView() }
-            }
-        }
+        Section("Account") { AccountRows() }
     }
 
     // MARK: - Player
@@ -119,20 +89,20 @@ struct SettingsView: View {
     private var playerSection: some View {
         @Bindable var store = store
         return Section("Player") {
-            Picker("Playback Speed", selection: $store.settings.playbackSpeed) {
+            SettingsPicker("Playback Speed", selection: $store.settings.playbackSpeed) {
                 ForEach(AppSettings.availableSpeeds, id: \.self) { s in
                     Text(s == 1.0 ? "Normal" : "\(s, specifier: "%.2g")×").tag(s)
                 }
             }
 
-            Picker("Default Quality", selection: $store.settings.preferredQuality) {
+            SettingsPicker("Default Quality", selection: $store.settings.preferredQuality) {
                 ForEach(AppSettings.VideoQuality.allCases, id: \.self) { q in
                     Text(q.rawValue.capitalized).tag(q)
                 }
             }
             .accessibilityIdentifier("settings.preferredQualityPicker")
 
-            Picker("Preferred Audio Language", selection: $store.settings.preferredAudioLanguage) {
+            SettingsPicker("Preferred Audio Language", selection: $store.settings.preferredAudioLanguage) {
                 Text("System Default").tag(nil as String?)
                 Divider()
                 Text("English").tag("en" as String?)
@@ -148,20 +118,20 @@ struct SettingsView: View {
             }
             .accessibilityIdentifier("settings.preferredAudioLanguageRow")
 
-            Picker("Seek Back", selection: $store.settings.seekBackSeconds) {
+            SettingsPicker("Seek Back", selection: $store.settings.seekBackSeconds) {
                 ForEach(AppSettings.availableSeekOptions, id: \.self) { s in
                     Text("\(s) s").tag(s)
                 }
             }
             .accessibilityIdentifier("settings.seekBackRow")
-            Picker("Seek Forward", selection: $store.settings.seekForwardSeconds) {
+            SettingsPicker("Seek Forward", selection: $store.settings.seekForwardSeconds) {
                 ForEach(AppSettings.availableSeekOptions, id: \.self) { s in
                     Text("\(s) s").tag(s)
                 }
             }
             .accessibilityIdentifier("settings.seekForwardRow")
 
-            Picker("Hide Controls After", selection: $store.settings.controlsHideTimeout) {
+            SettingsPicker("Hide Controls After", selection: $store.settings.controlsHideTimeout) {
                 Text("2s").tag(2)
                 Text("3s").tag(3)
                 Text("4s").tag(4)
@@ -170,7 +140,7 @@ struct SettingsView: View {
                 Text("10s").tag(10)
             }
 
-            Picker("Video Fit", selection: $store.settings.videoGravityMode) {
+            SettingsPicker("Video Fit", selection: $store.settings.videoGravityMode) {
                 Text("Fit (letterbox)").tag(AppSettings.VideoGravityMode.fit)
                 Text("Fill (crop)").tag(AppSettings.VideoGravityMode.fill)
             }
@@ -190,7 +160,7 @@ struct SettingsView: View {
     private var generalSection: some View {
         @Bindable var store = store
         return Section {
-            Picker("Watch History", selection: $store.settings.historyState) {
+            SettingsPicker("Watch History", selection: $store.settings.historyState) {
                 Text("Enabled").tag(AppSettings.HistoryState.enabled)
                 Text("Disabled").tag(AppSettings.HistoryState.disabled)
             }
@@ -234,13 +204,13 @@ struct SettingsView: View {
     private var uiSection: some View {
         @Bindable var store = store
         return Section("Interface") {
-            Picker("Theme", selection: $store.settings.themeName) {
+            SettingsPicker("Theme", selection: $store.settings.themeName) {
                 ForEach(AppSettings.ThemeName.allCases, id: \.self) { t in
                     Text(t.rawValue).tag(t)
                 }
             }
             .accessibilityIdentifier("settings.themeRow")
-            Picker("Accent Color", selection: $store.settings.accentColor) {
+            SettingsPicker("Accent Color", selection: $store.settings.accentColor) {
                 ForEach(AppSettings.AccentColorChoice.allCases, id: \.self) { choice in
                     Label {
                         Text(choice.displayName)
@@ -251,16 +221,12 @@ struct SettingsView: View {
                 }
             }
             .accessibilityIdentifier("settings.accentColorPicker")
-            Picker("Thumbnails", selection: thumbnailStyle) {
+            SettingsPicker("Thumbnails", selection: thumbnailStyle) {
                 Text("Standard").tag(ThumbnailStyle.standard)
                 Text("High Resolution").tag(ThumbnailStyle.highResolution)
                 Text("Compact").tag(ThumbnailStyle.compact)
             }
             .accessibilityIdentifier("settings.thumbnailStylePicker")
-            Toggle("Hide Shorts", isOn: $store.settings.hideShorts)
-                .accessibilityIdentifier("settings.hideShortsToggle")
-            Toggle("Hide Live Shorts", isOn: $store.settings.hideLiveShorts)
-                .accessibilityIdentifier("settings.hideLiveShortsToggle")
             Toggle("Hide Video Premieres", isOn: $store.settings.hideVideoPremieres)
                 .accessibilityIdentifier("settings.hideVideoPremieresToggle")
             Toggle("Per-Device Recommendations", isOn: $store.settings.perDeviceRecommendationsEnabled)
@@ -269,7 +235,7 @@ struct SettingsView: View {
                 .accessibilityIdentifier("settings.hideWatchedVideosToggle")
             if store.settings.hideWatchedVideos {
                 // tvOS has no Stepper.
-                Picker("Watched threshold", selection: $store.settings.hideWatchedThreshold) {
+                SettingsPicker("Watched threshold", selection: $store.settings.hideWatchedThreshold) {
                     ForEach(Array(stride(from: 50, through: 100, by: 5)), id: \.self) { percent in
                         Text("\(percent)%").tag(Double(percent) / 100)
                     }
@@ -289,27 +255,26 @@ struct SettingsView: View {
 
             if store.settings.sponsorBlockEnabled {
                 ForEach(SponsorSegment.Category.allCases, id: \.self) { cat in
-                    HStack {
+                    SettingsPicker(
+                        Text(cat.displayName),
+                        selection: Binding(
+                            get: { store.settings.sponsorBlockActions[cat] ?? .nothing },
+                            set: { store.settings.sponsorBlockActions[cat] = $0 }
+                        )
+                    ) {
+                        Text("Skip").tag(AppSettings.SponsorBlockAction.skip)
+                        Text("Show Toast").tag(AppSettings.SponsorBlockAction.showToast)
+                        Text("Nothing").tag(AppSettings.SponsorBlockAction.nothing)
+                    } icon: {
                         Circle()
                             .fill(cat.color)
                             .frame(width: 10, height: 10)
-                        Picker(
-                            cat.displayName,
-                            selection: Binding(
-                                get: { store.settings.sponsorBlockActions[cat] ?? .nothing },
-                                set: { store.settings.sponsorBlockActions[cat] = $0 }
-                            )
-                        ) {
-                            Text("Skip").tag(AppSettings.SponsorBlockAction.skip)
-                            Text("Show Toast").tag(AppSettings.SponsorBlockAction.showToast)
-                            Text("Nothing").tag(AppSettings.SponsorBlockAction.nothing)
-                        }
-                        .accessibilityIdentifier("settings.sponsorBlock.\(cat.rawValue)")
                     }
+                    .accessibilityIdentifier("settings.sponsorBlock.\(cat.rawValue)")
                 }
 
                 // Minimum segment duration
-                Picker("Min. Segment Length", selection: $store.settings.sponsorBlockMinSegmentDuration) {
+                SettingsPicker("Min. Segment Length", selection: $store.settings.sponsorBlockMinSegmentDuration) {
                     Text("Off").tag(0.0)
                     Text("1s").tag(1.0)
                     Text("2s").tag(2.0)
@@ -461,9 +426,24 @@ struct SponsorBlockExcludedChannelsView: View {
     NavigationStack { SettingsView() }
         .previewEnvironment()
 }
-
 #Preview("Signed out") {
     NavigationStack { SettingsView() }
         .previewEnvironment(signedIn: false)
+}
+#Preview("Locked with a PIN") {
+    NavigationStack { SettingsView() }
+        .previewEnvironment { $0.settingsPINHash = SettingsPINHasher.hash("1234") }
+}
+#Preview("GitHub QR code") {
+    GitHubQRView()
+        .previewEnvironment()
+}
+#Preview("Excluded channels") {
+    NavigationStack { SponsorBlockExcludedChannelsView() }
+        .previewEnvironment { $0.sponsorBlockExcludedChannels = ["a": "Blender Studio", "b": "Computerphile"] }
+}
+#Preview("Excluded channels – None") {
+    NavigationStack { SponsorBlockExcludedChannelsView() }
+        .previewEnvironment()
 }
 #endif

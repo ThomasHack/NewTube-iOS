@@ -25,6 +25,7 @@ Architecture map: docs/architecture.md · Glossary: CONTEXT.md · Decisions: doc
 - One definition per constant/identifier/threshold. Accessibility identifiers come from `AccessibilityID`; SF Symbols from `AppSymbol`; playback timeouts from `PlaybackTuning`.
 - tvOS only: no `#if os(...)` branches, and no APIs tvOS lacks (WebKit, WidgetKit, ActivityKit). Never nest `NavigationStack`s.
 - The project is `SmartTubeApp.xcodeproj/project.xcproj` (JSON) and may be edited directly. New files under the `Smart Tube` and `SmartTubeTests` folders and the package are picked up automatically; UI-test files must be listed in the project file.
+- App-level navigation goes through `AppNavigator` (ADR-0012): no per-view `navigationDestination(item:)`, navigation notifications, or player presented from a tab.
 - Tests: Swift Testing for unit tests; no `Task.sleep`, no live network, fakes at protocol seams. UI tests use `AccessibilityID` and `waitForExistence`, never `sleep`.
 - Logging via `AppLogger` (or `os.Logger` with subsystem `appSubsystem`), never `print`.
 - Commits: Conventional Commits with the task ID, e.g. `fix(player): … (#312)`.
@@ -36,6 +37,8 @@ Architecture map: docs/architecture.md · Glossary: CONTEXT.md · Decisions: doc
 - Authenticated InnerTube calls use the TVHTML5 client on youtubei.googleapis.com with a Bearer token and no API key; the WEB client rejects Bearer tokens. Never call `/oauth2/v3/userinfo` for account info (the TV OAuth client isn't Data-API-v3-enabled) — use `account/accounts` with the TVHTML5 context instead.
 - The 16 GB build Mac stalls with > 3 parallel simulator clones; `just` hardcodes 3.
 - Playback fallback code (`PlaybackViewModel+Fallback.swift`) is under active decomposition (WS4). Do not add branches there; add a `StreamSource`.
+
+- The `.sidebarAdaptable` `TabView` discards a tab's `@State` when another tab is selected, and evaluates every tab's content on each selection change. State that must survive tab switches goes in `AppFeeds`; don't do work in the initializer of a tab's root view.
 
 ## Where things are
 - Playback: docs/architecture.md#playback · Tests how-to: docs/how-to/run-tests.md · Device logs: docs/how-to/device-logs.md

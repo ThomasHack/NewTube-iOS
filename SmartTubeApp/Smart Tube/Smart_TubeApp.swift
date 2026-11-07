@@ -28,6 +28,8 @@ struct SmartTubeTVApp: App {
     @State private var api: InnerTubeAPI
     @State private var authService: AuthService
     @State private var browseViewModel: BrowseViewModel
+    @State private var sidebarChannels: SidebarChannelsViewModel
+    @State private var feeds: AppFeeds
     @State private var settingsStore: SettingsStore
     /// Shared download service — required by RootView and VideoCardView even on
     /// tvOS (where downloads are disabled in UI). Must be present in the environment
@@ -46,6 +48,8 @@ struct SmartTubeTVApp: App {
         _api = State(initialValue: api)
         _authService = State(initialValue: AuthService())
         _browseViewModel = State(initialValue: BrowseViewModel(api: api))
+        _sidebarChannels = State(initialValue: SidebarChannelsViewModel(api: api))
+        _feeds = State(initialValue: AppFeeds(api: api))
         _settingsStore = State(initialValue: settingsStore)
     }
 
@@ -54,6 +58,8 @@ struct SmartTubeTVApp: App {
             RootView()
                 .environment(authService)
                 .environment(browseViewModel)
+                .environment(sidebarChannels)
+                .environment(feeds)
                 .environment(settingsStore)
                 .environment(\.innerTubeAPI, api)
                 .onChange(of: authService.accessToken, initial: true) { _, newToken in

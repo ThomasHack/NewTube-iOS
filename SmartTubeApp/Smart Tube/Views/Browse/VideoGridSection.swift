@@ -81,3 +81,16 @@ struct VideoRowSection: View {
         .focusSection()
     }
 }
+
+// MARK: - Previews
+
+#if DEBUG
+#Preview("Grid") {
+    ScrollView { VideoGridSection(videos: PreviewData.videos, onSelect: { _ in }) }
+        .previewEnvironment()
+}
+#Preview("Row") {
+    VideoRowSection(videos: PreviewData.subscriptions, onSelect: { _ in })
+        .previewEnvironment()
+}
+#endif

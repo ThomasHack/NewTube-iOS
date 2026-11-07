@@ -21,7 +21,7 @@ struct PlaylistPickerSheet: View {
     /// destination list (copying/moving a video into the playlist it's already in is a no-op),
     /// and required (along with `video.setVideoId`) for `.move` to know what to remove from.
     let sourcePlaylistId: String?
-    let api: InnerTubeAPI
+    let api: any InnerTubeAPIProtocol
     let onFinished: (Result<PlaylistInfo, Error>) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -110,3 +110,23 @@ struct PlaylistPickerSheet: View {
         }
     }
 }
+
+// MARK: - Previews
+
+#if DEBUG
+extension PlaylistPickerSheet {
+    fileprivate static func preview(_ mode: Mode = .copy, api: PreviewInnerTubeAPI = PreviewInnerTubeAPI()) -> some View
+    {
+        PlaylistPickerSheet(
+            mode: mode, video: PreviewData.videos[0], sourcePlaylistId: nil, api: api, onFinished: { _ in }
+        )
+        .previewEnvironment()
+    }
+}
+
+#Preview("Copy") { PlaylistPickerSheet.preview(.copy) }
+#Preview("Move") { PlaylistPickerSheet.preview(.move) }
+#Preview("Loading") { PlaylistPickerSheet.preview(api: PreviewInnerTubeAPI(hangs: true)) }
+#Preview("No playlists") { PlaylistPickerSheet.preview(api: PreviewInnerTubeAPI(playlists: [])) }
+#Preview("Error") { PlaylistPickerSheet.preview(api: PreviewInnerTubeAPI(fails: true)) }
+#endif

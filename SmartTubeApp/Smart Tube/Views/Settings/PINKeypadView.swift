@@ -113,3 +113,14 @@ struct PINKeypadView: View {
         }
     }
 }
+
+// MARK: - Previews
+
+#if DEBUG
+#Preview("Keypad") {
+    PINKeypadView(title: "Enter PIN", subtitle: "Enter the 4-digit PIN.") { _ in }
+}
+#Preview("Keypad – Wrong PIN") {
+    PINKeypadView(title: "Enter PIN", errorMessage: "That PIN is incorrect.") { _ in }
+}
+#endif

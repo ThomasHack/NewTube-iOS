@@ -1161,7 +1161,7 @@ extension InnerTubeAPI {
 
         // isShort: apply same 4 signals as parseVideoRenderer (BUG-019 fix).
         // playlistVideoRenderer items appear in Home, Subscriptions, and History feeds
-        // and previously had isShort hard-coded to false, bypassing all hideShorts filtering.
+        // and previously had isShort hard-coded to false, bypassing the Shorts filtering.
         let isShort: Bool = {
             // Primary: reelWatchEndpoint in navigationEndpoint
             if let nav = r["navigationEndpoint"] as? [String: Any], nav["reelWatchEndpoint"] != nil {

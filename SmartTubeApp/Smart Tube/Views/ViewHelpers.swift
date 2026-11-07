@@ -1,27 +1,6 @@
 import SmartTubeCore
 import SwiftUI
 
-// MARK: - ShortsPresentation
-//
-// Shared Identifiable wrapper used by HomeView and ChannelView to present
-// ShortsPlayerView via .fullScreenCover(item:).
-
-struct ShortsPresentation: Identifiable {
-    let id = UUID()
-    let videos: [Video]
-    let startIndex: Int
-}
-
-// MARK: - ChannelDestination
-//
-// Identifiable wrapper used to drive navigationDestination(item:) for channel navigation
-// triggered by the .openChannel NotificationCenter event.
-
-struct ChannelDestination: Identifiable, Hashable {
-    let channelId: String
-    var id: String { channelId }
-}
-
 // MARK: - Shared layout constants
 
 let videoGridRowSpacing: CGFloat = 40
@@ -62,11 +41,9 @@ extension AppSettings.AccentColorChoice {
         }
     }
 
-    /// Pre-tinted, because Picker menus re-tint template images with the current accent.
-    var swatch: Image {
-        let tint = color.map { UIColor($0) } ?? UIColor(named: "AccentColor") ?? .systemBlue
-        let base = UIImage(systemName: AppSymbol.colorSwatch) ?? UIImage()
-        return Image(uiImage: base.withTintColor(tint, renderingMode: .alwaysOriginal))
+    var swatch: some View {
+        Image(systemName: AppSymbol.colorSwatch)
+            .foregroundStyle(color ?? .blue)  // The `AccentColor` asset defines no color of its own.
     }
 }
 

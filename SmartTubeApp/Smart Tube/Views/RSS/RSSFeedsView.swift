@@ -8,12 +8,12 @@ import SwiftUI
 
 struct RSSFeedsView: View {
     @Environment(SettingsStore.self) private var store
-    @State private var vm = RSSFeedsViewModel()
+    /// Owned by the Library, so the feeds survive switching between its sections.
+    let vm: RSSFeedsViewModel
     @State private var showAddFeed = false
     @State private var showManageFeeds = false
 
-    @State private var selectedVideo: Video?
-    @Environment(\.innerTubeAPI) private var api
+    @Environment(AppNavigator.self) private var navigator
 
     var body: some View {
         VStack(spacing: 0) {
@@ -35,11 +35,8 @@ struct RSSFeedsView: View {
         .sheet(isPresented: $showManageFeeds, onDismiss: { vm.load() }) {
             ManageRSSFeedsView()
         }
-        .navigationDestination(item: $selectedVideo) { video in
-            PlayerView(video: video, api: api)
-        }
         .task {
-            vm.load()
+            vm.loadIfStale()
         }
         .refreshable {
             vm.load()
@@ -75,18 +72,15 @@ struct RSSFeedsView: View {
     // MARK: - Video List
 
     private var videoList: some View {
-        let hideShorts = store.settings.hideShorts
-        let hideLiveShorts = store.settings.hideLiveShorts
         let hideVideoPremieres = store.settings.hideVideoPremieres
         let displayVideos = vm.videos
-            .filter { !hideShorts || !$0.isShort }
-            .filter { !hideLiveShorts || !($0.isLive && $0.isShort) }
+            .filter { !$0.isShort }
             .filter { !hideVideoPremieres || !$0.isUpcoming }
         return ScrollView {
             VideoGridSection(
                 videos: displayVideos,
                 onSelect: { video in
-                    selectedVideo = video
+                    navigator.play(video)
                 }
             )
             if vm.isLoading {

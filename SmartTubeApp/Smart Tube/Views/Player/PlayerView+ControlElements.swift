@@ -17,7 +17,6 @@ struct PlayerControlsOverlay: View {
     let safeAreaInsets: EdgeInsets
     let video: Video
     @Binding var showMoreMenu: Bool
-    @Binding var channelDestination: ChannelDestination?
 
     let vm: PlaybackViewModel
     @Binding var highlightedControl: PlayerView.TVPlayerControl?

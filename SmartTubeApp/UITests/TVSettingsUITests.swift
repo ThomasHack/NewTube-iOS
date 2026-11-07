@@ -58,17 +58,6 @@ final class TVSettingsUITests: XCTestCase {
         XCTAssertTrue(signInButton.exists, "settings.signInButton must be in the accessibility tree when signed out")
     }
 
-    /// The Hide Shorts toggle must be in the accessibility tree.
-    func testHideShortsToggleExists() {
-        let toggle = app.descendants(matching: .any)
-            .matching(NSPredicate(format: "identifier == 'settings.hideShortsToggle'"))
-            .firstMatch
-        XCTAssertTrue(
-            toggle.waitForExistence(timeout: 10),
-            "settings.hideShortsToggle must be in the accessibility tree"
-        )
-    }
-
     /// The SponsorBlock toggle must be in the accessibility tree.
     func testSponsorBlockToggleExists() {
         let toggle = app.descendants(matching: .any)

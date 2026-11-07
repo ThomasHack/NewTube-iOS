@@ -10,8 +10,6 @@ import UIKit
 /// with the UIKit accessibility tree so SwiftUI overlays remain reachable.
 /// `AVPlayerViewController` would also bring system transport controls, which the
 /// custom player UI replaces.
-/// Named `PlayerAVLayerView` to avoid a module-level name clash with
-/// `ShortsPlayerView`, which uses this type via `videoGravity: .resizeAspectFill`.
 struct PlayerAVLayerView: UIViewRepresentable {
     let player: AVPlayer?
     var videoGravity: AVLayerVideoGravity = .resizeAspect

@@ -229,3 +229,36 @@ private struct CountdownView: View {
         return String(format: fmt, mins, secs)
     }
 }
+
+// MARK: - Previews
+
+#if DEBUG
+/// Sign-in already in progress, so the view doesn't start a real one when it appears.
+private struct SignInPreview: View {
+    let activation: AuthService.ActivationInfo?
+    @Environment(AuthService.self) private var auth
+
+    var body: some View {
+        SignInView()
+            .onAppear {
+                auth.isSigningIn = true
+                auth.pendingActivation = activation
+            }
+    }
+}
+
+#Preview("Connecting") {
+    SignInPreview(activation: nil)
+        .previewEnvironment(signedIn: false)
+}
+#Preview("Enter the code") {
+    SignInPreview(
+        activation: AuthService.ActivationInfo(
+            userCode: "ABCD-1234",
+            verificationURL: URL(string: "https://yt.be/activate")!,
+            expiresAt: Date().addingTimeInterval(1_800)
+        )
+    )
+    .previewEnvironment(signedIn: false)
+}
+#endif

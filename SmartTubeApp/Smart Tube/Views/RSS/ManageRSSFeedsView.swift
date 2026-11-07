@@ -8,7 +8,11 @@ import SwiftUI
 struct ManageRSSFeedsView: View {
     @State private var feeds: [RSSFeedInfo] = []
     @State private var isLoading = true
+    /// False in previews, which supply the feeds themselves.
+    private var loadsFeeds = true
     @Environment(\.dismiss) private var dismiss
+
+    init() {}
 
     var body: some View {
         NavigationStack {
@@ -38,7 +42,7 @@ struct ManageRSSFeedsView: View {
                 }
             }
             .task {
-                await reloadFeeds()
+                if loadsFeeds { await reloadFeeds() }
             }
         }
     }
@@ -89,3 +93,22 @@ struct ManageRSSFeedsView: View {
         isLoading = false
     }
 }
+
+// MARK: - Previews
+
+#if DEBUG
+extension ManageRSSFeedsView {
+    fileprivate init(previewFeeds: [RSSFeedInfo]) {
+        _feeds = State(initialValue: previewFeeds)
+        _isLoading = State(initialValue: false)
+        loadsFeeds = false
+    }
+}
+
+#Preview("Feeds") {
+    ManageRSSFeedsView(previewFeeds: PreviewData.rssFeeds)
+}
+#Preview("No feeds") {
+    ManageRSSFeedsView(previewFeeds: [])
+}
+#endif

@@ -9,7 +9,7 @@ private let retryLog = AppLogger(category: "RetryWithBackoff")
 /// Inherits the caller's actor isolation via `#isolation` (SE-0420) so closures
 /// captured from `@MainActor` contexts need not be `@Sendable`.
 ///
-/// Used by all pagination entry points (BrowseViewModel, HomeViewModel,
+/// Used by all pagination entry points (BrowseViewModel,
 /// SearchViewModel, PlaylistViewModel, ChannelViewModel) to survive brief
 /// network interruptions without dropping the user's scroll position.
 @discardableResult

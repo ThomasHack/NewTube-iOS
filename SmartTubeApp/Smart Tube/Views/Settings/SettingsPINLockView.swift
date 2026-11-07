@@ -31,3 +31,11 @@ struct SettingsPINLockView: View {
         .accessibilityIdentifier("settingsPINLock")
     }
 }
+
+// MARK: - Previews
+
+#if DEBUG
+#Preview {
+    SettingsPINLockView(expectedHash: "") {}
+}
+#endif

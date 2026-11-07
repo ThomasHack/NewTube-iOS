@@ -392,19 +392,6 @@
         }
       }
     },
-    "%@ — Undo" : {
-
-    },
-    "%@ %lld percent" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ %2$lld percent"
-          }
-        }
-      }
-    },
     "%lld" : {
       "localizations" : {
         "ar" : {
@@ -500,6 +487,7 @@
       }
     },
     "%lld / %lld" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -696,6 +684,7 @@
       }
     },
     "%lld minutes" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -2806,9 +2795,6 @@
         }
       }
     },
-    "All Channels" : {
-
-    },
     "Any duration" : {
       "comment" : "Duration search filter — no restriction",
       "extractionState" : "manual",
@@ -4344,8 +4330,101 @@
         }
       }
     },
-    "Chapters" : {
-
+    "Channels" : {
+      "comment" : "Sidebar section listing subscribed channels",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "القنوات"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kanäle"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canales"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chaînes"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "चैनल"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kanali"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saluran"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canali"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "チャンネル"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "채널"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canais"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Каналы"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Канали"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kanallar"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "频道"
+          }
+        }
+      }
     },
     "Chinese (Simplified)" : {
       "localizations" : {
@@ -5411,9 +5490,6 @@
         }
       }
     },
-    "Could Not Report" : {
-
-    },
     "Could Not Save" : {
       "localizations" : {
         "ar" : {
@@ -5707,6 +5783,7 @@
 
     },
     "Delete" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -5801,6 +5878,7 @@
       }
     },
     "Delete Download" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -6085,9 +6163,6 @@
           }
         }
       }
-    },
-    "Disable Liquid Glass" : {
-
     },
     "Disabled" : {
       "comment" : "Watch history picker option",
@@ -6470,6 +6545,7 @@
       }
     },
     "Don't Like This Video" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -6752,6 +6828,7 @@
       }
     },
     "Download a video from the player to watch it offline." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -7134,6 +7211,7 @@
       }
     },
     "Downloads" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -7612,6 +7690,7 @@
       }
     },
     "End card: %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -7706,6 +7785,7 @@
       }
     },
     "ended" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -8278,6 +8358,7 @@
       }
     },
     "Experimental" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -9610,10 +9691,6 @@
       "comment" : "Display name for the \"Green\" accent color choice.",
       "isCommentAutoGenerated" : true
     },
-    "Hidden" : {
-      "comment" : "A section header for hidden sections.",
-      "isCommentAutoGenerated" : true
-    },
     "Hide Controls After" : {
       "comment" : "Settings picker label — duration before player controls auto-hide",
       "extractionState" : "manual",
@@ -9706,196 +9783,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "控件隐藏时间"
-          }
-        }
-      }
-    },
-    "Hide Live Shorts" : {
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "إخفاء Shorts المباشرة"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Live-Shorts ausblenden"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ocultar Shorts en vivo"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Masquer les Shorts en direct"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "लाइव Shorts छुपाएं"
-          }
-        },
-        "hr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sakrij live Shorts"
-          }
-        },
-        "id" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sembunyikan Live Shorts"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nascondi Shorts in diretta"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ライブショートを非表示"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "라이브 쇼츠 숨기기"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ocultar Shorts ao Vivo"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Скрыть прямые Shorts"
-          }
-        },
-        "sr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Сакриј уживо Shorts"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Canlı Shorts'ları gizle"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "隐藏直播 Shorts"
-          }
-        }
-      }
-    },
-    "Hide Shorts" : {
-      "comment" : "Settings toggle to hide YouTube Shorts from feeds",
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "إخفاء Shorts"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shorts ausblenden"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ocultar Shorts"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Masquer les Shorts"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shorts छुपाएं"
-          }
-        },
-        "hr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sakrij kratke hlače"
-          }
-        },
-        "id" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sembunyikan Shorts"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nascondi Shorts"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shortsを非表示"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shorts 숨기기"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ocultar Shorts"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Скрывать Shorts"
-          }
-        },
-        "sr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Сакриј шортс"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shorts'ı Gizle"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "隐藏短视频"
           }
         }
       }
@@ -10290,6 +10177,7 @@
       }
     },
     "IFrame Player (TOS-compliant, shows ads)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -11815,9 +11703,6 @@
         }
       }
     },
-    "Loop" : {
-
-    },
     "Loop Video" : {
       "comment" : "Settings toggle to loop the current video",
       "extractionState" : "manual",
@@ -12208,6 +12093,7 @@
 
     },
     "More" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -12500,9 +12386,6 @@
       "comment" : "A label displayed when the user has no channels.",
       "isCommentAutoGenerated" : true
     },
-    "No chapters available." : {
-
-    },
     "No comments available." : {
       "comment" : "Player comments sheet empty state",
       "extractionState" : "manual",
@@ -12696,6 +12579,7 @@
       }
     },
     "No Downloaded Videos" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -14904,6 +14788,7 @@
 
     },
     "paused" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -15190,9 +15075,6 @@
       "comment" : "Display name for the `.pink` accent color choice.",
       "isCommentAutoGenerated" : true
     },
-    "Play Incognito" : {
-
-    },
     "Play Next" : {
       "localizations" : {
         "ar" : {
@@ -15288,6 +15170,7 @@
       }
     },
     "Playback speed" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -15574,6 +15457,7 @@
       }
     },
     "playing" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -16824,6 +16708,7 @@
       }
     },
     "Remove %@ from history" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -17300,12 +17185,6 @@
         }
       }
     },
-    "Report Incorrect Segment" : {
-
-    },
-    "Reported" : {
-
-    },
     "Reset" : {
       "comment" : "Search filter sheet toolbar button — resets all filters to defaults",
       "extractionState" : "manual",
@@ -17689,6 +17568,7 @@
       }
     },
     "RSS Feeds" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -19798,6 +19678,7 @@
       }
     },
     "short" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -19887,102 +19768,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "短"
-          }
-        }
-      }
-    },
-    "Shorts" : {
-      "comment" : "Channel content filter — show only Shorts",
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shorts"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shorts"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shorts"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shorts"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shorts"
-          }
-        },
-        "hr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kratke hlače"
-          }
-        },
-        "id" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shorts"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shorts"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shorts"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shorts"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shorts"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shorts"
-          }
-        },
-        "sr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Шортс"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shorts"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shorts"
           }
         }
       }
@@ -23056,6 +22841,7 @@
       }
     },
     "Swap" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -23341,12 +23127,6 @@
       "comment" : "Display name for the teal accent color.",
       "isCommentAutoGenerated" : true
     },
-    "Thanks for the feedback — this segment has been reported to SponsorBlock." : {
-
-    },
-    "The report couldn't be sent. Please try again later." : {
-
-    },
     "Theme" : {
       "comment" : "Settings picker label for app colour scheme",
       "extractionState" : "manual",
@@ -23540,6 +23320,7 @@
       }
     },
     "This video will be removed from your device. You can re-download it from the player." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -24500,6 +24281,7 @@
       }
     },
     "unstarted" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -25169,6 +24951,7 @@
       }
     },
     "Video has been saved to your Photos library." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -25548,10 +25331,6 @@
         }
       }
     },
-    "Visible — drag to reorder" : {
-      "comment" : "The title of the section that lists the user's visible sections.",
-      "isCommentAutoGenerated" : true
-    },
     "Visible Sections" : {
       "comment" : "Settings navigation link and navigation title for section visibility settings",
       "extractionState" : "manual",
@@ -25846,9 +25625,6 @@
     "Watched threshold" : {
       "comment" : "A label for the percentage of watched videos to hide.",
       "isCommentAutoGenerated" : true
-    },
-    "Watched threshold: %lld%%" : {
-
     },
     "When a PIN is set, it must be entered every time this Settings screen is opened." : {
 

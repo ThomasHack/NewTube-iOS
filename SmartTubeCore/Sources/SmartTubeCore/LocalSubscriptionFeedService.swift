@@ -90,8 +90,8 @@ public struct LocalSubscriptionFeedService: Sendable {
         }
 
         // Deduplicate by videoId — preserve the RSS/InnerTube arrival order rather
-        // than sorting by date so both the pinned shorts row and the regular video
-        // grid show videos in the same order as they were fetched from each channel.
+        // than sorting by date so the video grid shows videos in the same order as
+        // they were fetched from each channel.
         var seen = Set<String>()
         return
             allVideos

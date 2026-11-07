@@ -95,3 +95,11 @@ private struct ChannelListRow: View {
             )
     }
 }
+
+// MARK: - Previews
+
+#if DEBUG
+#Preview {
+    ChannelListView(channels: PreviewData.channels) { _ in }
+}
+#endif

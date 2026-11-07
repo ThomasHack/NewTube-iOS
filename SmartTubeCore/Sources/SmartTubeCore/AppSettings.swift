@@ -49,8 +49,6 @@ public struct AppSettings: Codable {
     /// `SettingsPINHasher`). `nil` means no PIN is configured and Settings behaves as
     /// today with no lock. Never stores the raw PIN.
     public var settingsPINHash: String?
-    public var hideShorts: Bool
-    public var hideLiveShorts: Bool
     public var hideVideoPremieres: Bool
     /// When `true` (default), a per-device `visitorData` token is included in home-feed
     /// requests so YouTube tailors recommendations to this device.
@@ -225,8 +223,6 @@ public struct AppSettings: Codable {
         hideWatchedVideos = false
         hideWatchedThreshold = 0.9
         settingsPINHash = nil
-        hideShorts = false
-        hideLiveShorts = false
         hideVideoPremieres = false
         perDeviceRecommendationsEnabled = true
         themeName = .system
@@ -302,8 +298,6 @@ extension AppSettings {
         case hideWatchedVideos
         case hideWatchedThreshold
         case settingsPINHash
-        case hideShorts
-        case hideLiveShorts
         case hideVideoPremieres
         case perDeviceRecommendationsEnabled
         case themeName
@@ -348,8 +342,6 @@ extension AppSettings {
         hideWatchedThreshold = c.safeDecode(
             Double.self, forKey: .hideWatchedThreshold, default: d.hideWatchedThreshold)
         settingsPINHash = c.safeDecode(String?.self, forKey: .settingsPINHash, default: d.settingsPINHash)
-        hideShorts = c.safeDecode(Bool.self, forKey: .hideShorts, default: d.hideShorts)
-        hideLiveShorts = c.safeDecode(Bool.self, forKey: .hideLiveShorts, default: d.hideLiveShorts)
         hideVideoPremieres = c.safeDecode(Bool.self, forKey: .hideVideoPremieres, default: d.hideVideoPremieres)
         perDeviceRecommendationsEnabled = c.safeDecode(
             Bool.self, forKey: .perDeviceRecommendationsEnabled, default: d.perDeviceRecommendationsEnabled)

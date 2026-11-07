@@ -16,3 +16,5 @@ with new evidence. Each ADR is ≤ 40 lines and uses `template.md`'s MADR-minima
 | [0009](0009-docs-live-with-code.md) | Non-secret docs live in the public repo, with code | accepted |
 | [0010](0010-tvos-only.md) | tvOS is the only platform | accepted |
 | [0011](0011-one-core-package.md) | One package for UI-independent code, the rest in the app | accepted |
+| [0012](0012-app-navigator.md) | One navigator; the player covers the tabs | accepted |
+| [0013](0013-no-shorts.md) | The app has no Shorts | accepted |

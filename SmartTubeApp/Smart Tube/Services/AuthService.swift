@@ -86,7 +86,7 @@ final class AuthService {
     private var currentDeviceCode: String?
     private var currentInterval: TimeInterval = 5
     private var currentCreds: YouTubeClientCredentials?
-    private var isSigningIn: Bool = false
+    var isSigningIn: Bool = false
 
     let tokenManager: TokenManager
     /// Receives `.activeChannelDidChange`. Tests pass their own, so a channel switch doesn't
@@ -104,8 +104,7 @@ final class AuthService {
         tokenManager = TokenManager()
         loadFromKeychain()
         // UI-testing override: treat the session as signed-in so the home feed
-        // renders its full shelves (including the injected Shorts row) without
-        // requiring real keychain credentials.
+        // renders without requiring real keychain credentials.
         if ProcessInfo.processInfo.arguments.contains("--uitesting-signed-in") {
             isSignedIn = true
         }

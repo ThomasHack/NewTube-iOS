@@ -99,3 +99,20 @@ struct ParentalControlsSheet: View {
         }
     }
 }
+
+// MARK: - Previews
+
+#if DEBUG
+#Preview("Set PIN") {
+    ParentalControlsSheet(mode: .set)
+        .previewEnvironment()
+}
+#Preview("Change PIN") {
+    ParentalControlsSheet(mode: .change)
+        .previewEnvironment()
+}
+#Preview("Remove PIN") {
+    ParentalControlsSheet(mode: .remove)
+        .previewEnvironment()
+}
+#endif

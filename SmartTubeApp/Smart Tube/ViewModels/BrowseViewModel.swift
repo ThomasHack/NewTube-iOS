@@ -34,6 +34,8 @@ final class BrowseViewModel {
     /// Populated when the current section is `.channels`; empty for all other sections.
     private(set) var subscribedChannels: [Channel] = []
     private(set) var isLoading: Bool = false
+    /// False until the current content's fetch has finished, successfully or not.
+    private var hasFinishedLoading = false
     /// True while a pagination (loadMore) request is in flight. Distinct from `isLoading`,
     /// which covers the initial/refresh fetch. Keeping these separate prevents the preload
     /// cache work that follows the initial fetch from blocking subsequent loadMore calls.
@@ -41,14 +43,13 @@ final class BrowseViewModel {
     var error: Error?
     /// True when the current section requires authentication and the user is not signed in.
     private(set) var isAuthRequired: Bool = false
-    /// Shorts fetched from FEshorts for the Recommended section.
-    /// Always empty for all other sections.
-    private(set) var recommendedShortsVideos: [Video] = []
-    /// When `false`, the Recommended section neither fetches nor shows Shorts.
-    let showsRecommendedShorts: Bool
     /// Timestamp of the last successful content fetch for the current section.
     /// Used to detect stale feeds after the app returns from background.
     private(set) var loadedAt: Date? = nil
+
+    /// True until there's a final answer for the current content, so an empty feed shows progress
+    /// rather than an empty state.
+    var isAwaitingContent: Bool { isLoading || !hasFinishedLoading }
 
     // MARK: - Dependencies
 
@@ -59,10 +60,6 @@ final class BrowseViewModel {
     private var enrichTask: Task<Void, Never>?
     /// When `false`, the History section returns empty content rather than fetching from YouTube.
     private var historyEnabled: Bool = true
-    /// Counts consecutive pages fetched for the Shorts chip that produced 0 new unique videos
-    /// (all results were already in the list). After 3 consecutive empty pages we clear the
-    /// nextPageToken so the scroll-trigger sentinel cannot loop forever on a sparse result set.
-    private var consecutiveEmptyShortPages: Int = 0
     /// True when the Recommended section fell back to a `/search?q=popular` result
     /// because the unauthenticated `/browse` home feed returned 0 videos.
     /// In this mode, pagination must also go through `/search` (not `/browse`).
@@ -71,14 +68,23 @@ final class BrowseViewModel {
     /// Used to select between the authenticated YouTube endpoints and the local RSS feed path.
     private var hasAuthToken: Bool = false
     private var hideObserverTasks: [Task<Void, Never>] = []
+    /// What each visited section last showed, so switching back doesn't refetch it while it's fresh.
+    private var sectionSnapshots: [String: SectionSnapshot] = [:]
+
+    private struct SectionSnapshot {
+        let sectionType: BrowseSection.SectionType
+        var videoGroups: [VideoGroup]
+        let subscribedChannels: [Channel]
+        let isAuthRequired: Bool
+        let recommendedUsesSearchFallback: Bool
+        let loadedAt: Date
+    }
 
     init(
         api: any InnerTubeAPIProtocol = InnerTubeAPI(), initialSection: BrowseSection? = nil,
         localHistory: LocalWatchHistoryStore = .shared,
-        watchLaterMembership: WatchLaterMembershipStore = .shared,
-        showsRecommendedShorts: Bool = ShortsFeedPolicy.showsInHomeFeeds
+        watchLaterMembership: WatchLaterMembershipStore = .shared
     ) {
-        self.showsRecommendedShorts = showsRecommendedShorts
         self.localHistory = localHistory
         self.watchLaterMembership = watchLaterMembership
         self.api = api
@@ -106,6 +112,7 @@ final class BrowseViewModel {
             Task { [weak self] in
                 for await note in NotificationCenter.default.notifications(named: .watchLaterDidChange) {
                     guard let self, let videoId = note.userInfo?["videoId"] as? String else { continue }
+                    self.sectionSnapshots = self.sectionSnapshots.filter { $0.value.sectionType != .watchLater }
                     self.applyWatchLaterChange(videoId: videoId, added: note.userInfo?["added"] as? Bool ?? false)
                 }
             })
@@ -119,16 +126,16 @@ final class BrowseViewModel {
         hideObserverTasks.append(
             Task { [weak self] in
                 for await _ in NotificationCenter.default.notifications(named: .activeChannelDidChange) {
-                    guard let self, self.hasAuthToken else { continue }
+                    guard let self else { continue }
+                    self.sectionSnapshots = [:]
+                    guard self.hasAuthToken else { continue }
                     self.loadContent(refresh: true, source: "channelSwitch")
                 }
             })
     }
 
     func removeVideo(id: String) {
-        for i in videoGroups.indices {
-            videoGroups[i].videos.removeAll { $0.id == id }
-        }
+        removeVideos { $0.id == id }
     }
 
     /// Keeps an open Watch Later section in step with adds/removes made in this app, instead
@@ -150,8 +157,20 @@ final class BrowseViewModel {
     }
 
     func removeChannel(id: String) {
+        removeVideos { $0.channelId == id }
+    }
+
+    /// Also covers sections that aren't showing, so a hidden video doesn't return with them.
+    private func removeVideos(where shouldRemove: (Video) -> Bool) {
         for i in videoGroups.indices {
-            videoGroups[i].videos.removeAll { $0.channelId == id }
+            videoGroups[i].videos.removeAll(where: shouldRemove)
+        }
+        for key in sectionSnapshots.keys {
+            guard var snapshot = sectionSnapshots[key] else { continue }
+            for i in snapshot.videoGroups.indices {
+                snapshot.videoGroups[i].videos.removeAll(where: shouldRemove)
+            }
+            sectionSnapshots[key] = snapshot
         }
     }
 
@@ -164,8 +183,38 @@ final class BrowseViewModel {
         }
         let fromTitle = currentSection.title
         browseLog.notice("select: switching to \(section.title) from \(fromTitle)")
+        saveSnapshot()
         currentSection = section
-        loadContent(for: section, refresh: true, source: "select")
+        if let snapshot = sectionSnapshots[section.id], !FeedFreshness.isStale(snapshot.loadedAt) {
+            restore(snapshot)
+        } else {
+            loadContent(for: section, refresh: true, source: "select")
+        }
+    }
+
+    private func saveSnapshot() {
+        guard !isLoading, let loadedAt else { return }
+        sectionSnapshots[currentSection.id] = SectionSnapshot(
+            sectionType: currentSection.type,
+            videoGroups: videoGroups,
+            subscribedChannels: subscribedChannels,
+            isAuthRequired: isAuthRequired,
+            recommendedUsesSearchFallback: recommendedUsesSearchFallback,
+            loadedAt: loadedAt
+        )
+    }
+
+    private func restore(_ snapshot: SectionSnapshot) {
+        fetchTask?.cancel()
+        enrichTask?.cancel()
+        isLoadingMore = false
+        videoGroups = snapshot.videoGroups
+        subscribedChannels = snapshot.subscribedChannels
+        isAuthRequired = snapshot.isAuthRequired
+        recommendedUsesSearchFallback = snapshot.recommendedUsesSearchFallback
+        loadedAt = snapshot.loadedAt
+        isLoading = false
+        hasFinishedLoading = true
     }
 
     /// Reloads the given section unconditionally, bypassing the same-section guard in `select`.
@@ -190,7 +239,11 @@ final class BrowseViewModel {
 
     // MARK: - Loading
 
-    func loadContent(for section: BrowseSection? = nil, refresh: Bool = false, source: String = "unknown") {
+    /// - Parameter keepingContent: Leaves the current videos on screen until the new ones arrive.
+    func loadContent(
+        for section: BrowseSection? = nil, refresh: Bool = false, keepingContent: Bool = false,
+        source: String = "unknown"
+    ) {
         let target = section ?? currentSection
         let chCount = subscribedChannels.count
         let vCount = videoGroups.flatMap(\.videos).count
@@ -198,12 +251,11 @@ final class BrowseViewModel {
         browseLog.notice(
             "loadContent source=\(source) section=\(target.title) refresh=\(refresh) channels=\(chCount) videos=\(vCount) loading=\(loading)"
         )
-        if refresh {
+        if refresh && !keepingContent {
+            hasFinishedLoading = false
             videoGroups = []
             subscribedChannels = []
-            recommendedShortsVideos = []
             loadedAt = nil
-            consecutiveEmptyShortPages = 0
             enrichTask?.cancel()
             enrichTask = nil
         }
@@ -222,6 +274,7 @@ final class BrowseViewModel {
                 isAuthRequired = false
                 recommendedUsesSearchFallback = false
                 isLoading = false
+                hasFinishedLoading = true
                 // Use .row layout (eager HStack inside ScrollView(.horizontal)) so all cards
                 // are always rendered in the accessibility tree on iOS 26. LazyVGrid (.grid)
                 // uses lazy rendering and its items do not appear in the XCTest accessibility tree.
@@ -242,11 +295,12 @@ final class BrowseViewModel {
             }
         }
         fetchTask?.cancel()
+        isLoading = true
         fetchTask = Task { await fetchSection(target) }
     }
 
     func loadMoreIfNeeded(lastVideo: Video) {
-        // Use `contains` instead of `==` on the raw last video: when "Hide Shorts" is on,
+        // Use `contains` instead of `==` on the raw last video: Shorts are filtered out, so
         // the caller's last visible video may not be the raw last video (the raw last video
         // might be a Short that was filtered out). The user has reached the end of filtered
         // content as long as their last visible video appears anywhere in the last raw group.
@@ -268,22 +322,19 @@ final class BrowseViewModel {
         fetchTask = Task { await fetchNextPage(for: currentSection) }
     }
 
-    /// Refreshes the current section's feed if the last successful fetch was more than
-    /// `threshold` seconds ago (default 15 min). No-op while a fetch is already in flight.
-    func refreshIfStale(threshold: TimeInterval = 15 * 60) {
-        guard !isLoading else { return }
-        let age = loadedAt.map { Date().timeIntervalSince($0) } ?? .infinity
-        guard age > threshold else { return }
-        let ageDesc = age.isFinite ? "\(Int(age))s" : "never loaded"
-        browseLog.notice(
-            "refreshIfStale: age=\(ageDesc) > threshold=\(Int(threshold))s — refreshing \(currentSection.title)")
-        loadContent(refresh: true, source: "refreshIfStale")
+    /// Refreshes the current section's feed if its last successful fetch is older than `threshold`,
+    /// keeping what's on screen until the new videos arrive. No-op while a fetch is in flight.
+    func refreshIfStale(threshold: TimeInterval = FeedFreshness.refreshInterval) {
+        guard !isLoading, FeedFreshness.isStale(loadedAt, threshold: threshold) else { return }
+        browseLog.notice("refreshIfStale: refreshing \(currentSection.title)")
+        loadContent(refresh: true, keepingContent: true, source: "refreshIfStale")
     }
 
     /// Update whether history is enabled. If currently on the history section, reloads it.
     func updateHistoryEnabled(_ enabled: Bool) {
         guard historyEnabled != enabled else { return }
         historyEnabled = enabled
+        sectionSnapshots = [:]
         if currentSection.type == .history {
             loadContent(refresh: true, source: "updateHistoryEnabled")
         }
@@ -291,13 +342,16 @@ final class BrowseViewModel {
 
     // MARK: - Auth
 
-    /// Triggers a content reload when auth state changes.
-    /// Sets the token on the API first so that the fetch always runs authenticated.
+    /// Triggers a content reload when the user signs in or out, but not when the same session's token
+    /// is set again or refreshed. Sets the token on the API first so that the fetch always runs
+    /// authenticated.
     func updateAuthToken(_ token: String?) async {
         let wasAuthenticated = hasAuthToken
         hasAuthToken = token != nil
         await api.setAuthToken(token)
+        if wasAuthenticated != hasAuthToken { sectionSnapshots = [:] }
         if token != nil {
+            guard !wasAuthenticated else { return }
             // Signed in — reload everything
             loadContent(refresh: true, source: "updateAuthToken")
         } else if wasAuthenticated {
@@ -316,8 +370,14 @@ final class BrowseViewModel {
     }
 
     private func fetchSection(_ section: BrowseSection) async {
-        isLoading = true
-        defer { isLoading = false }
+        // A cancelled fetch has been replaced, and the new one owns these flags. Clearing them here
+        // would flash the empty state while the new fetch is still running.
+        defer {
+            if !Task.isCancelled {
+                isLoading = false
+                hasFinishedLoading = true
+            }
+        }
         browseLog.notice("Fetching section: \(section.title) (\(String(describing: section.type)))")
         do {
             try await withThrowingTaskGroup(of: Void.self) { group in
@@ -396,24 +456,7 @@ final class BrowseViewModel {
                 break
             }
             let group = try await api.fetchHome()
-            // Fetch Shorts in parallel: dedicated search + subs feed.
-            // FEshorts browseId is deprecated (HTTP 400). The subs TV-browse
-            // (tileRenderer, ustreamerConfig "GgIIBQ==") is the most reliable
-            // source of many Shorts — mirrors HomeViewModel.homeShortsVideos.
-            let wantsShorts = showsRecommendedShorts
-            async let shortsFetch: VideoGroup? = wantsShorts ? (try? await api.fetchShorts()) : nil
-            async let subsFetch: VideoGroup? = wantsShorts ? (try? await api.fetchSubscriptions()) : nil
-            let (shortsGroup, subsGroup) = await (shortsFetch, subsFetch)
             if !Task.isCancelled {
-                let searchShorts = shortsGroup?.videos ?? []
-                let subsShorts = (subsGroup?.videos ?? []).filter { $0.isShort }
-                let homeShorts = group.videos.filter { $0.isShort }
-                var seen = Set<String>()
-                recommendedShortsVideos =
-                    wantsShorts ? (searchShorts + subsShorts + homeShorts).filter { seen.insert($0.id).inserted } : []
-                browseLog.notice(
-                    "Recommended: \(recommendedShortsVideos.count) shorts (search=\(searchShorts.count) subs=\(subsShorts.count) home=\(homeShorts.count))"
-                )
                 if group.videos.isEmpty {
                     isAuthRequired = true
                     recommendedUsesSearchFallback = true
@@ -516,10 +559,6 @@ final class BrowseViewModel {
                     videoGroups = []
                 }
             }
-
-        case .shorts:
-            let group = try await api.fetchShorts()
-            if !Task.isCancelled { videoGroups = group.videos.isEmpty ? [] : [group] }
 
         case .music:
             let group = try await api.fetchMusic()
@@ -696,36 +735,6 @@ final class BrowseViewModel {
                 }
             case .channels:
                 break  // channel list doesn't paginate via videoGroups
-            case .shorts:
-                let group = try await retryWithBackoff(label: "BrowseVM[\(section.title)]") {
-                    try await api.fetchShortsMore(continuationToken: token)
-                }
-                if Task.isCancelled {
-                    browseLog.notice("fetchNextPage cancelled: section=\(section.title)")
-                } else {
-                    let before = videoGroups.first?.videos.count ?? 0
-                    mergeIntoFirstGroup(group)
-                    let after = videoGroups.first?.videos.count ?? 0
-                    let added = after - before
-                    browseLog.notice(
-                        "fetchNextPage success: section=\(section.title) newVideos=\(added) nextToken=\(group.nextPageToken != nil)"
-                    )
-                    if added == 0 {
-                        consecutiveEmptyShortPages += 1
-                        browseLog.notice("fetchNextPage: Shorts empty page #\(consecutiveEmptyShortPages)")
-                        if consecutiveEmptyShortPages >= 3 {
-                            // API is cycling through already-seen or empty results.
-                            // Clear the token so the scroll-trigger sentinel stops looping.
-                            browseLog.notice(
-                                "fetchNextPage: clearing Shorts token after \(consecutiveEmptyShortPages) consecutive empty pages"
-                            )
-                            videoGroups[0].nextPageToken = nil
-                            consecutiveEmptyShortPages = 0
-                        }
-                    } else {
-                        consecutiveEmptyShortPages = 0
-                    }
-                }
             case .music:
                 let group = try await retryWithBackoff(label: "BrowseVM[\(section.title)]") {
                     try await api.fetchMusic()
@@ -863,3 +872,45 @@ final class BrowseViewModel {
         browseLog.notice("enrichChannelAvatars done: \(finalCount)/\(total) have avatars")
     }
 }
+
+// MARK: - Previews
+
+#if DEBUG
+extension BrowseViewModel {
+    enum PreviewState {
+        case loaded([Video])
+        case loading
+        case empty
+        case signInRequired
+    }
+
+    /// Already in `state`, so a preview shows it without any load.
+    static func preview(section: BrowseSection, state: PreviewState, signedIn: Bool = true) -> BrowseViewModel {
+        let viewModel = BrowseViewModel(api: PreviewInnerTubeAPI(), initialSection: section)
+        viewModel.hasAuthToken = signedIn
+        switch state {
+        case .loaded(let videos):
+            viewModel.videoGroups = [VideoGroup(title: section.title, videos: videos)]
+        case .loading:
+            viewModel.isLoading = true
+            return viewModel
+        case .empty:
+            break
+        case .signInRequired:
+            viewModel.isAuthRequired = true
+        }
+        viewModel.hasFinishedLoading = true
+        viewModel.loadedAt = Date()
+        return viewModel
+    }
+
+    /// For the Library, which selects this section when it appears.
+    static func preview(
+        librarySection: LibraryView.LibrarySection, state: PreviewState, signedIn: Bool = true
+    ) -> BrowseViewModel {
+        let section = BrowseSection(
+            id: librarySection.id, title: librarySection.rawValue, type: librarySection.browseSectionType)
+        return preview(section: section, state: state, signedIn: signedIn)
+    }
+}
+#endif

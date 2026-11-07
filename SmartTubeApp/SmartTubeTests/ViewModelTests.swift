@@ -27,12 +27,6 @@ final class MockInnerTubeAPI: InnerTubeAPIProtocol {
     var homeRowsResult: [VideoGroup] = []
     var subscriptionsResult: VideoGroup = VideoGroup(title: "Subs", videos: [])
     var historyResult: VideoGroup = VideoGroup(title: "History", videos: [])
-    var shortsResult: VideoGroup = VideoGroup(title: "Shorts", videos: [])
-    var shortsMoreResult: VideoGroup = VideoGroup(title: "Shorts", videos: [])
-    /// When set, overrides `shortsMoreResult` and is called for each
-    /// `fetchShortsMore` invocation — lets tests vary the response per call
-    /// (e.g. to simulate a multi-page continuation sequence).
-    var shortsMoreHandler: ((String) -> VideoGroup)? = nil
     var musicResult: VideoGroup = VideoGroup(title: "Music", videos: [])
     var gamingResult: VideoGroup = VideoGroup(title: "Gaming", videos: [])
     var newsResult: VideoGroup = VideoGroup(title: "News", videos: [])
@@ -84,19 +78,6 @@ final class MockInnerTubeAPI: InnerTubeAPIProtocol {
         calls.append(Call(method: "fetchHistory", args: [continuationToken ?? "nil"]))
         if let e = errorToThrow { throw e }
         return historyResult
-    }
-
-    func fetchShorts() async throws -> VideoGroup {
-        calls.append(Call(method: "fetchShorts", args: []))
-        if let e = errorToThrow { throw e }
-        return shortsResult
-    }
-
-    func fetchShortsMore(continuationToken: String) async throws -> VideoGroup {
-        calls.append(Call(method: "fetchShortsMore", args: [continuationToken]))
-        if let e = errorToThrow { throw e }
-        if let handler = shortsMoreHandler { return handler(continuationToken) }
-        return shortsMoreResult
     }
 
     func fetchMusic() async throws -> VideoGroup {
@@ -235,30 +216,6 @@ private func waitForTasks(timeout: TimeInterval = 2, until condition: (@MainActo
     }
 }
 
-/// Waits for the background `shortsPreloadTask` (spawned at the end of
-/// `load()`) to finish its multi-iteration loop. `waitForTasks()` is sized
-/// for a single async fetch and returns long before the preload loop's
-/// later iterations complete, so a left-running task can bleed mock call
-/// counts into whichever test runs next. Polls until `homeShortsVideos`
-/// stops growing for a few consecutive yields, or a timeout is reached.
-@MainActor
-private func waitForShortPreloadCompletion(_ vm: HomeViewModel) async {
-    var lastCount = vm.homeShortsVideos.count
-    var unchangedYields = 0
-    let deadline = Date().addingTimeInterval(2)
-    while Date() < deadline {
-        await Task.yield()
-        let newCount = vm.homeShortsVideos.count
-        if newCount == lastCount {
-            unchangedYields += 1
-            if unchangedYields >= 3 { break }
-        } else {
-            unchangedYields = 0
-        }
-        lastCount = newCount
-    }
-}
-
 private func makeVideo(_ id: String) -> Video {
     Video(id: id, title: "Video \(id)", channelTitle: "Channel")
 }
@@ -269,258 +226,6 @@ private func makeVideo(_ id: String) -> Video {
 @MainActor
 private func makeSearchViewModel(api: any InnerTubeAPIProtocol) -> SearchViewModel {
     SearchViewModel(api: api, historyStore: SearchHistoryStore(suiteName: "test-\(UUID().uuidString)"))
-}
-
-// MARK: - HomeViewModelTests
-
-@Suite("HomeViewModel")
-@MainActor
-struct HomeViewModelTests {
-
-    @Test("load() calls fetchHomeRows and fetchSubscriptions")
-    func loadCallsBothFetches() async {
-        let mock = MockInnerTubeAPI()
-        mock.homeRowsResult = [VideoGroup(title: "Rec", videos: [makeVideo("vid_0000001")])]
-        mock.subscriptionsResult = VideoGroup(title: "Subs", videos: [makeVideo("vid_0000002")])
-
-        let vm = HomeViewModel(api: mock)
-        defer { vm.cancel() }
-        vm.load()
-        await waitForTasks(until: {
-            let methods = mock.calls.map(\.method)
-            return methods.contains("fetchHomeRows") && methods.contains("fetchSubscriptions")
-        })
-
-        let methods = mock.calls.map(\.method)
-        #expect(methods.contains("fetchHomeRows"))
-        #expect(methods.contains("fetchSubscriptions"))
-    }
-
-    @Test("After load() completes, isRefreshing is false")
-    func loadResetsIsRefreshing() async {
-        let mock = MockInnerTubeAPI()
-        mock.homeRowsResult = [VideoGroup(title: "Rec", videos: [makeVideo("vid_0000001")])]
-        mock.subscriptionsResult = VideoGroup(title: "Subs", videos: [])
-
-        let vm = HomeViewModel(api: mock)
-        defer { vm.cancel() }
-        vm.load()
-        await waitForTasks()
-
-        #expect(!vm.isRefreshing)
-    }
-
-    @Test("Home section is populated with videos from fetchHomeRows")
-    func homeSectionPopulated() async {
-        let mock = MockInnerTubeAPI()
-        let video = makeVideo("vid_0000001")
-        mock.homeRowsResult = [VideoGroup(title: "Rec", videos: [video])]
-        mock.subscriptionsResult = VideoGroup(title: "Subs", videos: [])
-
-        let vm = HomeViewModel(api: mock)
-        defer { vm.cancel() }
-        vm.load()
-        await waitForTasks(until: {
-            vm.sections.first { $0.section.type == .home }?.videos.isEmpty == false
-        })
-
-        let homeState = vm.sections.first { $0.section.type == .home }
-        #expect(homeState?.videos.isEmpty == false)
-    }
-
-    @Test("mergedVideos interleaves rec and sub videos")
-    func mergedVideosInterleaves() async {
-        let mock = MockInnerTubeAPI()
-        let recVideos = (0..<8).map { makeVideo("rec\($0)_AAAAAA") }
-        let subVideos = (0..<4).map { makeVideo("sub\($0)_BBBBBB") }
-        mock.homeRowsResult = [VideoGroup(title: "Rec", videos: recVideos)]
-        mock.subscriptionsResult = VideoGroup(title: "Subs", videos: subVideos)
-
-        let vm = HomeViewModel(api: mock)
-        defer { vm.cancel() }
-        vm.load()
-        await waitForTasks()
-
-        // mergedVideos inserts 1 sub every 4 recs; total should be > 8
-        #expect(vm.mergedVideos.count > 8)
-        // Subscription videos should appear in merged list
-        let ids = Set(vm.mergedVideos.map(\.id))
-        #expect(ids.contains("sub0_BBBBBB"))
-    }
-
-    @Test("mergedVideos with empty subs returns only recs")
-    func mergedVideosEmptySubsReturnsRecs() async {
-        let mock = MockInnerTubeAPI()
-        mock.homeRowsResult = [VideoGroup(title: "Rec", videos: [makeVideo("vid_AAAAAAA")])]
-        mock.subscriptionsResult = VideoGroup(title: "Subs", videos: [])
-
-        let vm = HomeViewModel(api: mock)
-        defer { vm.cancel() }
-        vm.load()
-        await waitForTasks()
-
-        let recs = vm.sections.first { $0.section.type == .home }?.videos ?? []
-        #expect(vm.mergedVideos == recs)
-    }
-
-    @Test("homeRegularVideos excludes Shorts and homeShortsVideos contains only Shorts")
-    func homePartitionsShorts() async {
-        let mock = MockInnerTubeAPI()
-        let regularVideo = makeVideo("reg0_AAAA")
-        let shortVideo = Video(id: "srt0_BBBB", title: "A Short", channelTitle: "Channel", isShort: true)
-        mock.homeRowsResult = [VideoGroup(title: "Rec", videos: [regularVideo, shortVideo])]
-        mock.subscriptionsResult = VideoGroup(title: "Subs", videos: [])
-
-        let vm = HomeViewModel(api: mock, showsShorts: true)
-        defer { vm.cancel() }
-        vm.load()
-        await waitUntil { vm.loadedAt != nil }
-
-        #expect(vm.homeRegularVideos.allSatisfy { !$0.isShort })
-        #expect(vm.homeShortsVideos.allSatisfy { $0.isShort })
-        #expect(vm.homeRegularVideos.map(\.id).contains("reg0_AAAA"))
-        #expect(vm.homeShortsVideos.map(\.id).contains("srt0_BBBB"))
-    }
-
-    @Test("loadMoreShortsIfNeeded auto-fetches next page when shorts < 6")
-    func loadMoreShortsAutoFetchWhenBelowThreshold() async {
-        let mock = MockInnerTubeAPI()
-        // Initial page: 3 shorts with a continuation token
-        let initialShorts = (0..<3).map {
-            Video(id: "srt\($0)_AAAAA", title: "Short \($0)", channelTitle: "Ch", isShort: true)
-        }
-        mock.shortsResult = VideoGroup(title: "Shorts", videos: initialShorts, nextPageToken: "tok_page2")
-        // Next page: 4 more shorts
-        let moreShorts = (10..<14).map {
-            Video(id: "srt\($0)_BBBBB", title: "Short \($0)", channelTitle: "Ch", isShort: true)
-        }
-        mock.shortsMoreResult = VideoGroup(title: "Shorts", videos: moreShorts, nextPageToken: nil)
-        mock.homeRowsResult = []
-        mock.subscriptionsResult = VideoGroup(title: "Subs", videos: [])
-
-        let vm = HomeViewModel(api: mock, showsShorts: true)
-        defer { vm.cancel() }
-        vm.load()
-        await waitUntil { vm.loadedAt != nil }
-
-        // fetchShortsMore must have been called
-        #expect(mock.calls.contains(where: { $0.method == "fetchShortsMore" }))
-        // shortsVideos should contain both pages (3 initial + 4 more = 7)
-        #expect(vm.shortsVideos.count == 7)
-    }
-
-    @Test("loadMoreShortsIfNeeded skips auto-fetch when no continuation token")
-    func loadMoreShortsSkipsWithNoToken() async {
-        let mock = MockInnerTubeAPI()
-        // Initial page: 2 shorts, no continuation token
-        let initialShorts = (0..<2).map {
-            Video(id: "srt\($0)_DDDDD", title: "Short \($0)", channelTitle: "Ch", isShort: true)
-        }
-        mock.shortsResult = VideoGroup(title: "Shorts", videos: initialShorts, nextPageToken: nil)
-        mock.homeRowsResult = []
-        mock.subscriptionsResult = VideoGroup(title: "Subs", videos: [])
-
-        let vm = HomeViewModel(api: mock, showsShorts: true)
-        defer { vm.cancel() }
-        vm.load()
-        await waitUntil { vm.loadedAt != nil }
-
-        // fetchShortsMore must NOT have been called
-        #expect(!mock.calls.contains(where: { $0.method == "fetchShortsMore" }))
-        #expect(vm.shortsVideos.count == 2)
-    }
-
-    @Test("loadMoreShortsIfNeeded deduplicates videos from next page")
-    func loadMoreShortsDeduplicates() async {
-        let mock = MockInnerTubeAPI()
-        let initialShorts = (0..<3).map {
-            Video(id: "srt\($0)_EEEEE", title: "Short \($0)", channelTitle: "Ch", isShort: true)
-        }
-        // Next page contains 2 new + 1 duplicate from first page
-        let moreShorts = [
-            Video(id: "srt0_EEEEE", title: "Dup", channelTitle: "Ch", isShort: true),
-            Video(id: "srt10_FFFFF", title: "New1", channelTitle: "Ch", isShort: true),
-            Video(id: "srt11_FFFFF", title: "New2", channelTitle: "Ch", isShort: true),
-        ]
-        mock.shortsResult = VideoGroup(title: "Shorts", videos: initialShorts, nextPageToken: "tok_dup")
-        mock.shortsMoreResult = VideoGroup(title: "Shorts", videos: moreShorts, nextPageToken: nil)
-        mock.homeRowsResult = []
-        mock.subscriptionsResult = VideoGroup(title: "Subs", videos: [])
-
-        let vm = HomeViewModel(api: mock, showsShorts: true)
-        defer { vm.cancel() }
-        vm.load()
-        await waitForTasks(until: { vm.shortsVideos.count >= 5 })
-
-        // 3 initial + 2 new (duplicate filtered out) = 5
-        #expect(vm.shortsVideos.count == 5)
-        let ids = Set(vm.shortsVideos.map(\.id))
-        #expect(!ids.contains("srt0_EEEEE") == false)  // original kept
-        #expect(ids.contains("srt10_FFFFF"))
-        #expect(ids.contains("srt11_FFFFF"))
-    }
-
-    @Test("preloadMoreShorts loops fetching pages until homeShortsVideos reaches the high threshold")
-    func preloadMoreShortsLoopsUntilThreshold() async {
-        let mock = MockInnerTubeAPI()
-        let initialShorts = (0..<3).map {
-            Video(id: "srt\($0)_AAAAA", title: "Short \($0)", channelTitle: "Ch", isShort: true)
-        }
-        mock.shortsResult = VideoGroup(title: "Shorts", videos: initialShorts, nextPageToken: "tok_0")
-        mock.homeRowsResult = []
-        mock.subscriptionsResult = VideoGroup(title: "Subs", videos: [])
-
-        // Each call returns 5 fresh shorts plus a continuation token, so the
-        // background preload loop must run several iterations to cross the
-        // 40-item high threshold.
-        var callCount = 0
-        mock.shortsMoreHandler = { _ in
-            callCount += 1
-            let page = (0..<5).map { i in
-                Video(
-                    id: "more\(callCount)_\(i)_GGGGG", title: "More \(callCount)-\(i)", channelTitle: "Ch",
-                    isShort: true)
-            }
-            return VideoGroup(title: "Shorts", videos: page, nextPageToken: "tok_\(callCount)")
-        }
-
-        let vm = HomeViewModel(api: mock, showsShorts: true)
-        defer { vm.cancel() }
-        vm.load()
-        await waitUntil { vm.homeShortsVideos.count >= 40 }
-
-        // 3 initial + repeated pages of 5 must reach the 40-item preload threshold.
-        #expect(vm.homeShortsVideos.count >= 40)
-        // Reaching 40 from 3 (+5/page) requires looping across multiple pages,
-        // not just the single page loadMoreShortsIfNeeded fetches for its
-        // own (lower) threshold.
-        let shortsMoreCallCount = mock.calls.filter { $0.method == "fetchShortsMore" }.count
-        #expect(shortsMoreCallCount >= 7)
-    }
-
-    @Test("preloadMoreShorts stops immediately when no continuation tokens remain")
-    func preloadMoreShortsStopsWithNoTokens() async {
-        let mock = MockInnerTubeAPI()
-        let initialShorts = (0..<2).map {
-            Video(id: "srt\($0)_HHHHH", title: "Short \($0)", channelTitle: "Ch", isShort: true)
-        }
-        // No continuation token from the initial fetch, and no subs section
-        // continuation either — both sources are exhausted from the start.
-        mock.shortsResult = VideoGroup(title: "Shorts", videos: initialShorts, nextPageToken: nil)
-        mock.homeRowsResult = []
-        mock.subscriptionsResult = VideoGroup(title: "Subs", videos: [])
-
-        let vm = HomeViewModel(api: mock, showsShorts: true)
-        defer { vm.cancel() }
-        vm.load()
-        await waitUntil { vm.loadedAt != nil }
-        await waitForShortPreloadCompletion(vm)
-
-        // Below the 40-item threshold, but with no tokens left preload must
-        // not call fetchShortsMore at all.
-        #expect(vm.homeShortsVideos.count == 2)
-        #expect(!mock.calls.contains(where: { $0.method == "fetchShortsMore" }))
-    }
 }
 
 // MARK: - BrowseViewModelTests
@@ -608,43 +313,13 @@ struct BrowseViewModelTests {
         #expect(!vm.isAuthRequired)
     }
 
-    @Test("loadContent for .shorts calls fetchShorts")
-    func loadShortsCallsFetch() async {
-        let mock = MockInnerTubeAPI()
-        mock.shortsResult = VideoGroup(title: "Shorts", videos: [makeVideo("shortvid_AAAA")])
-
-        let section = BrowseSection(id: "shorts", title: "Shorts", type: .shorts)
-        let vm = BrowseViewModel(api: mock, initialSection: section)
-        vm.loadContent(for: section, refresh: true, source: "test")
-        await waitForTasks(until: { mock.calls.contains { $0.method == "fetchShorts" } })
-
-        #expect(mock.calls.contains { $0.method == "fetchShorts" })
-    }
-
-    @Test("loadContent for .shorts with zero results normalizes videoGroups to empty")
-    func loadShortsWithEmptyResultClearsVideoGroups() async {
-        let mock = MockInnerTubeAPI()
-        mock.shortsResult = VideoGroup(title: "Shorts", videos: [])
-
-        let section = BrowseSection(id: "shorts", title: "Shorts", type: .shorts)
-        let vm = BrowseViewModel(api: mock, initialSection: section)
-        vm.loadContent(for: section, refresh: true, source: "test")
-        await waitForTasks()
-
-        // videoGroups must be [] (not [VideoGroup(videos: [])]) so the Home
-        // Shorts chip's empty state ("Nothing here yet") can render — a
-        // 1-element array with no videos is indistinguishable from "has content"
-        // to sectionFeed's videoGroups.isEmpty check.
-        #expect(vm.videoGroups.isEmpty)
-    }
-
     @Test("Error on non-auth section sets error property")
     func errorOnFetchSetsErrorProperty() async {
         struct TestError: Error {}
         let mock = MockInnerTubeAPI()
         mock.errorToThrow = TestError()
 
-        let section = BrowseSection(id: "shorts", title: "Shorts", type: .shorts)
+        let section = BrowseSection(id: "news", title: "News", type: .news)
         let vm = BrowseViewModel(api: mock, initialSection: section)
         vm.loadContent(for: section, refresh: true, source: "test")
         await waitForTasks(until: { vm.error != nil })

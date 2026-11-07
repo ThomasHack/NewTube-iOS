@@ -1,22 +1,21 @@
 > status: current (2026-11-07)
 
-# Home Feed & Shorts Architecture
+# Home Feed Architecture
 
 ## Key files
 
 - **API**: [InnerTubeAPI+Browse.swift](../../SmartTubeCore/Sources/SmartTubeCore/InnerTubeAPI+Browse.swift) (requests), [InnerTubeAPI+VideoRenderers.swift](../../SmartTubeCore/Sources/SmartTubeCore/InnerTubeAPI+VideoRenderers.swift) (parsing)
 - **Models**: [VideoGroup.swift](../../SmartTubeCore/Sources/SmartTubeCore/VideoGroup.swift) (`VideoGroup`, `BrowseSection`), [Video.swift](../../SmartTubeCore/Sources/SmartTubeCore/Video.swift)
-- **Policy**: [ShortsFeedPolicy.swift](../../SmartTubeCore/Sources/SmartTubeCore/ShortsFeedPolicy.swift)
-- **View models**: [HomeViewModel.swift](../../SmartTubeApp/Smart%20Tube/ViewModels/HomeViewModel.swift), [BrowseViewModel.swift](../../SmartTubeApp/Smart%20Tube/ViewModels/BrowseViewModel.swift)
-- **Views**: [HomeView.swift](../../SmartTubeApp/Smart%20Tube/Views/Home/HomeView.swift), [ShortsRowSection.swift](../../SmartTubeApp/Smart%20Tube/Views/Browse/ShortsRowSection.swift), [ShortsCardView.swift](../../SmartTubeApp/Smart%20Tube/Views/Browse/ShortsCardView.swift), [VideoCardView.swift](../../SmartTubeApp/Smart%20Tube/Views/Browse/VideoCardView.swift)
+- **View model**: [BrowseViewModel.swift](../../SmartTubeApp/Smart%20Tube/ViewModels/BrowseViewModel.swift)
+- **Views**: [HomeView.swift](../../SmartTubeApp/Smart%20Tube/Views/Home/HomeView.swift)
 
 ## Models
 
-- `Video.isShort` marks a Short.
+- `Video.isShort` marks a Short, so it can be filtered out.
 - `VideoGroup` holds `videos`, `nextPageToken` and a `layout`: `.row` (horizontal shelf) or `.grid`.
-- `BrowseSection.SectionType` lists every chip. `defaultSections` are Home, Subscriptions, History,
-  Playlists and Channels. `allSections` adds Recommended, Shorts, Music, Gaming, News, Live, Sports
-  and Watch Later.
+- `BrowseSection.SectionType` lists every section. `defaultSections` are Home, Subscriptions, History,
+  Playlists and Channels. `allSections` adds Recommended, Music, Gaming, News, Live, Sports and Watch
+  Later.
 
 ## API
 
@@ -25,18 +24,15 @@
 | `fetchHome`, `fetchHomeRows` | `FEwhat_to_watch` | TVHTML5 when signed in, otherwise WEB |
 | `fetchSubscriptions` | `FEsubscriptions` | TVHTML5 |
 | `fetchHistory` | `FEhistory` | TVHTML5 |
-| `fetchShorts` | Search for `#shorts` with the short-duration filter | WEB, no token |
 | `fetchNews` | Search for `news today` | WEB, no token |
 
 `fetchMusic`, `fetchGaming`, `fetchLive` and `fetchSports` browse `FEmusic_home`, `FEgaming`,
 `FElive_home` and `FEsportsau`, and fall back to a search if that fails or returns nothing.
 
-YouTube deprecated the `FEshorts` browse ID: it returned HTTP 400 on every client, so `fetchShorts`
-uses search instead. It keeps results already flagged as Shorts, plus any video of 180 seconds or
-less, and marks them all `isShort`. Its continuation tokens carry a `srch:` prefix, which tells
-`fetchShortsMore` to continue through search.
-
 ## Shorts detection
+
+The app has no Shorts (ADR-0013), but YouTube mixes them into normal responses, so the parsers still
+flag them and every list filters on `Video.isShort`.
 
 - `reelItemRenderer`: always a Short.
 - `shortsLockupViewModel`: always a Short. WEB search returns Shorts in this form.
@@ -45,51 +41,21 @@ less, and marks them all `isShort`. Its continuation tokens carry a `srch:` pref
   overlay. Also the `GgIIBQ==` `ustreamerConfig` or a vertical thumbnail, unless the video is known
   to be longer than 180 seconds.
 - `videoRenderer`: a `reelWatchEndpoint`, a `SHORTS` overlay, the `GgIIBQ==` `ustreamerConfig` or a
-  vertical thumbnail, unless the video is known to be longer than 180 seconds. Most WEB search
-  results carry none of these, which is why `fetchShorts` also uses duration.
+  vertical thumbnail, unless the video is known to be longer than 180 seconds.
 
-## Where Shorts appear
+## Load flow
 
-`ShortsFeedPolicy.showsInHomeFeeds` is `false`, so Home and Recommended leave Shorts out. The view
-models take it as an init default (`showsShorts`, `showsRecommendedShorts`), and tests can override it.
+The Home tab shows the Recommended section and the Subscriptions tab shows Subscriptions. Each has its
+own `BrowseViewModel` in `AppFeeds`, so a feed survives switching tabs.
 
-| Section | Behaviour |
-|---|---|
-| Home | No Shorts are fetched or shown; any in the feed are dropped |
-| Recommended | No Shorts requests and no Shorts row; any in the feed are dropped |
-| Shorts chip | Vertical list from `fetchShorts`, ignoring `hideShorts` |
-| History | Pinned Shorts row, ignoring `hideShorts` |
-| Other sections | Shorts move to a pinned row above the grid, unless `hideShorts` is on |
+`BrowseViewModel.fetchSection` loads the section into `videoGroups`. `HomeView.feedContent` then applies
+the filters (Shorts, premieres, watched videos) and draws any `.row` groups as shelves and everything
+else as a grid. A loaded feed refreshes after `FeedFreshness.refreshInterval`, keeping its videos on
+screen until the new ones arrive.
 
-`AppSettings.hideShorts` is applied while rendering, not in the API layer. `ShortsRowSection` draws
-the row with `ShortsCardView`; regular videos use `VideoCardView`.
-
-## Home load flow
-
-`HomeView` shows `homeShelves` for the `.home` section and `sectionFeed` for every other section.
-
-`HomeViewModel.load()`:
-
-1. Clears its state and fetches Recommended (`.home`, via `fetchHomeRows`) and Subscriptions in
-   parallel. If the home feed is empty, it falls back to a search for `popular`.
-2. Shows whichever section arrives first as a flat list, so content appears right away.
-3. Once both have arrived, rebuilds `mergedVideos` once: one subscription video after every four
-   recommended videos, without duplicates.
-
-Pagination appends to `mergedVideos` and never reorders it. `homeRegularVideos` is `mergedVideos`
-without Shorts, and that is what the Home grid shows.
-
-`HomeViewModel` still has code to page Shorts (`homeShortsVideos`, `loadMoreShortsIfNeeded`,
-`preloadMoreShorts`). It only runs with `showsShorts: true`, which the app doesn't currently use.
-
-## Other sections
-
-`BrowseViewModel.fetchSection` loads the selected section into `videoGroups`. `HomeView.feedContent`
-then applies the filters (Shorts, live Shorts, premieres, watched videos, Subscriptions channel) and
-draws any `.row` groups as shelves and everything else as a grid.
+If a page adds no visible video, for example because it only holds Shorts, `HomeView` fetches the next
+page until one does or the pages run out.
 
 Recommended uses `fetchHome`, and Subscriptions sorts its first page newest-first. Later pages are
-appended without re-sorting, so rows already on screen don't move.
-
-`BrowseViewModel` removes duplicates by video ID, and it stops paging the Shorts chip after three
-pages in a row with no new videos.
+appended without re-sorting, so rows already on screen don't move. `BrowseViewModel` removes duplicates
+by video ID.

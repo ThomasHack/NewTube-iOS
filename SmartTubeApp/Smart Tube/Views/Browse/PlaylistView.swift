@@ -12,19 +12,10 @@ struct PlaylistView: View {
 
     @Environment(AuthService.self) private var auth
     @Environment(SettingsStore.self) private var store
-    @Environment(\.innerTubeAPI) private var api
+    @Environment(AppNavigator.self) private var navigator
     @Environment(\.dismiss) private var dismiss
     @State private var vm: PlaylistViewModel
-    @State private var selectedVideo: Video?
-    @State private var channelDestination: ChannelDestination?
 
-    init(playlistId: String, playlistTitle: String, api: InnerTubeAPI) {
-        self.playlistId = playlistId
-        self.playlistTitle = playlistTitle
-        _vm = State(initialValue: PlaylistViewModel(api: api))
-    }
-
-    /// Injects the view model directly so previews can supply sample data.
     init(playlistId: String, playlistTitle: String, viewModel: PlaylistViewModel) {
         self.playlistId = playlistId
         self.playlistTitle = playlistTitle
@@ -60,16 +51,6 @@ struct PlaylistView: View {
         .onAppear {
             vm.load(playlistId: playlistId)
         }
-        .navigationDestination(item: $selectedVideo) { video in
-            PlayerView(video: video, api: api)
-        }
-        .navigationDestination(item: $channelDestination) { dest in
-            ChannelView(channelId: dest.channelId)
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .openChannel)) { note in
-            guard let channelId = note.userInfo?["channelId"] as? String, !channelId.isEmpty else { return }
-            channelDestination = ChannelDestination(channelId: channelId)
-        }
         .alert("Error", isPresented: .constant(vm.error != nil), presenting: vm.error) { _ in
             Button("Retry") { vm.load(playlistId: playlistId) }
             Button("Dismiss", role: .cancel) { vm.error = nil }
@@ -92,7 +73,7 @@ struct PlaylistView: View {
                                     await CurrentQueueStore.shared.replaceAll(with: captured)
                                     let startIdx =
                                         video.playlistIndex ?? captured.firstIndex(where: { $0.id == video.id }) ?? 0
-                                    selectedVideo = await CurrentQueueStore.shared.videoAt(index: startIdx) ?? video
+                                    navigator.play(await CurrentQueueStore.shared.videoAt(index: startIdx) ?? video)
                                 }
                             }
                         )
@@ -123,8 +104,8 @@ struct PlaylistView: View {
                                             let startIdx =
                                                 video.playlistIndex ?? captured.firstIndex(where: { $0.id == video.id })
                                                 ?? 0
-                                            selectedVideo =
-                                                await CurrentQueueStore.shared.videoAt(index: startIdx) ?? video
+                                            navigator.play(
+                                                await CurrentQueueStore.shared.videoAt(index: startIdx) ?? video)
                                         }
                                     }
                                 )
@@ -155,7 +136,7 @@ struct PlaylistView: View {
     }
 
     private var displayVideos: [Video] {
-        vm.videos.filter { !store.settings.hideShorts || !$0.isShort }
+        vm.videos.filter { !$0.isShort }
     }
 
     private var emptyState: some View {
@@ -174,12 +155,43 @@ struct PlaylistView: View {
 // MARK: - Previews
 
 #if DEBUG
-#Preview {
+private struct PreviewQueueLoader: QueuedPlaylistLoader {
+    func loadQueuedVideos(for playlistId: String) async -> [Video]? { PreviewData.playlistVideos }
+}
+
+#Preview("Playlist") {
     NavigationStack {
         PlaylistView(
-            playlistId: "PLpreview",
+            playlistId: "PLpreview1", playlistTitle: "Open Movies", viewModel: .preview(playlistId: "PLpreview1"))
+    }
+    .previewEnvironment()
+}
+#Preview("Current Queue") {
+    NavigationStack {
+        PlaylistView(
+            playlistId: CurrentQueueStore.playlistID,
+            playlistTitle: "Current Queue",
+            viewModel: PlaylistViewModel(api: PreviewInnerTubeAPI(), queueLoader: PreviewQueueLoader())
+        )
+    }
+    .previewEnvironment()
+}
+#Preview("Empty") {
+    NavigationStack {
+        PlaylistView(
+            playlistId: "PLempty",
+            playlistTitle: "An empty playlist",
+            viewModel: PlaylistViewModel(api: PreviewInnerTubeAPI(playlistVideos: []))
+        )
+    }
+    .previewEnvironment()
+}
+#Preview("Loading") {
+    NavigationStack {
+        PlaylistView(
+            playlistId: "PLloading",
             playlistTitle: "Open Movies",
-            viewModel: PlaylistViewModel(api: PreviewInnerTubeAPI())
+            viewModel: PlaylistViewModel(api: PreviewInnerTubeAPI(hangs: true))
         )
     }
     .previewEnvironment()

@@ -16,11 +16,6 @@ final class SettingsStore {
 
     var settings: AppSettings {
         didSet {
-            if self.settings.hideShorts != oldValue.hideShorts {
-                settingsLog.notice(
-                    "hideShorts \(oldValue.hideShorts ? "ON" : "OFF", privacy: .public) → \(self.settings.hideShorts ? "ON" : "OFF", privacy: .public)"
-                )
-            }
             self.save()
         }
     }
@@ -45,9 +40,6 @@ final class SettingsStore {
         }
         if ProcessInfo.processInfo.arguments.contains("--uitesting-audio-only-mode") {
             self.settings.audioOnlyMode = true
-        }
-        if ProcessInfo.processInfo.arguments.contains("--uitesting-hide-shorts") {
-            self.settings.hideShorts = true
         }
     }
 

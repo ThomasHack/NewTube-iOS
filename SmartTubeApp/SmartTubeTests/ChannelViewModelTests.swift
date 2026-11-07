@@ -8,8 +8,7 @@ import Testing
 //
 // Regression tests for GitHub issue #138: a channel's video list stopped after the first page
 // (about 50 items). The Home tab's continuation tokens are per shelf and return no videos, so
-// the list must page the Videos tab instead. Shorts are not in the Videos tab; they come from
-// the Home shelf.
+// the list must page the Videos tab instead.
 
 @Suite("ChannelViewModel pagination")
 @MainActor
@@ -72,16 +71,6 @@ struct ChannelViewModelTests {
             "The per-shelf Home token returns no videos and must not be sent")
     }
 
-    @Test("Shorts from the Home shelf land in shorts, not in the paged video list")
-    func shortsComeFromHome() async {
-        let (vm, _) = await loadedVM(
-            home: [video("homeShort1", isShort: true), video("homeVideo1")],
-            videosTab: VideoGroup(title: "V", videos: [video("grid1")], nextPageToken: "grid_p2"))
-
-        #expect(vm.shorts.map(\.id) == ["homeShort1"])
-        #expect(vm.videos.map(\.id) == ["grid1"])
-    }
-
     @Test("An empty Videos tab falls back to the Home videos")
     func emptyVideosTabFallsBackToHome() async {
         let (vm, _) = await loadedVM(
@@ -97,7 +86,6 @@ struct ChannelViewModelTests {
             videosTab: VideoGroup(title: "V", videos: []), videosTabError: FetchFailure())
 
         #expect(vm.videos.map(\.id) == ["homeVideo1", "homeShort1"])
-        #expect(vm.shorts.map(\.id) == ["homeShort1"])
         #expect(vm.error == nil)
     }
 }

@@ -9,9 +9,12 @@ Remove an item when it's done.
 - [ ] Get `swiftlint lint --strict --baseline` passing. It reports 169 violations that aren't in the
   baseline, the same count as before the restructure, so `just ci` fails at its lint step.
 
+## Navigation
+- [ ] `ConditionalMoveCommand` (`PlayerView+tvOS.swift`) swaps `if/else` branches, which rebuilds the
+  player's view subtree whenever an overlay or skip toast opens. Keep the view's identity stable, and
+  check the player's menus and pickers with a remote afterwards.
+
 ## Localization
-- [ ] Localize the tab titles. `RootView` passes `section.rawValue` to `Tab`, and SwiftUI doesn't
-  localize a plain `String`, so they stay English even though the catalog has translations.
 - [ ] Translate "Default Quality" in Settings, which stays English in German.
 
 ## Cleanup

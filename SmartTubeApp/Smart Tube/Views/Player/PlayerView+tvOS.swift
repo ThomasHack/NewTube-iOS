@@ -42,7 +42,7 @@ extension PlayerView {
     /// binding on each row; initial focus is set to `.speed` when the menu opens
     /// (PlayerView+Lifecycle). The case value drives the row's focus highlight.
     enum MoreMenuRow: Hashable {
-        case speed, quality, like, dislike, sleepTimer, audioOnly, queueShuffle, captions,
+        case speed, quality, like, dislike, channel, sleepTimer, audioOnly, queueShuffle, captions,
             audioTrack, description, comments, statsForNerds, cancel
     }
 
@@ -145,6 +145,13 @@ extension PlayerView {
         }
     }
 
+    /// Ends playback and shows the video's channel in the tab the player was opened from.
+    func openChannel() {
+        guard let channelId = vm.playerInfo?.video.channelId ?? video.channelId, !channelId.isEmpty else { return }
+        vm.stop()
+        navigator.openChannel(id: channelId)
+    }
+
     /// Executes the action for the currently highlighted control.
     func tvActivateControl(_ control: TVPlayerControl) {
         let playerLog = AppLogger(category: "Player")
@@ -154,8 +161,7 @@ extension PlayerView {
             vm.stop()
             withAnimation(.none) { dismiss() }
         case .channel:
-            let channelId = vm.playerInfo?.video.channelId ?? video.channelId
-            if let cid = channelId, !cid.isEmpty { channelDestination = ChannelDestination(channelId: cid) }
+            openChannel()
         case .more:
             playerLog.notice("[tv] .more activated — setting showMoreMenu=true")
             showMoreMenu = true

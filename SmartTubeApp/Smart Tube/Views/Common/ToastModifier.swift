@@ -55,3 +55,15 @@ extension View {
         modifier(ToastModifier(message: message))
     }
 }
+
+// MARK: - Previews
+
+#if DEBUG
+#Preview {
+    @Previewable @State var message: String? = "Quality set to 1080p"
+    Color.black
+        .ignoresSafeArea()
+        .toast(message: $message)
+        .onAppear { message = "Quality set to 1080p" }
+}
+#endif

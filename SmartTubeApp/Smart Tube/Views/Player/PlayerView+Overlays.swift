@@ -173,6 +173,7 @@ extension PlayerView {
             moreMenuSpeedRow
             moreMenuQualityRow
             moreMenuLikeDislikeRow
+            moreMenuChannelRow
             moreMenuSleepTimerRow
             moreMenuAudioOnlyRow
             moreMenuQueueShuffleRow
@@ -570,6 +571,27 @@ extension PlayerView {
             .background(moreMenuFocusedRow == .audioTrack ? Color.gray.opacity(0.35) : .clear)
             .clipShape(RoundedRectangle(cornerRadius: 10))
             .focused($moreMenuFocusedRow, equals: .audioTrack)
+            Divider()
+        }
+    }
+
+    @ViewBuilder private var moreMenuChannelRow: some View {
+        let channelId = vm.playerInfo?.video.channelId ?? video.channelId
+        if channelId?.isEmpty == false {
+            Button {
+                openChannel()
+            } label: {
+                Label("Open Channel", systemImage: AppSymbol.personRectangle)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.primary)
+            .accessibilityIdentifier("player.moreMenu.channelRow")
+            .background(moreMenuFocusedRow == .channel ? Color.gray.opacity(0.35) : .clear)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .focused($moreMenuFocusedRow, equals: .channel)
             Divider()
         }
     }

@@ -45,6 +45,14 @@ Dependency direction: the app depends on `SmartTubeCore`. Core can't see app cod
 
 Full file-ownership-during-parallel-work table: `docs/modernization/PLAN.md` §4 (private repo, pending WS2-T2.6).
 
+## Navigation
+
+`MainTVTabView` (`Views/RootView.swift`) is a `.sidebarAdaptable` `TabView`. Top to bottom, the sidebar shows the account header, Search, Home, Subscriptions, Library, Settings, then a Channels section sorted alphabetically (`SidebarChannelsViewModel`).
+
+`AppNavigator` holds the selected tab, one `[AppRoute]` path per tab, and the player presentation. Channels and playlists are pushed routes. The player is one `fullScreenCover` on the `TabView`, so they aren't tab content. Opening a channel from the player closes it and pushes the channel onto the current tab. See ADR-0012.
+
+`AppFeeds` owns the view models of pages reached from the sidebar, because the `TabView` discards a tab's `@State` when another tab is selected. Loaded pages stay as they are for `FeedFreshness.refreshInterval`; after that they refresh while keeping their content on screen.
+
 ## Playback
 
 The pipeline as it exists today (**legacy cascade** — pre-WS4; WS4 replaces the ordered-branch cascade with a `StreamSource`/`ResolutionPipeline` strangler fig, see `docs/modernization/workstreams/WS4-playback-seams-and-pipeline.md`):

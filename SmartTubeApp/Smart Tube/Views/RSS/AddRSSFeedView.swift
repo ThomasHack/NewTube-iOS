@@ -88,3 +88,11 @@ struct AddRSSFeedView: View {
         }
     }
 }
+
+// MARK: - Previews
+
+#if DEBUG
+#Preview {
+    AddRSSFeedView()
+}
+#endif

@@ -224,14 +224,12 @@ final class ChannelViewModel {
     private(set) var channel: Channel?
     /// The channel's Videos tab, newest first. This is the only list that pages.
     private(set) var videos: [Video] = []
-    /// Shorts from the channel's Home tab. The Videos tab does not list Shorts, so they come
-    /// from the Home shelf and are not paged.
-    private(set) var shorts: [Video] = []
     private(set) var isLoading: Bool = false
     var error: Error?
 
     private let api: any InnerTubeAPIProtocol
     private var nextPageToken: String?
+    private var loadedAt: Date?
     private var hideObserverTasks: [Task<Void, Never>] = []
 
     init(api: any InnerTubeAPIProtocol = InnerTubeAPI()) {
@@ -240,7 +238,14 @@ final class ChannelViewModel {
     }
 
     func load(channelId: String) {
+        isLoading = true
         Task { await loadAsync(channelId: channelId) }
+    }
+
+    /// Loads the channel unless it was loaded recently, e.g. when returning to the page.
+    func loadIfStale(channelId: String, threshold: TimeInterval = FeedFreshness.refreshInterval) {
+        guard !isLoading, FeedFreshness.isStale(loadedAt, threshold: threshold) else { return }
+        load(channelId: channelId)
     }
 
     func loadAsync(channelId: String) async {
@@ -251,7 +256,7 @@ final class ChannelViewModel {
             channel = ch
             // The Home tab's continuation tokens are per shelf and return no videos, so paging
             // them stopped the list after the first page (#138). Page the Videos tab instead,
-            // and keep Home for the header and the Shorts shelf.
+            // and keep Home for the header.
             let grid = try? await retryWithBackoff(label: "ChannelVM") {
                 try await api.fetchChannelVideos(channelId: ch.id, continuationToken: nil)
             }
@@ -263,8 +268,7 @@ final class ChannelViewModel {
                 videos = home.videos
                 nextPageToken = home.nextPageToken
             }
-            var seen = Set<String>()
-            shorts = (home.videos + videos).filter { $0.isShort && seen.insert($0.id).inserted }
+            loadedAt = Date()
         } catch {
             self.error = error
         }
@@ -297,7 +301,6 @@ final class ChannelViewModel {
                 for await note in NotificationCenter.default.notifications(named: .hideVideoFromFeed) {
                     guard let self, let videoId = note.userInfo?["videoId"] as? String else { continue }
                     self.videos.removeAll { $0.id == videoId }
-                    self.shorts.removeAll { $0.id == videoId }
                 }
             })
         hideObserverTasks.append(
@@ -305,8 +308,32 @@ final class ChannelViewModel {
                 for await note in NotificationCenter.default.notifications(named: .hideChannelFromFeed) {
                     guard let self, let channelId = note.userInfo?["channelId"] as? String else { continue }
                     self.videos.removeAll { $0.channelId == channelId }
-                    self.shorts.removeAll { $0.channelId == channelId }
                 }
             })
     }
 }
+
+// MARK: - Previews
+
+#if DEBUG
+extension ChannelViewModel {
+    /// Already shows `channel`, so a preview has no load to wait for.
+    static func preview(
+        channel: Channel = PreviewData.channel, videos: [Video] = PreviewData.videos
+    ) -> ChannelViewModel {
+        let viewModel = ChannelViewModel(api: PreviewInnerTubeAPI())
+        viewModel.channel = channel
+        viewModel.videos = videos
+        viewModel.loadedAt = Date()
+        return viewModel
+    }
+
+    /// Failed to load: no channel, and an error to show.
+    static func previewFailed() -> ChannelViewModel {
+        let viewModel = ChannelViewModel(api: PreviewInnerTubeAPI())
+        viewModel.error = URLError(.notConnectedToInternet)
+        viewModel.loadedAt = Date()
+        return viewModel
+    }
+}
+#endif

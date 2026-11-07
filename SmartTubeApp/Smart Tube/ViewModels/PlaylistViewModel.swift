@@ -150,3 +150,17 @@ final class PlaylistViewModel {
             })
     }
 }
+
+// MARK: - Previews
+
+#if DEBUG
+extension PlaylistViewModel {
+    /// Already shows `videos`, so a preview has no load to wait for.
+    static func preview(playlistId: String, videos: [Video] = PreviewData.playlistVideos) -> PlaylistViewModel {
+        let viewModel = PlaylistViewModel(api: PreviewInnerTubeAPI())
+        viewModel.playlistId = playlistId
+        viewModel.videos = videos
+        return viewModel
+    }
+}
+#endif

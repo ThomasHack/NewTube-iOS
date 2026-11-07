@@ -82,3 +82,16 @@ struct ChannelSwitcherView: View {
         .buttonStyle(.plain)
     }
 }
+
+// MARK: - Previews
+
+#if DEBUG
+#Preview("Several channels") {
+    NavigationStack { ChannelSwitcherView() }
+        .previewEnvironment()
+}
+#Preview("Signed out") {
+    NavigationStack { ChannelSwitcherView() }
+        .previewEnvironment(signedIn: false)
+}
+#endif

@@ -8,11 +8,6 @@ private let feedLog = Logger(subsystem: "com.smarttube", category: "feed")
 // MARK: - Notification names
 
 extension Notification.Name {
-    /// Posted when the user selects "Open Channel" from a video's context menu.
-    /// userInfo keys: "channelId", "channelTitle"
-    static let openChannel = Notification.Name("com.smarttube.openChannel")
-    /// Posted when a feature requests navigation to the Search tab (e.g. empty-state CTA).
-    static let navigateToSearch = Notification.Name("com.smarttube.navigateToSearch")
     // hideVideoFromFeed and hideChannelFromFeed are defined in SmartTubeCore/FeedFeedbackNotifications.swift
 }
 
@@ -34,6 +29,7 @@ struct VideoCardView: View {
     @Environment(AuthService.self) private var authService
     @Environment(SettingsStore.self) private var store
     @Environment(\.innerTubeAPI) private var api
+    @Environment(AppNavigator.self) private var navigator
     @State private var localProgress: Double?
     @State private var watchLaterAlert: AlertItem?
     @State private var playlistPickerMode: PlaylistPickerSheet.Mode?
@@ -60,9 +56,7 @@ struct VideoCardView: View {
         self.onSelect = onSelect
     }
 
-    // MARK: - Shared card content (tasks + context menu)
-    // Extracted so the body can wrap it in a Button, which handles the Select button
-    // press natively.
+    // MARK: - Shared card content
 
     private var cardContent: some View {
         Group {
@@ -83,197 +77,186 @@ struct VideoCardView: View {
                 priority: .visible
             )
         }
-        .contextMenu {
-            if let channelId = video.channelId, !channelId.isEmpty {
-                Button {
-                    NotificationCenter.default.post(
-                        name: .openChannel,
-                        object: nil,
-                        userInfo: ["channelId": channelId, "channelTitle": video.channelTitle]
-                    )
-                } label: {
-                    Label("Open Channel", systemImage: AppSymbol.personRectangle)
-                }
+    }
+
+    @ViewBuilder private var contextMenuItems: some View {
+        if let channelId = video.channelId, !channelId.isEmpty {
+            Button {
+                navigator.openChannel(id: channelId)
+            } label: {
+                Label("Open Channel", systemImage: AppSymbol.personRectangle)
             }
-            if authService.isSignedIn {
-                if effectivePlaylistId == "WL" {
-                    Button(role: .destructive) {
-                        // Removal is keyed by setVideoId (the playlist-entry token), not the
-                        // video ID — see InnerTubeAPI+Social.swift's removeFromWatchLater (#122).
-                        // It's only populated when this card came from browsing the WL playlist
-                        // itself, which is the only place this button is shown.
-                        // A video saved this session may be listed before YouTube indexed it,
-                        // without its own token; use the one returned when it was saved.
-                        guard
-                            let setVideoId = video.setVideoId
-                                ?? WatchLaterMembershipStore.shared.setVideoId(for: video.id)
-                        else {
+        }
+        if authService.isSignedIn {
+            if effectivePlaylistId == "WL" {
+                Button(role: .destructive) {
+                    // Removal is keyed by setVideoId (the playlist-entry token), not the
+                    // video ID — see InnerTubeAPI+Social.swift's removeFromWatchLater (#122).
+                    // It's only populated when this card came from browsing the WL playlist
+                    // itself, which is the only place this button is shown.
+                    // A video saved this session may be listed before YouTube indexed it,
+                    // without its own token; use the one returned when it was saved.
+                    guard
+                        let setVideoId = video.setVideoId
+                            ?? WatchLaterMembershipStore.shared.setVideoId(for: video.id)
+                    else {
+                        watchLaterAlert = AlertItem(
+                            title: String(localized: "Could Not Remove"),
+                            message: String(
+                                localized: "Missing playlist entry information for \"\(video.title)\".")
+                        )
+                        return
+                    }
+                    Task {
+                        do {
+                            try await api.removeFromWatchLater(setVideoId: setVideoId)
+                            WatchLaterMembershipStore.shared.markRemoved(video.id)
+                            watchLaterAlert = AlertItem(
+                                title: String(localized: "Removed from Watch Later"),
+                                message: String(
+                                    localized: "\"\(video.title)\" was removed from your Watch Later playlist.")
+                            )
+                        } catch {
                             watchLaterAlert = AlertItem(
                                 title: String(localized: "Could Not Remove"),
-                                message: String(
-                                    localized: "Missing playlist entry information for \"\(video.title)\".")
+                                message: error.localizedDescription
                             )
-                            return
                         }
-                        Task {
-                            do {
-                                try await api.removeFromWatchLater(setVideoId: setVideoId)
-                                WatchLaterMembershipStore.shared.markRemoved(video.id)
-                                watchLaterAlert = AlertItem(
-                                    title: String(localized: "Removed from Watch Later"),
-                                    message: String(
-                                        localized: "\"\(video.title)\" was removed from your Watch Later playlist.")
-                                )
-                            } catch {
-                                watchLaterAlert = AlertItem(
-                                    title: String(localized: "Could Not Remove"),
-                                    message: error.localizedDescription
-                                )
-                            }
-                        }
-                    } label: {
-                        Label("Remove from Watch Later", systemImage: AppSymbol.watchLater)
                     }
-                } else {
-                    Button {
-                        Task {
-                            do {
-                                let setVideoId = try await api.addToWatchLater(videoId: video.id)
-                                WatchLaterMembershipStore.shared.markSaved(video, setVideoId: setVideoId)
-                                watchLaterAlert = AlertItem(
-                                    title: String(localized: "Saved to Watch Later"),
-                                    message: String(
-                                        localized: "\"\(video.title)\" was added to your Watch Later playlist.")
-                                )
-                            } catch {
-                                watchLaterAlert = AlertItem(
-                                    title: String(localized: "Could Not Save"),
-                                    message: error.localizedDescription
-                                )
-                            }
-                        }
-                    } label: {
-                        Label("Save to Watch Later", systemImage: AppSymbol.watchLater)
-                    }
-                }
-                Button {
-                    playlistPickerMode = .copy
                 } label: {
-                    Label("Copy to Playlist", systemImage: "rectangle.stack.badge.plus")
+                    Label("Remove from Watch Later", systemImage: AppSymbol.watchLater)
                 }
-                if effectivePlaylistId != nil {
-                    Button {
-                        playlistPickerMode = .move
-                    } label: {
-                        Label("Move to Playlist", systemImage: "arrow.right.circle")
+            } else {
+                Button {
+                    Task {
+                        do {
+                            let setVideoId = try await api.addToWatchLater(videoId: video.id)
+                            WatchLaterMembershipStore.shared.markSaved(video, setVideoId: setVideoId)
+                            watchLaterAlert = AlertItem(
+                                title: String(localized: "Saved to Watch Later"),
+                                message: String(
+                                    localized: "\"\(video.title)\" was added to your Watch Later playlist.")
+                            )
+                        } catch {
+                            watchLaterAlert = AlertItem(
+                                title: String(localized: "Could Not Save"),
+                                message: error.localizedDescription
+                            )
+                        }
                     }
+                } label: {
+                    Label("Save to Watch Later", systemImage: AppSymbol.watchLater)
                 }
             }
             Button {
-                Task { await CurrentQueueStore.shared.append(video) }
+                playlistPickerMode = .copy
             } label: {
-                Label("Add to Queue", systemImage: "text.badge.plus")
+                Label("Copy to Playlist", systemImage: "rectangle.stack.badge.plus")
             }
-            Button {
+            if effectivePlaylistId != nil {
+                Button {
+                    playlistPickerMode = .move
+                } label: {
+                    Label("Move to Playlist", systemImage: "arrow.right.circle")
+                }
+            }
+        }
+        Button {
+            Task { await CurrentQueueStore.shared.append(video) }
+        } label: {
+            Label("Add to Queue", systemImage: "text.badge.plus")
+        }
+        Button {
+            Task {
+                let count = await CurrentQueueStore.shared.videos.count
+                await CurrentQueueStore.shared.insertNext(video, afterIndex: count - 1)
+            }
+        } label: {
+            Label("Play Next", systemImage: "text.insert")
+        }
+        if authService.isSignedIn {
+            Button(role: .destructive) {
                 Task {
-                    let count = await CurrentQueueStore.shared.videos.count
-                    await CurrentQueueStore.shared.insertNext(video, afterIndex: count - 1)
+                    if let token = video.notInterestedToken {
+                        try? await api.sendFeedback(token: token)
+                    } else {
+                        try? await api.sendFeedbackForVideo(videoId: video.id, iconType: "NOT_INTERESTED")
+                    }
+                    NotificationCenter.default.post(
+                        name: .hideVideoFromFeed,
+                        object: nil,
+                        userInfo: ["videoId": video.id]
+                    )
                 }
             } label: {
-                Label("Play Next", systemImage: "text.insert")
+                Label("Not Interested", systemImage: "hand.raised")
             }
-            if authService.isSignedIn {
+            if let channelId = video.channelId, !channelId.isEmpty {
                 Button(role: .destructive) {
                     Task {
-                        if let token = video.notInterestedToken {
+                        if let token = video.hideChannelToken {
                             try? await api.sendFeedback(token: token)
                         } else {
-                            try? await api.sendFeedbackForVideo(videoId: video.id, iconType: "NOT_INTERESTED")
+                            try? await api.sendFeedbackForVideo(videoId: video.id, iconType: "BLOCK_CHANNEL")
                         }
+                        store.settings.blockedChannels[channelId] = video.channelTitle
                         NotificationCenter.default.post(
-                            name: .hideVideoFromFeed,
+                            name: .hideChannelFromFeed,
                             object: nil,
-                            userInfo: ["videoId": video.id]
+                            userInfo: ["channelId": channelId]
                         )
                     }
                 } label: {
-                    Label("Not Interested", systemImage: "hand.raised")
-                }
-                if let channelId = video.channelId, !channelId.isEmpty {
-                    Button(role: .destructive) {
-                        Task {
-                            if let token = video.hideChannelToken {
-                                try? await api.sendFeedback(token: token)
-                            } else {
-                                try? await api.sendFeedbackForVideo(videoId: video.id, iconType: "BLOCK_CHANNEL")
-                            }
-                            store.settings.blockedChannels[channelId] = video.channelTitle
-                            NotificationCenter.default.post(
-                                name: .hideChannelFromFeed,
-                                object: nil,
-                                userInfo: ["channelId": channelId]
-                            )
-                        }
-                    } label: {
-                        Label("Don't Recommend Channel", systemImage: "person.slash")
-                    }
+                    Label("Don't Recommend Channel", systemImage: "person.slash")
                 }
             }
-        } preview: {
-            Group {
-                if compact {
-                    compactLayout
-                } else {
-                    gridLayout
-                }
-            }
-            .padding(12)
-            .frame(width: 300)
-            .background(.background)
         }
+    }
+
+    private var contextMenuPreview: some View {
+        Group {
+            if compact {
+                compactLayout
+            } else {
+                gridLayout
+            }
+        }
+        .padding(12)
+        .frame(width: 300)
+        .background(.background)
     }
 
     // MARK: - Body
 
     var body: some View {
-        // Modifier order is critical on tvOS:
-        //
-        //   cardContent  (contains .contextMenu — handles long press)
-        //       .focusable()          — registers view with focus engine (D-pad navigation)
-        //       .onTapGesture { }     — fires on Select press (outermost → receives event first)
-        //       .focused($isFocused)  — tracks focus state (does not consume events)
-        //
-        // Why this order works:
-        // • .onTapGesture outermost → Select button press fires the action.
-        //   (.focusable() outermost broke Select because the focus engine intercepted
-        //    the primary-action event before the inner tap gesture could see it.)
-        // • .contextMenu innermost, co-located in the same modifier chain as
-        //   .onTapGesture → SwiftUI's gesture arbiter can cancel the pending tap
-        //   recogniser when it detects a long press, so long press shows the menu
-        //   without also playing the video.
-        // • .focusable() between contextMenu and onTapGesture keeps the view in the
-        //   focus engine so D-pad UP/DOWN can reach it.
-        cardContent
-            .focusable()
-            .onTapGesture { onSelect?() }
-            .focused($isFocused)
-            .onAppear { feedLog.info("[feed] id=\(self.video.id) title=\(self.video.title)") }
-            .onChange(of: isFocused) { _, newValue in
-                focusLog.info("[VideoCard] isFocused=\(newValue) id=\(self.video.id)")
-            }
-            .shadow(color: isFocused ? .white.opacity(0.9) : .clear, radius: 18, x: 0, y: 0)
-            .scaleEffect(isFocused ? 1.08 : 1.0)
-            .zIndex(isFocused ? 1 : 0)
-            .animation(.easeInOut(duration: 0.15), value: isFocused)
-            .alert(item: $watchLaterAlert) { item in
-                Alert(title: Text(item.title), message: Text(item.message), dismissButton: .default(Text("OK")))
-            }
-            .sheet(item: $playlistPickerMode) { mode in
-                PlaylistPickerSheet(
-                    mode: mode, video: video, sourcePlaylistId: effectivePlaylistId, api: api,
-                    onFinished: handlePlaylistPickerResult
-                )
-            }
+        Button {
+            onSelect?()
+        } label: {
+            cardContent
+        }
+        .buttonStyle(VideoCardButtonStyle())
+        .contextMenu {
+            contextMenuItems
+        } preview: {
+            contextMenuPreview
+        }
+        .focused($isFocused)
+        .onAppear { feedLog.info("[feed] id=\(self.video.id) title=\(self.video.title)") }
+        .onChange(of: isFocused) { _, newValue in
+            focusLog.info("[VideoCard] isFocused=\(newValue) id=\(self.video.id)")
+        }
+        .scaleEffect(isFocused ? 1.08 : 1.0)
+        .zIndex(isFocused ? 1 : 0)
+        .animation(.easeInOut(duration: 0.15), value: isFocused)
+        .alert(item: $watchLaterAlert) { item in
+            Alert(title: Text(item.title), message: Text(item.message), dismissButton: .default(Text("OK")))
+        }
+        .sheet(item: $playlistPickerMode) { mode in
+            PlaylistPickerSheet(
+                mode: mode, video: video, sourcePlaylistId: effectivePlaylistId, api: api,
+                onFinished: handlePlaylistPickerResult
+            )
+        }
     }
 
     private func handlePlaylistPickerResult(_ result: Result<PlaylistInfo, Error>) {
@@ -304,13 +287,11 @@ struct VideoCardView: View {
                         watchProgressBar(progress)
                     }
                 }
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .shadow(color: focusGlow, radius: 16)
                 .overlay(alignment: .bottomTrailing) {
                     let dur = video.formattedDuration
                     if !dur.isEmpty { durationBadge(dur) }
-                }
-                .overlay(alignment: .bottomLeading) {
-                    if let label = uploadDateLabel { durationBadge(label) }
                 }
                 .overlay(alignment: .topLeading) {
                     if video.isLive { liveBadge }
@@ -322,27 +303,19 @@ struct VideoCardView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(displayTitle)
                     .font(.subheadline.weight(.medium))
-                    .lineLimit(2, reservesSpace: true)
+                    .lineLimit(2, reservesSpace: false)
                     .accessibilityIdentifier("video.card.title")
                 Text(video.channelTitle)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
-                    .onTapGesture {
-                        guard let channelId = video.channelId, !channelId.isEmpty else { return }
-                        NotificationCenter.default.post(
-                            name: .openChannel,
-                            object: nil,
-                            userInfo: ["channelId": channelId, "channelTitle": video.channelTitle]
-                        )
-                    }
                     .accessibilityIdentifier("video.card.channelName")
-                HStack(spacing: 4) {
-                    let vc = video.formattedViewCount
-                    if !vc.isEmpty { Text(vc) }
+                if !metadataLine.isEmpty {
+                    Text(metadataLine)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
                 }
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
             }
             .padding(.horizontal, 2)
         }
@@ -354,19 +327,17 @@ struct VideoCardView: View {
     private var compactLayout: some View {
         HStack(alignment: .top, spacing: 10) {
             thumbnailView
-                .frame(width: 120, height: 68)
+                .frame(width: 120, height: 90)
                 .overlay(alignment: .bottom) {
                     if let progress = effectiveProgress, progress > 0 {
                         watchProgressBar(progress)
                     }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 6))
+                .shadow(color: focusGlow, radius: 16)
                 .overlay(alignment: .bottomTrailing) {
                     let dur = video.formattedDuration
                     if !dur.isEmpty { durationBadge(dur) }
-                }
-                .overlay(alignment: .bottomLeading) {
-                    if let label = uploadDateLabel { durationBadge(label) }
                 }
                 .overlay(alignment: .topTrailing) {
                     if WatchLaterMembershipStore.shared.contains(video.id) { watchLaterSavedBadge }
@@ -379,20 +350,12 @@ struct VideoCardView: View {
                 Text(video.channelTitle)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .onTapGesture {
-                        guard let channelId = video.channelId, !channelId.isEmpty else { return }
-                        NotificationCenter.default.post(
-                            name: .openChannel,
-                            object: nil,
-                            userInfo: ["channelId": channelId, "channelTitle": video.channelTitle]
-                        )
-                    }
                     .accessibilityIdentifier("video.card.channelName")
-                let vc = video.formattedViewCount
-                if !vc.isEmpty {
-                    Text(vc)
+                if !metadataLine.isEmpty {
+                    Text(metadataLine)
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
+                        .lineLimit(1)
                 }
             }
             Spacer(minLength: 0)
@@ -430,10 +393,8 @@ struct VideoCardView: View {
             //    2 → mqdefault.jpg  (320×180, always available — last resort)
             // High-res URLs are built from `/vi/<id>/`, so they only make sense for real
             // videos: playlist placeholder cards (Playlists section: id == playlistId) would
-            // walk the whole chain against a playlist ID and end on a grey placeholder, and
-            // Shorts would swap their portrait thumbnail for a landscape one.
-            let highRes =
-                store.settings.highResThumbnails && video.playlistId != video.id && !video.isShort
+            // walk the whole chain against a playlist ID and end on a grey placeholder.
+            let highRes = store.settings.highResThumbnails && video.playlistId != video.id
             let fallbacks = highRes ? video.highResThumbnailFallbackURLs : video.thumbnailFallbackURLs
             let url: URL? =
                 thumbnailFallbackIndex < 0
@@ -489,15 +450,25 @@ struct VideoCardView: View {
         .frame(height: 3)
     }
 
+    private var focusGlow: Color {
+        isFocused ? .white.opacity(0.25) : .clear
+    }
+
+    /// Views and upload date, e.g. "1.2M views · 2 days ago".
+    private var metadataLine: String {
+        [video.formattedViewCount, uploadDateLabel ?? ""]
+            .filter { !$0.isEmpty }
+            .joined(separator: " · ")
+    }
+
     private func durationBadge(_ text: String) -> some View {
         Text(text)
-            .font(.caption2)
-            .fontWeight(.semibold)
+            .font(.system(size: 18, weight: .semibold).monospacedDigit())
             .padding(.horizontal, 4)
             .padding(.vertical, 2)
             .background(.black.opacity(0.75))
             .foregroundStyle(.white)
-            .clipShape(RoundedRectangle(cornerRadius: 3))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
             .padding(4)
     }
 
@@ -576,17 +547,34 @@ struct VideoCardView: View {
 
 // MARK: - Preview
 
-#if DEBUG
-#Preview("Card") {
-    VideoCardView(video: PreviewData.videos[0], onSelect: {})
-        .frame(width: 420)
-        .padding()
-        .previewEnvironment()
+// MARK: - VideoCardButtonStyle
+
+/// A card's focus effect is drawn by `VideoCardView`; this only dims it while pressed.
+private struct VideoCardButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.8 : 1)
+    }
 }
 
-#Preview("Compact") {
-    VideoCardView(video: PreviewData.videos[1], compact: true, onSelect: {})
-        .padding()
-        .previewEnvironment()
+#if DEBUG
+extension VideoCardView {
+    fileprivate static func preview(_ video: Video, compact: Bool = false) -> some View {
+        VideoCardView(video: video, compact: compact, onSelect: {})
+            .frame(width: compact ? 900 : 420)
+            .padding(60)
+            .previewEnvironment()
+    }
 }
+
+#Preview("Card") { VideoCardView.preview(PreviewData.videos[0]) }
+#Preview("Card – Partly watched") { VideoCardView.preview(PreviewData.inProgressVideo) }
+#Preview("Card – Watched") { VideoCardView.preview(PreviewData.watchedVideo) }
+#Preview("Card – Live") { VideoCardView.preview(PreviewData.liveVideo) }
+#Preview("Card – Upcoming") { VideoCardView.preview(PreviewData.upcomingVideo) }
+#Preview("Card – Long title") { VideoCardView.preview(PreviewData.longTitleVideo) }
+#Preview("Card – No thumbnail") { VideoCardView.preview(PreviewData.noThumbnailVideo) }
+#Preview("Compact") { VideoCardView.preview(PreviewData.videos[0], compact: true) }
+#Preview("Compact – Partly watched") { VideoCardView.preview(PreviewData.inProgressVideo, compact: true) }
+#Preview("Compact – Long title") { VideoCardView.preview(PreviewData.longTitleVideo, compact: true) }
 #endif

@@ -58,7 +58,6 @@ public struct BrowseSection: Identifiable, Hashable, Sendable {
         case history = "history"
         case playlists = "playlists"
         case channels = "channels"
-        case shorts = "shorts"
         case music = "music"
         case news = "news"
         case gaming = "gaming"
@@ -77,7 +76,6 @@ public struct BrowseSection: Identifiable, Hashable, Sendable {
             case .history: return "History"
             case .playlists: return "Playlists"
             case .channels: return "Channels"
-            case .shorts: return "Shorts"
             case .music: return "Music"
             case .news: return "News"
             case .gaming: return "Gaming"
@@ -114,7 +112,6 @@ public struct BrowseSection: Identifiable, Hashable, Sendable {
     public static let allSections: [BrowseSection] =
         defaultSections + [
             BrowseSection(type: .recommended),
-            BrowseSection(type: .shorts),
             BrowseSection(type: .music),
             BrowseSection(type: .gaming),
             BrowseSection(type: .news),
