@@ -13,7 +13,7 @@ enum BrowseError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .timeout:
-            return "The feed took too long to load. Check your connection and try again."
+            return String(localized: "The feed took too long to load. Check your connection and try again.")
         }
     }
 }
@@ -146,7 +146,7 @@ final class BrowseViewModel {
             !videoGroups.contains(where: { $0.videos.contains { $0.id == videoId } })
         else { return }
         if videoGroups.isEmpty {
-            videoGroups = [VideoGroup(title: BrowseSection.SectionType.watchLater.defaultTitle, videos: [video])]
+            videoGroups = [VideoGroup(title: String(localized: "Watch Later"), videos: [video])]
         } else {
             videoGroups[0].videos.insert(video, at: 0)
         }
@@ -441,7 +441,7 @@ final class BrowseViewModel {
                 let videos = ids.map { Video(id: $0, title: $0, channelTitle: "Test Channel") }
                 isAuthRequired = false
                 recommendedUsesSearchFallback = false
-                videoGroups = [VideoGroup(title: "Recommended", videos: videos)]
+                videoGroups = [VideoGroup(title: String(localized: "Recommended"), videos: videos)]
                 break
             }
             let group = try await api.fetchHome()
@@ -481,7 +481,8 @@ final class BrowseViewModel {
                     isAuthRequired = false
                     let deduped = deduplicated(videos)
                         .sorted { ($0.publishedAt ?? .distantPast) > ($1.publishedAt ?? .distantPast) }
-                    videoGroups = deduped.isEmpty ? [] : [VideoGroup(title: "Subscriptions", videos: deduped)]
+                    videoGroups =
+                        deduped.isEmpty ? [] : [VideoGroup(title: String(localized: "Subscriptions"), videos: deduped)]
                 }
             }
 
@@ -500,7 +501,7 @@ final class BrowseViewModel {
             let remote: VideoGroup? = try? await api.fetchHistory()
             if !Task.isCancelled {
                 let localIds = Set(local.map(\.id))
-                var group = remote ?? VideoGroup(title: "History", videos: [])
+                var group = remote ?? VideoGroup(title: String(localized: "History"), videos: [])
                 group.videos = local + group.videos.filter { !localIds.contains($0.id) }
                 isAuthRequired = group.videos.isEmpty
                 videoGroups = group.videos.isEmpty ? [] : [group]
@@ -513,10 +514,11 @@ final class BrowseViewModel {
                 // Convert PlaylistInfo list into a VideoGroup of placeholder videos
                 let videos = playlists.map { pl -> Video in
                     Video(
-                        id: pl.id, title: pl.title, channelTitle: pl.videoCount.map { "\($0) videos" } ?? "",
+                        id: pl.id, title: pl.title,
+                        channelTitle: pl.videoCount.map { String(localized: "\($0) videos") } ?? "",
                         thumbnailURL: pl.thumbnailURL, playlistId: pl.id)
                 }
-                videoGroups = videos.isEmpty ? [] : [VideoGroup(title: "Playlists", videos: videos)]
+                videoGroups = videos.isEmpty ? [] : [VideoGroup(title: String(localized: "Playlists"), videos: videos)]
             }
 
         case .music:

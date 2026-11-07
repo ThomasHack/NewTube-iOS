@@ -25,7 +25,7 @@ struct SettingsPINLockView: View {
                 errorMessage = nil
                 onUnlock()
             } else {
-                errorMessage = "Incorrect PIN"
+                errorMessage = String(localized: "Incorrect PIN")
             }
         }
         .accessibilityIdentifier("settingsPINLock")

@@ -404,7 +404,7 @@ final class PlaybackQualityManager {
             playerLog.notice("[quality] rqh=1 detected in DASH URL — skipping doomed rebuild, reverting to Auto")
             selectedFormat = nil
             pendingQualityLabel = ""
-            delegate?.toastMessage = "Quality unavailable (CDN restriction)"
+            delegate?.toastMessage = String(localized: "Quality unavailable (CDN restriction)")
             return
         }
 

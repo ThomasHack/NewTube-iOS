@@ -263,18 +263,21 @@ public enum APIError: LocalizedError {
     /// will not succeed — the user must authenticate first.
     case signInRequired
 
+    /// Translations live in the app's string catalog, hence the main bundle.
     public var errorDescription: String? {
         switch self {
-        case .httpError(let code): return "HTTP error \(code)"
+        case .httpError(let code): return String(localized: "HTTP error \(code)", bundle: .main)
         case .decodingError(let msg): return "Decoding error: \(msg)"
-        case .notAuthenticated: return "You are not signed in"
+        case .notAuthenticated: return String(localized: "You are not signed in", bundle: .main)
         case .unavailable(let reason): return reason
         case .invalidURL(let endpoint): return "Could not build URL for endpoint: \(endpoint)"
         case .ipBlocked:
-            return
-                "YouTube is temporarily blocking this network. Disable your VPN, try a different VPN server, or wait a few minutes and retry."
+            return String(
+                localized:
+                    "YouTube is temporarily blocking this network. Disable your VPN, try a different VPN server, or wait a few minutes and retry.",
+                bundle: .main)
         case .signInRequired:
-            return "This video is age-restricted or requires sign in to watch."
+            return String(localized: "This video is age-restricted or requires sign in to watch.", bundle: .main)
         }
     }
 }

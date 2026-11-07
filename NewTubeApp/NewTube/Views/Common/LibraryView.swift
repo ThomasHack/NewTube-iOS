@@ -189,7 +189,7 @@ struct LibraryView: View {
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .foregroundStyle(.primary)
-                Text("\(queueVideosCount) video\(queueVideosCount == 1 ? "" : "s")")
+                Text("\(queueVideosCount) videos")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -202,7 +202,7 @@ struct LibraryView: View {
         .padding(.vertical, 10)
         .contentShape(Rectangle())
         .onTapGesture {
-            navigator.openPlaylist(id: CurrentQueueStore.playlistID, title: "Current Queue")
+            navigator.openPlaylist(id: CurrentQueueStore.playlistID, title: String(localized: "Current Queue"))
         }
         .accessibilityIdentifier("library.currentQueueRow")
         Divider().padding(.horizontal)
@@ -237,12 +237,21 @@ struct LibraryView: View {
         }
     }
 
+    private var segmentSignInTitle: LocalizedStringKey {
+        switch selectedSection {
+        case .subscriptions: "Sign in to see your subscriptions"
+        case .history: "Sign in to see your history"
+        case .playlists: "Sign in to see your playlists"
+        case .rss: "Sign in to see your RSS feeds"
+        }
+    }
+
     private var segmentSignInPrompt: some View {
         VStack(spacing: 16) {
             Image(systemName: AppSymbol.personCircleQuestion)
                 .font(.system(size: 60))
                 .foregroundStyle(.secondary)
-            Text("Sign in to see your \(selectedSection.rawValue.lowercased())")
+            Text(segmentSignInTitle)
                 .font(.headline)
                 .foregroundStyle(.secondary)
             Button("Sign In") { showSignIn = true }

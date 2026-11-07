@@ -10,8 +10,8 @@ import SwiftUI
 // focus engine; this reads exactly like every other tvOS/iOS PIN pad).
 
 struct PINKeypadView: View {
-    let title: String
-    var subtitle: String?
+    let title: LocalizedStringKey
+    var subtitle: LocalizedStringKey?
     var errorMessage: String?
     /// Fired once exactly `pinLength` digits have been entered. The caller is
     /// responsible for calling `clear()` (via the returned reset) if the PIN was wrong.

@@ -173,7 +173,7 @@ extension PlaybackViewModel {
             // Live toggle: keep overlay showing with HLS audio underneath.
             // Don't reset isAudioOnlyMode — the user's preference stays.
             audioOnlyLog.notice("Audio-only: all attempts failed (live toggle) — overlay stays, HLS audio continues")
-            toastMessage = "Audio-only stream unavailable — showing thumbnail"
+            toastMessage = String(localized: "Audio-only stream unavailable — showing thumbnail")
         } else {
             // New video load: silently fall back to HLS video.
             audioOnlyLog.notice("Audio-only: all attempts failed, falling back to HLS")

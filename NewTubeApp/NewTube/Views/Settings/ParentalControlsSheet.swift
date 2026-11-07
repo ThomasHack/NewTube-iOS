@@ -56,7 +56,7 @@ struct ParentalControlsSheet: View {
                 errorMessage: errorMessage
             ) { pin in
                 guard SettingsPINHasher.hash(pin) == store.settings.settingsPINHash else {
-                    errorMessage = "Incorrect PIN"
+                    errorMessage = String(localized: "Incorrect PIN")
                     return
                 }
                 errorMessage = nil
@@ -88,7 +88,7 @@ struct ParentalControlsSheet: View {
                 errorMessage: errorMessage
             ) { pin in
                 guard pin == firstPIN else {
-                    errorMessage = "PINs didn't match. Try again."
+                    errorMessage = String(localized: "PINs didn't match. Try again.")
                     step = .enterNew
                     return
                 }

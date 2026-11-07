@@ -2,9 +2,6 @@
 
 Remove an item when it's done.
 
-## Localization
-- [ ] Translate "Default Quality" in Settings, which stays English in German.
-
 ## Cleanup
 - [ ] Delete `yt.solver.lib.min.js` and `yt.solver.core.min.js` from `NewTubeApp/NewTube/Resources/`
   if they're confirmed unused. No code references them, but they still ship in the app.

@@ -74,7 +74,7 @@ struct AddRSSFeedView: View {
         guard let url = URL(string: trimmedURL),
             url.scheme == "https" || url.scheme == "http"
         else {
-            errorMessage = "Please enter a valid https URL."
+            errorMessage = String(localized: "Please enter a valid https URL.")
             return
         }
 

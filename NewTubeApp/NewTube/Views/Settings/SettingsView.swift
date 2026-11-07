@@ -241,7 +241,7 @@ struct SettingsView: View {
                         )
                     ) {
                         Text("Skip").tag(AppSettings.SponsorBlockAction.skip)
-                        Text("Show Toast").tag(AppSettings.SponsorBlockAction.showToast)
+                        Text("Show Skip Button").tag(AppSettings.SponsorBlockAction.showToast)
                         Text("Nothing").tag(AppSettings.SponsorBlockAction.nothing)
                     } icon: {
                         Circle()
@@ -381,7 +381,7 @@ struct SponsorBlockExcludedChannelsView: View {
                     "No Excluded Channels",
                     systemImage: "person.crop.circle.badge.minus",
                     description: Text(
-                        "Open a channel and tap \u{201C}Exclude from SponsorBlock\u{201D} to add it here.")
+                        "Open a channel and select \u{201C}Exclude from SponsorBlock\u{201D} to add it here.")
                 )
             } else {
                 ForEach(sortedChannels, id: \.key) { channelId, title in
