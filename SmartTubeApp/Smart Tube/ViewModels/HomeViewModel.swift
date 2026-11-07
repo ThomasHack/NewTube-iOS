@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import SmartTubeCore
 import os
 
 private let homeLog = AppLogger(category: "Home")
@@ -11,42 +12,42 @@ private let homeLog = AppLogger(category: "Home")
 
 @MainActor
 @Observable
-public final class HomeViewModel {
+final class HomeViewModel {
 
     // MARK: - Section state
 
-    public struct SectionState: Identifiable {
-        public let section: BrowseSection
-        public var videos: [Video] = []
-        public var isLoading: Bool = true
-        public var isLoadingMore: Bool = false
-        public var hasFailed: Bool = false
-        public var nextPageToken: String? = nil
-        public var id: String { section.id }
+    struct SectionState: Identifiable {
+        let section: BrowseSection
+        var videos: [Video] = []
+        var isLoading: Bool = true
+        var isLoadingMore: Bool = false
+        var hasFailed: Bool = false
+        var nextPageToken: String? = nil
+        var id: String { section.id }
     }
 
     // MARK: - State
 
-    public private(set) var sections: [SectionState]
+    private(set) var sections: [SectionState]
     /// Shorts fetched explicitly via FEshorts (TV home feed never includes them).
-    public private(set) var shortsVideos: [Video] = []
+    private(set) var shortsVideos: [Video] = []
     /// Continuation token from the last FEshorts fetch; used by loadMoreShortsIfNeeded.
     private var shortsNextPageToken: String? = nil
     private var isLoadingMoreShorts: Bool = false
     /// Background cascade started after `load()` finishes; keeps paging Shorts
     /// content toward `preloadMoreShorts`'s threshold. Cancelled on the next `load()`.
     private var shortsPreloadTask: Task<Void, Never>? = nil
-    public private(set) var isRefreshing: Bool = false
+    private(set) var isRefreshing: Bool = false
     /// Timestamp of the last successful load. Used for staleness checks.
-    public private(set) var loadedAt: Date? = nil
+    private(set) var loadedAt: Date? = nil
     /// Frozen snapshot of the interleaved home feed. Updated once both sections
     /// finish loading (avoiding mid-load rearrangement). Appended to during
     /// pagination without ever reordering existing items.
-    public private(set) var mergedVideos: [Video] = []
+    private(set) var mergedVideos: [Video] = []
 
     // MARK: - Shelf definitions (in display order)
 
-    public static let shelfSections: [BrowseSection] = [
+    static let shelfSections: [BrowseSection] = [
         BrowseSection(id: BrowseSection.SectionType.home.rawValue, title: "Recommended", type: .home),
         BrowseSection(
             id: BrowseSection.SectionType.subscriptions.rawValue, title: "Subscriptions", type: .subscriptions),
@@ -58,7 +59,7 @@ public final class HomeViewModel {
 
     /// `true` while either the recommended or subscriptions section is still on
     /// its initial load (no videos yet).  Used by the view to show a spinner.
-    public var isLoadingAny: Bool {
+    var isLoadingAny: Bool {
         sections.contains { $0.isLoading }
     }
 
@@ -127,7 +128,7 @@ public final class HomeViewModel {
 
     /// Non-Short videos from the interleaved home feed.
     /// Used by `homeShelves` to populate the main grid (Shorts are shown separately).
-    public var homeRegularVideos: [Video] { mergedVideos.filter { !$0.isShort } }
+    var homeRegularVideos: [Video] { mergedVideos.filter { !$0.isShort } }
 
     /// Short videos for the dedicated Shorts row.
     /// Sources (in priority order, deduplicated by video ID):
@@ -135,7 +136,7 @@ public final class HomeViewModel {
     ///  2. Subscriptions section shorts — pulled directly from the full subs list so
     ///     they are not lost to the home/subs interleave ratio in `mergedVideos`
     ///  3. `mergedVideos` shorts — catches any shorts from the home-rec feed
-    public var homeShortsVideos: [Video] {
+    var homeShortsVideos: [Video] {
         guard showsShorts else { return [] }
         let subsShorts = sections.first { $0.section.type == .subscriptions }?.videos.filter { $0.isShort } ?? []
         var seen = Set<String>()
@@ -156,7 +157,7 @@ public final class HomeViewModel {
     /// When `false`, Shorts are neither fetched nor shown.
     private let showsShorts: Bool
 
-    public init(
+    init(
         api: any InnerTubeAPIProtocol = InnerTubeAPI(),
         showsShorts: Bool = ShortsFeedPolicy.showsInHomeFeeds
     ) {
@@ -192,14 +193,14 @@ public final class HomeViewModel {
             })
     }
 
-    public func removeVideo(id: String) {
+    func removeVideo(id: String) {
         for i in sections.indices {
             sections[i].videos.removeAll { $0.id == id }
         }
         mergedVideos.removeAll { $0.id == id }
     }
 
-    public func removeChannel(id: String) {
+    func removeChannel(id: String) {
         for i in sections.indices {
             sections[i].videos.removeAll { $0.channelId == id }
         }
@@ -210,7 +211,7 @@ public final class HomeViewModel {
     /// Shorts preload loop, and the feed-hide notification observers). Callers
     /// that create short-lived `HomeViewModel` instances — e.g. tests — should
     /// call this when done to avoid orphaned tasks bleeding state into later use.
-    public func cancel() {
+    func cancel() {
         loadTask?.cancel()
         shortsPreloadTask?.cancel()
         hideObserverTasks.forEach { $0.cancel() }
@@ -218,7 +219,7 @@ public final class HomeViewModel {
 
     // MARK: - Public API
 
-    public func load() {
+    func load() {
         loadTask?.cancel()
         shortsPreloadTask?.cancel()
         loadedAt = nil
@@ -290,7 +291,7 @@ public final class HomeViewModel {
         }
     }
 
-    public func updateAuthToken(_ token: String?) async {
+    func updateAuthToken(_ token: String?) async {
         let wasAuthenticated = hasAuthToken
         hasAuthToken = token != nil
         await api.setAuthToken(token)
@@ -304,7 +305,7 @@ public final class HomeViewModel {
 
     /// Refreshes both shelves if the last successful load was more than
     /// `threshold` seconds ago (default 15 min). No-op while loading.
-    public func refreshIfStale(threshold: TimeInterval = 15 * 60) {
+    func refreshIfStale(threshold: TimeInterval = 15 * 60) {
         guard !isRefreshing else { return }
         let age = loadedAt.map { Date().timeIntervalSince($0) } ?? .infinity
         guard age > threshold else { return }
@@ -315,7 +316,7 @@ public final class HomeViewModel {
 
     // MARK: - Pagination
 
-    public func loadMore(sectionId: String) {
+    func loadMore(sectionId: String) {
         guard let idx = sections.firstIndex(where: { $0.id == sectionId }),
             let token = sections[idx].nextPageToken,
             !sections[idx].isLoadingMore,
@@ -354,7 +355,7 @@ public final class HomeViewModel {
     /// Called by the merged home feed when the user scrolls near the bottom.
     /// Pages both the recommended and subscriptions sections simultaneously so
     /// the interleaved list keeps growing evenly.
-    public func loadMoreMerged() {
+    func loadMoreMerged() {
         for state in sections where state.section.type == .home || state.section.type == .subscriptions {
             loadMore(sectionId: state.id)
         }
@@ -363,7 +364,7 @@ public final class HomeViewModel {
     /// Called by the view when the user scrolls to the last card in the Shorts row.
     /// Loads the next page unconditionally — no minimum-count threshold — so the row
     /// grows on demand as the user scrolls past the already-loaded cards.
-    public func loadNextShortsPage() {
+    func loadNextShortsPage() {
         guard showsShorts else { return }
         let subsToken = sections.first { $0.section.type == .subscriptions }?.nextPageToken
         homeLog.notice(

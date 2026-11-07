@@ -13,7 +13,7 @@ private let retryLog = AppLogger(category: "RetryWithBackoff")
 /// SearchViewModel, PlaylistViewModel, ChannelViewModel) to survive brief
 /// network interruptions without dropping the user's scroll position.
 @discardableResult
-func retryWithBackoff<T>(
+public func retryWithBackoff<T>(
     label: String = "",
     maxAttempts: Int = 3,
     initialDelay: TimeInterval = 1.0,

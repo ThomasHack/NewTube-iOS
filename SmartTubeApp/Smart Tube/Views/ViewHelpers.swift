@@ -130,3 +130,15 @@ enum AppSymbol {
     static let tvMediabox = "tv.and.mediabox"
     static let tvPlay = "play.tv"
 }
+
+// MARK: - AppSettings.ThemeName + SwiftUI
+
+extension AppSettings.ThemeName {
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: return nil
+        case .dark: return .dark
+        case .light: return .light
+        }
+    }
+}

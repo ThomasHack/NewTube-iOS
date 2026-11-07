@@ -112,6 +112,26 @@ struct CurrentQueueStoreTests {
         #expect(await store.videos[2].id == "aaa11111111")
     }
 
+    @Test("move(from:to:) keeps source order when moving several videos backwards")
+    func moveSeveralBackwards() async {
+        let store = makeStore()
+        for id in ["aaa11111111", "bbb22222222", "ccc33333333", "ddd44444444"] {
+            await store.append(makeVideo(id: id))
+        }
+        await store.move(from: IndexSet([1, 3]), to: 0)
+        #expect(await store.videos.map(\.id) == ["bbb22222222", "ddd44444444", "aaa11111111", "ccc33333333"])
+    }
+
+    @Test("move(from:to:) accounts for moved videos before the destination")
+    func moveSeveralForwards() async {
+        let store = makeStore()
+        for id in ["aaa11111111", "bbb22222222", "ccc33333333", "ddd44444444"] {
+            await store.append(makeVideo(id: id))
+        }
+        await store.move(from: IndexSet([0, 2]), to: 3)
+        #expect(await store.videos.map(\.id) == ["bbb22222222", "aaa11111111", "ccc33333333", "ddd44444444"])
+    }
+
     // MARK: - clear
 
     @Test("clear() empties the queue")

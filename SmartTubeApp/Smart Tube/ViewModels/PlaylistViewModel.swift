@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import SmartTubeCore
 import os
 
 private let playlistLog = AppLogger(category: "Playlist")
@@ -10,15 +11,14 @@ private let playlistLog = AppLogger(category: "Playlist")
 // The default adapter (`CurrentQueuePlaylistLoader`) delegates to the store;
 // tests inject a mock that returns controlled video arrays.
 
-public protocol QueuedPlaylistLoader: Sendable {
+protocol QueuedPlaylistLoader: Sendable {
     /// Returns the current play-queue videos tagged with playlist metadata,
     /// or `nil` if the given playlist ID is not the play queue.
     func loadQueuedVideos(for playlistId: String) async -> [Video]?
 }
 
-public struct CurrentQueuePlaylistLoader: QueuedPlaylistLoader {
-    public init() {}
-    public func loadQueuedVideos(for playlistId: String) async -> [Video]? {
+struct CurrentQueuePlaylistLoader: QueuedPlaylistLoader {
+    func loadQueuedVideos(for playlistId: String) async -> [Video]? {
         guard playlistId == CurrentQueueStore.playlistID else { return nil }
         let videos = await CurrentQueueStore.shared.videos
         return videos.enumerated().map { index, v in
@@ -37,10 +37,10 @@ public struct CurrentQueuePlaylistLoader: QueuedPlaylistLoader {
 
 @MainActor
 @Observable
-public final class PlaylistViewModel {
-    public private(set) var videos: [Video] = []
-    public private(set) var isLoading = false
-    public var error: Error?
+final class PlaylistViewModel {
+    private(set) var videos: [Video] = []
+    private(set) var isLoading = false
+    var error: Error?
 
     private var playlistId: String = ""
     private var nextPageToken: String?
@@ -49,7 +49,7 @@ public final class PlaylistViewModel {
     private let queueLoader: any QueuedPlaylistLoader
     private var hideObserverTasks: [Task<Void, Never>] = []
 
-    public init(
+    init(
         api: any InnerTubeAPIProtocol = InnerTubeAPI(),
         queueLoader: any QueuedPlaylistLoader = CurrentQueuePlaylistLoader()
     ) {
@@ -58,7 +58,7 @@ public final class PlaylistViewModel {
         observeFeedHideNotifications()
     }
 
-    public func load(playlistId: String, refresh: Bool = false) {
+    func load(playlistId: String, refresh: Bool = false) {
         // ── Queue short-circuit ────────────────────────────────────────────────
         // Delegates to `queueLoader` so this ViewModel is not coupled to
         // CurrentQueueStore's concrete type or magic playlist ID.
@@ -83,7 +83,7 @@ public final class PlaylistViewModel {
         }
     }
 
-    public func loadMoreIfNeeded(lastVideo: Video) {
+    func loadMoreIfNeeded(lastVideo: Video) {
         guard let last = videos.last, last.id == lastVideo.id,
             nextPageToken != nil, !isLoading
         else { return }

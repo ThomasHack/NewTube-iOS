@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 
+@testable import SmartTube
 @testable import SmartTubeCore
 
 // MARK: - SearchAsYouTypeTests

@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import SmartTubeCore
 
 // MARK: - SearchViewModel
 //
@@ -7,15 +8,15 @@ import Observation
 
 @MainActor
 @Observable
-public final class SearchViewModel {
+final class SearchViewModel {
 
-    public var query: String = ""
-    public var filter: SearchFilter = .default
-    public private(set) var results: [Video] = []
-    public private(set) var suggestions: [String] = []
-    public private(set) var history: [SearchHistoryEntry] = []
-    public private(set) var isLoading: Bool = false
-    public var error: Error?
+    var query: String = ""
+    var filter: SearchFilter = .default
+    private(set) var results: [Video] = []
+    private(set) var suggestions: [String] = []
+    private(set) var history: [SearchHistoryEntry] = []
+    private(set) var isLoading: Bool = false
+    var error: Error?
 
     private let api: any InnerTubeAPIProtocol
     private let historyStore: SearchHistoryStore
@@ -26,7 +27,7 @@ public final class SearchViewModel {
     /// The query the current `results` belong to.
     private var lastSearchedQuery: String?
 
-    public static let searchAsYouTypeDebounce: Duration = .milliseconds(500)
+    static let searchAsYouTypeDebounce: Duration = .milliseconds(500)
 
     private static let recommendedTerms: [String] = [
         "trending videos", "music 2025", "cooking recipes", "travel vlog",
@@ -34,7 +35,7 @@ public final class SearchViewModel {
         "documentary", "gaming highlights",
     ]
 
-    public init(api: any InnerTubeAPIProtocol = InnerTubeAPI(), historyStore: SearchHistoryStore = .shared) {
+    init(api: any InnerTubeAPIProtocol = InnerTubeAPI(), historyStore: SearchHistoryStore = .shared) {
         self.api = api
         self.historyStore = historyStore
         suggestions = Self.recommendedTerms
@@ -44,7 +45,7 @@ public final class SearchViewModel {
 
     /// `true` while the current query has text but its search hasn't started yet (it's
     /// still in the debounce window), so the UI can show progress instead of "no results".
-    public var isAwaitingSearch: Bool {
+    var isAwaitingSearch: Bool {
         let trimmed = trimmedQuery
         return !trimmed.isEmpty && trimmed != lastSearchedQuery
     }
@@ -55,7 +56,7 @@ public final class SearchViewModel {
 
     /// Call from `.task(id: query)` in the view to debounce live suggestions.
     /// When `q` is empty, restores the recommended terms immediately.
-    public func updateSuggestions(for q: String) async {
+    func updateSuggestions(for q: String) async {
         print("[Suggestions] updateSuggestions called, q='\(q)'")
         if q.isEmpty {
             print("[Suggestions] Empty query — restoring recommendedTerms")
@@ -70,7 +71,7 @@ public final class SearchViewModel {
         fetchSuggestions(for: q)
     }
 
-    public func search() {
+    func search() {
         let trimmed = trimmedQuery
         guard !trimmed.isEmpty else { return }
         startSearch(trimmed)
@@ -82,7 +83,7 @@ public final class SearchViewModel {
     /// The tvOS search keyboard has no reliable submit action, so results follow the text as
     /// it's typed. Partial queries aren't added to history; call `recordCurrentSearch()` once
     /// the user acts on a result.
-    public func searchAsYouType(debounce: Duration = searchAsYouTypeDebounce) async {
+    func searchAsYouType(debounce: Duration = searchAsYouTypeDebounce) async {
         let trimmed = trimmedQuery
         guard !trimmed.isEmpty else {
             clearResults()
@@ -96,7 +97,7 @@ public final class SearchViewModel {
     }
 
     /// Adds the current query to history.
-    public func recordCurrentSearch() async {
+    func recordCurrentSearch() async {
         let trimmed = trimmedQuery
         guard !trimmed.isEmpty else { return }
         await recordSearch(trimmed)
@@ -121,7 +122,7 @@ public final class SearchViewModel {
     // MARK: - History management
 
     /// Loads history from the store into the published `history` property.
-    public func loadHistory() async {
+    func loadHistory() async {
         history = await historyStore.all
     }
 
@@ -132,7 +133,7 @@ public final class SearchViewModel {
     }
 
     /// Clears all history entries.
-    public func clearHistory() {
+    func clearHistory() {
         Task {
             await historyStore.clear()
             history = await historyStore.all
@@ -140,7 +141,7 @@ public final class SearchViewModel {
     }
 
     /// Apply a new filter and re-run the current search immediately.
-    public func applyFilter(_ newFilter: SearchFilter) {
+    func applyFilter(_ newFilter: SearchFilter) {
         filter = newFilter
         guard !query.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         results = []
@@ -149,7 +150,7 @@ public final class SearchViewModel {
         searchTask = Task { await performSearch(query: query, filter: filter) }
     }
 
-    public func loadMore() {
+    func loadMore() {
         guard let token = nextPageToken, !isLoading else { return }
         searchTask = Task { await performSearch(query: query, continuationToken: token, filter: filter) }
     }
@@ -218,27 +219,27 @@ public final class SearchViewModel {
 
 @MainActor
 @Observable
-public final class ChannelViewModel {
+final class ChannelViewModel {
 
-    public private(set) var channel: Channel?
+    private(set) var channel: Channel?
     /// The channel's Videos tab, newest first. This is the only list that pages.
-    public private(set) var videos: [Video] = []
+    private(set) var videos: [Video] = []
     /// Shorts from the channel's Home tab. The Videos tab does not list Shorts, so they come
     /// from the Home shelf and are not paged.
-    public private(set) var shorts: [Video] = []
-    public private(set) var isLoading: Bool = false
-    public var error: Error?
+    private(set) var shorts: [Video] = []
+    private(set) var isLoading: Bool = false
+    var error: Error?
 
     private let api: any InnerTubeAPIProtocol
     private var nextPageToken: String?
     private var hideObserverTasks: [Task<Void, Never>] = []
 
-    public init(api: any InnerTubeAPIProtocol = InnerTubeAPI()) {
+    init(api: any InnerTubeAPIProtocol = InnerTubeAPI()) {
         self.api = api
         observeFeedHideNotifications()
     }
 
-    public func load(channelId: String) {
+    func load(channelId: String) {
         Task { await loadAsync(channelId: channelId) }
     }
 
@@ -269,7 +270,7 @@ public final class ChannelViewModel {
         }
     }
 
-    public func loadMore() {
+    func loadMore() {
         Task { await loadMoreAsync() }
     }
 

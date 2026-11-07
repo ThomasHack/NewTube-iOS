@@ -1,15 +1,16 @@
 import Foundation
 import Observation
+import SmartTubeCore
 import os
 
 private let browseLog = AppLogger(category: "Browse")
 
 // MARK: - BrowseError
 
-public enum BrowseError: LocalizedError {
+enum BrowseError: LocalizedError {
     case timeout
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .timeout:
             return "The feed took too long to load. Check your connection and try again."
@@ -23,31 +24,31 @@ public enum BrowseError: LocalizedError {
 
 @MainActor
 @Observable
-public final class BrowseViewModel {
+final class BrowseViewModel {
 
     // MARK: - State
 
-    public private(set) var sections: [BrowseSection] = BrowseSection.defaultSections
-    public private(set) var currentSection: BrowseSection = BrowseSection.defaultSections[0]
-    public private(set) var videoGroups: [VideoGroup] = []
+    private(set) var sections: [BrowseSection] = BrowseSection.defaultSections
+    private(set) var currentSection: BrowseSection = BrowseSection.defaultSections[0]
+    private(set) var videoGroups: [VideoGroup] = []
     /// Populated when the current section is `.channels`; empty for all other sections.
-    public private(set) var subscribedChannels: [Channel] = []
-    public private(set) var isLoading: Bool = false
+    private(set) var subscribedChannels: [Channel] = []
+    private(set) var isLoading: Bool = false
     /// True while a pagination (loadMore) request is in flight. Distinct from `isLoading`,
     /// which covers the initial/refresh fetch. Keeping these separate prevents the preload
     /// cache work that follows the initial fetch from blocking subsequent loadMore calls.
     private var isLoadingMore: Bool = false
-    public var error: Error?
+    var error: Error?
     /// True when the current section requires authentication and the user is not signed in.
-    public private(set) var isAuthRequired: Bool = false
+    private(set) var isAuthRequired: Bool = false
     /// Shorts fetched from FEshorts for the Recommended section.
     /// Always empty for all other sections.
-    public private(set) var recommendedShortsVideos: [Video] = []
+    private(set) var recommendedShortsVideos: [Video] = []
     /// When `false`, the Recommended section neither fetches nor shows Shorts.
-    public let showsRecommendedShorts: Bool
+    let showsRecommendedShorts: Bool
     /// Timestamp of the last successful content fetch for the current section.
     /// Used to detect stale feeds after the app returns from background.
-    public private(set) var loadedAt: Date? = nil
+    private(set) var loadedAt: Date? = nil
 
     // MARK: - Dependencies
 
@@ -71,7 +72,7 @@ public final class BrowseViewModel {
     private var hasAuthToken: Bool = false
     private var hideObserverTasks: [Task<Void, Never>] = []
 
-    public init(
+    init(
         api: any InnerTubeAPIProtocol = InnerTubeAPI(), initialSection: BrowseSection? = nil,
         localHistory: LocalWatchHistoryStore = .shared,
         watchLaterMembership: WatchLaterMembershipStore = .shared,
@@ -124,7 +125,7 @@ public final class BrowseViewModel {
             })
     }
 
-    public func removeVideo(id: String) {
+    func removeVideo(id: String) {
         for i in videoGroups.indices {
             videoGroups[i].videos.removeAll { $0.id == id }
         }
@@ -148,7 +149,7 @@ public final class BrowseViewModel {
         }
     }
 
-    public func removeChannel(id: String) {
+    func removeChannel(id: String) {
         for i in videoGroups.indices {
             videoGroups[i].videos.removeAll { $0.channelId == id }
         }
@@ -156,7 +157,7 @@ public final class BrowseViewModel {
 
     // MARK: - Section selection
 
-    public func select(section: BrowseSection) {
+    func select(section: BrowseSection) {
         guard section != currentSection else {
             browseLog.notice("select: already on section \(section.title) — ignored")
             return
@@ -169,7 +170,7 @@ public final class BrowseViewModel {
 
     /// Reloads the given section unconditionally, bypassing the same-section guard in `select`.
     /// Use this to retry a failed/empty fetch or to recover from an observation gap.
-    public func reload(section: BrowseSection) {
+    func reload(section: BrowseSection) {
         browseLog.notice("reload: forcing refresh of \(section.title)")
         currentSection = section
         loadContent(for: section, refresh: true, source: "reload")
@@ -177,7 +178,7 @@ public final class BrowseViewModel {
 
     /// Rebuilds the visible sections list from settings.
     /// Call this when AppSettings.enabledSections changes.
-    public func configureSections(_ enabledTypes: [BrowseSection.SectionType]) {
+    func configureSections(_ enabledTypes: [BrowseSection.SectionType]) {
         let allSections = BrowseSection.allSections
         let ordered = enabledTypes.compactMap { type in allSections.first { $0.type == type } }
         sections = ordered.isEmpty ? BrowseSection.defaultSections : ordered
@@ -189,7 +190,7 @@ public final class BrowseViewModel {
 
     // MARK: - Loading
 
-    public func loadContent(for section: BrowseSection? = nil, refresh: Bool = false, source: String = "unknown") {
+    func loadContent(for section: BrowseSection? = nil, refresh: Bool = false, source: String = "unknown") {
         let target = section ?? currentSection
         let chCount = subscribedChannels.count
         let vCount = videoGroups.flatMap(\.videos).count
@@ -244,7 +245,7 @@ public final class BrowseViewModel {
         fetchTask = Task { await fetchSection(target) }
     }
 
-    public func loadMoreIfNeeded(lastVideo: Video) {
+    func loadMoreIfNeeded(lastVideo: Video) {
         // Use `contains` instead of `==` on the raw last video: when "Hide Shorts" is on,
         // the caller's last visible video may not be the raw last video (the raw last video
         // might be a Short that was filtered out). The user has reached the end of filtered
@@ -269,7 +270,7 @@ public final class BrowseViewModel {
 
     /// Refreshes the current section's feed if the last successful fetch was more than
     /// `threshold` seconds ago (default 15 min). No-op while a fetch is already in flight.
-    public func refreshIfStale(threshold: TimeInterval = 15 * 60) {
+    func refreshIfStale(threshold: TimeInterval = 15 * 60) {
         guard !isLoading else { return }
         let age = loadedAt.map { Date().timeIntervalSince($0) } ?? .infinity
         guard age > threshold else { return }
@@ -280,7 +281,7 @@ public final class BrowseViewModel {
     }
 
     /// Update whether history is enabled. If currently on the history section, reloads it.
-    public func updateHistoryEnabled(_ enabled: Bool) {
+    func updateHistoryEnabled(_ enabled: Bool) {
         guard historyEnabled != enabled else { return }
         historyEnabled = enabled
         if currentSection.type == .history {
@@ -292,7 +293,7 @@ public final class BrowseViewModel {
 
     /// Triggers a content reload when auth state changes.
     /// Sets the token on the API first so that the fetch always runs authenticated.
-    public func updateAuthToken(_ token: String?) async {
+    func updateAuthToken(_ token: String?) async {
         let wasAuthenticated = hasAuthToken
         hasAuthToken = token != nil
         await api.setAuthToken(token)

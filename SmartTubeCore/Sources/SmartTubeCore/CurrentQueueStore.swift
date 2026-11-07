@@ -72,7 +72,11 @@ public actor CurrentQueueStore: UserDefaultsBackedStore {
 
     /// Moves a video — same semantics as `Array.move(fromOffsets:toOffset:)` used by SwiftUI List.
     public func move(from source: IndexSet, to destination: Int) {
-        videos.move(fromOffsets: source, toOffset: destination)
+        var reordered = videos.enumerated().filter { !source.contains($0.offset) }.map(\.element)
+        reordered.insert(
+            contentsOf: source.map { videos[$0] },
+            at: destination - source.count(in: 0..<destination))
+        videos = reordered
         persist()
     }
 
