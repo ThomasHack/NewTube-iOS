@@ -39,6 +39,11 @@ final class SponsorBlockSkipManager {
     private var lastCheckedTime: TimeInterval?
     /// Time observer ticks are 0.5 s apart, which is 1 s of video at 2× speed. A larger step is a seek.
     private static let maxPlaybackStep: TimeInterval = 2.5
+    /// The skip button takes the remote's focus, so nothing can scrub while it's visible. Like Skip
+    /// Intro, it goes away after a moment of playback.
+    static let skipButtonDuration: TimeInterval = 5
+    private var skipButtonSegmentID: UUID?
+    private var skipButtonShownAt: TimeInterval = 0
 
     // MARK: - Dependencies
 
@@ -57,6 +62,7 @@ final class SponsorBlockSkipManager {
         isSkippingSegment = false
         handledSegmentIDs = []
         lastCheckedTime = nil
+        skipButtonSegmentID = nil
     }
 
     /// Called from the time observer. Handles per-category actions:
@@ -89,9 +95,14 @@ final class SponsorBlockSkipManager {
         switch decision {
         case .clearToast:
             currentToastSegment = nil
+            skipButtonSegmentID = nil
             return false
         case .showToast(let seg):
-            currentToastSegment = seg
+            if skipButtonSegmentID != seg.id {
+                skipButtonSegmentID = seg.id
+                skipButtonShownAt = time
+            }
+            currentToastSegment = time - skipButtonShownAt < Self.skipButtonDuration ? seg : nil
             return false
         case .skipToPlaybackEnd:
             currentToastSegment = nil

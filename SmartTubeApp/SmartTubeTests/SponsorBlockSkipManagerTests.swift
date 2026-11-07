@@ -55,6 +55,30 @@ struct SponsorBlockSkipManagerTests {
         #expect(manager.currentToastSegment == segment)
     }
 
+    @Test("the skip button goes away after a moment, and returns on the next visit")
+    @MainActor func skipButtonGoesAway() {
+        let manager = SponsorBlockSkipManager()
+        let delegate = SpyDelegate()
+        manager.delegate = delegate
+        manager.player = AVPlayer()
+        let segment = SponsorSegment(start: 40, end: 60, category: .sponsor)
+        manager.sponsorSegments = [segment]
+
+        manager.checkSponsorSkip(at: 10)
+        manager.checkSponsorSkip(at: 42)
+        #expect(manager.currentToastSegment == segment)
+        manager.checkSponsorSkip(at: 44)
+        manager.checkSponsorSkip(at: 46)
+        #expect(manager.currentToastSegment == segment)
+        manager.checkSponsorSkip(at: 47.5)
+        #expect(manager.currentToastSegment == nil)
+
+        manager.checkSponsorSkip(at: 30)
+        #expect(manager.currentToastSegment == nil)
+        manager.checkSponsorSkip(at: 40.1)
+        #expect(manager.currentToastSegment == segment)
+    }
+
     @Test("playing into a segment skips it")
     @MainActor func playingIntoASegmentSkips() {
         let manager = SponsorBlockSkipManager()
