@@ -15,11 +15,14 @@ struct SearchView: View {
     init() {}
 
     var body: some View {
+        @Bindable var vm = vm
+        // Everything is in one scroll view with `.searchable` on it, as in Apple's tvOS search sample,
+        // so focus can move between the search field, the filters and the results.
         ScrollView {
-            VStack(alignment: .leading, spacing: 32) {
-                searchBar
+            VStack(alignment: .leading, spacing: 0) {
+                tvFilterRow
                 if vm.query.isEmpty {
-                    idleView
+                    tvIdleView
                 } else if vm.isLoading || vm.isAwaitingSearch || !vm.results.isEmpty {
                     resultsView
                 } else {
@@ -28,34 +31,41 @@ struct SearchView: View {
             }
         }
         .scrollClipDisabled()
-        .toolbar(.hidden, for: .navigationBar)
+        // The system search UI (field and keyboard) lives in the navigation bar, so unlike
+        // the other tabs this screen must not hide it.
+        .searchable(text: $vm.query, prompt: "Search YouTube")
+        .autocorrectionDisabled()
+        .searchSuggestions {
+            if vm.query.isEmpty {
+                ForEach(vm.history) { entry in
+                    Label(entry.query, systemImage: AppSymbol.clock).searchCompletion(entry.query)
+                }
+            }
+            ForEach(vm.suggestions, id: \.self) { suggestion in
+                Label(suggestion, systemImage: AppSymbol.search).searchCompletion(suggestion)
+            }
+        }
+        .onSubmit(of: .search) {
+            if vm.isAwaitingSearch {
+                vm.search()
+            } else {
+                Task { await vm.recordCurrentSearch() }
+            }
+        }
         .task(id: vm.query) { await vm.searchAsYouType() }
         .fullScreenCover(isPresented: $showFilterSheet) {
             SearchFilterSheet(current: vm.filter) { newFilter in
                 vm.applyFilter(newFilter)
             }
         }
+        .task(id: vm.query) { await vm.updateSuggestions(for: vm.query) }
     }
 
-    // MARK: - Search bar
+    // MARK: - tvOS filter row
 
-    /// A text field rather than `.searchable`: Select on a letter of `.searchable`'s inline keyboard
-    /// moved focus to the first control below it. A text field opens the full-screen system keyboard.
-    private var searchBar: some View {
-        @Bindable var vm = vm
-        return ScrollView(.horizontal, showsIndicators: false) {
+    private var tvFilterRow: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 16) {
-                TextField("Search YouTube", text: $vm.query)
-                    .autocorrectionDisabled()
-                    .frame(width: 900)
-                    .onSubmit {
-                        if vm.isAwaitingSearch {
-                            vm.search()
-                        } else {
-                            Task { await vm.recordCurrentSearch() }
-                        }
-                    }
-                    .accessibilityIdentifier("search.field")
                 Button {
                     showFilterSheet = true
                 } label: {
@@ -64,59 +74,33 @@ struct SearchView: View {
                 .accessibilityIdentifier("search.filterButton")
                 activeFilterChips
             }
-            .padding(.horizontal)
             .padding(.vertical, 12)
         }
         .scrollClipDisabled()
         .focusSection()
     }
 
-    // MARK: - Idle content (recent + recommended searches)
+    // MARK: - Idle content
 
-    private var idleView: some View {
-        VStack(alignment: .leading, spacing: 32) {
+    /// Has nothing focusable besides clearing the history. Recent and recommended searches are
+    /// search suggestions, because a list of buttons here took focus from the system keyboard.
+    private var tvIdleView: some View {
+        VStack(spacing: 24) {
+            ContentUnavailableView(
+                "Search YouTube",
+                systemImage: AppSymbol.search,
+                description: Text("Use the keyboard above, or pick a suggestion.")
+            )
             if !vm.history.isEmpty {
-                querySection("Recent") {
-                    ForEach(vm.history) { entry in
-                        queryButton(entry.query, systemImage: AppSymbol.clock)
-                            .accessibilityIdentifier("search.history.\(entry.query)")
-                    }
-                    Button("Clear History", role: .destructive) {
-                        vm.clearHistory()
-                    }
-                    .accessibilityIdentifier("search.history.clearAll")
+                Button("Clear History", role: .destructive) {
+                    vm.clearHistory()
                 }
-            }
-            querySection("Recommended") {
-                ForEach(vm.suggestions, id: \.self) { suggestion in
-                    queryButton(suggestion, systemImage: AppSymbol.search)
-                }
+                .accessibilityIdentifier("search.history.clearAll")
             }
         }
-        .padding(.horizontal)
-        .focusSection()
+        .frame(maxWidth: .infinity)
+        .padding(.top, 80)
         .accessibilityIdentifier("search.suggestionsContainer")
-    }
-
-    private func querySection<Content: View>(
-        _ title: LocalizedStringKey, @ViewBuilder content: () -> Content
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(title)
-                .font(.headline)
-                .foregroundStyle(.secondary)
-            content()
-        }
-    }
-
-    private func queryButton(_ query: String, systemImage: String) -> some View {
-        Button {
-            vm.query = query
-            vm.search()
-        } label: {
-            Label(query, systemImage: systemImage)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
     }
 
     // MARK: - Active filter chips
