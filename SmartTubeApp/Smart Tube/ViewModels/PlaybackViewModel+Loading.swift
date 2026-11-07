@@ -125,10 +125,7 @@ extension PlaybackViewModel {
         duration = 0
         error = nil
         playerInfo = nil
-        controlsVisible = false
-        controlsTimer?.cancel()
         seekDebounceTask?.cancel()
-        isScrubbing = false
         chapters = []
         captionsManager.reset()
         audioManager.reset()
@@ -178,13 +175,6 @@ extension PlaybackViewModel {
         // one-frame gap (one run-loop cycle) where the PlayerView renders with isLoading=false,
         // making the spinner invisible until the Task runs and sets it inside loadAsync().
         isLoading = true
-        // UI-testing: re-show controls after load() resets controlsVisible=false.
-        // Mirrors the onAppear --uitesting-show-controls handling so controls remain
-        // visible across queue advances without relying on a second onAppear trigger.
-        if ProcessInfo.processInfo.arguments.contains("--uitesting-show-controls") {
-            showControls()
-            cancelControlsHide()
-        }
         loadTask = Task { await loadAsync(video: video) }
 
         // Kick off a background prefetch for the next video in the queue
@@ -265,7 +255,6 @@ extension PlaybackViewModel {
         wasPlayingBeforeSuspend = isPlaying
         player.pause()
         isPlaying = false
-        controlsTimer?.cancel()
         // Cancel in-flight load tasks so their @Observable state mutations do not
         // fire after the PlayerView has been removed from the SwiftUI hierarchy.
         // Without this, exhaustiveRetry callbacks crash with "No Observable object of
@@ -314,7 +303,6 @@ extension PlaybackViewModel {
         setupRateObserver()
         player.rate = Float(settings.playbackSpeed)
         isPlaying = true
-        showControls()
         updateNowPlayingPlayback()
     }
 
@@ -848,11 +836,6 @@ extension PlaybackViewModel {
                 "[loadAsync] rate set — player.rate=\(self.player.rate) timeControlStatus=\(self.player.timeControlStatus.rawValue)"
             )
             updateNowPlayingInfo()
-            // Only reschedule the auto-hide timer when controls are already visible.
-            // Calling scheduleControlsHide() unconditionally cancels any timer that
-            // was started by a user tap during loading, extending the visible window
-            // unexpectedly and breaking UI tests that wait for the auto-hide.
-            if controlsVisible { scheduleControlsHide() }
 
             // Phase 2 as a cancellable utility Task. Cancelled on the next load()
             // or stop() so stale network callbacks never write to a new video's state.

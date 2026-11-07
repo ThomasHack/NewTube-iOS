@@ -20,7 +20,6 @@ private final class SpyDelegate: SponsorBlockDelegate {
     var duration: Double = 100.0
     var seekCalled: Double? = nil
     var playbackEndCalled = false
-    var showControlsCalled = false
     var snapCalled: Double? = nil
 
     init(sponsorBlockEnabled: Bool = true) {
@@ -31,7 +30,6 @@ private final class SpyDelegate: SponsorBlockDelegate {
 
     func seek(to seconds: Double) { seekCalled = seconds }
     func handlePlaybackEnd() { playbackEndCalled = true }
-    func showControls() { showControlsCalled = true }
     func snapCurrentTime(to seconds: Double) { snapCalled = seconds }
 }
 

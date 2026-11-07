@@ -87,7 +87,6 @@ extension PlaybackViewModel {
     func skipToNextChapter() {
         guard let next = chapters.first(where: { $0.startTime > currentTime }) else { return }
         seek(to: next.startTime)
-        showControls()
     }
 
     /// Seek to the start of the current chapter (if >3 s in) or to the previous chapter.
@@ -98,7 +97,6 @@ extension PlaybackViewModel {
         } else if let prev = chapters.last(where: { $0.startTime < current.startTime }) {
             seek(to: prev.startTime)
         }
-        showControls()
     }
 
     func handlePlaybackEnd() {

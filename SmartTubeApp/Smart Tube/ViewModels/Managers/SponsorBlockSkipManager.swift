@@ -11,7 +11,6 @@ protocol SponsorBlockDelegate: AnyObject {
     var duration: Double { get }
     func seek(to seconds: Double)
     func handlePlaybackEnd()
-    func showControls()
     /// Snaps the observable `currentTime` to `seconds` after a seek completes,
     /// so the UI does not flash the pre-seek position while AVPlayer settles.
     func snapCurrentTime(to seconds: Double)
@@ -113,6 +112,5 @@ final class SponsorBlockSkipManager {
             return
         }
         delegate?.seek(to: seg.end)
-        delegate?.showControls()
     }
 }

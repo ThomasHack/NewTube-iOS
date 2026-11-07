@@ -16,11 +16,6 @@ extension PlaybackViewModel {
             let seconds = time.seconds
             Task { @MainActor [weak self] in
                 guard let self else { return }
-                // Don't overwrite the slider position or trigger SponsorBlock auto-seeks
-                // while the user is scrubbing. Auto-seeks call seek() → showControls() →
-                // scheduleControlsHide(), which cancels and restarts the 4 s hide-timer
-                // every 0.5 s, preventing controls from ever auto-hiding post-scrub.
-                guard !self.isScrubbing else { return }
                 guard !self.sponsorBlockManager.isSkippingSegment else { return }
                 // Suspend time updates during a quality-change transition: the new
                 // AVPlayerItem is not yet ready and player.currentTime() may return 0

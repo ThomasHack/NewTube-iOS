@@ -9,10 +9,9 @@ Remove an item when it's done.
 - [ ] Get `swiftlint lint --strict --baseline` passing. It reports 169 violations that aren't in the
   baseline, the same count as before the restructure, so `just ci` fails at its lint step.
 
-## Navigation
-- [ ] `ConditionalMoveCommand` (`PlayerView+tvOS.swift`) swaps `if/else` branches, which rebuilds the
-  player's view subtree whenever an overlay or skip toast opens. Keep the view's identity stable, and
-  check the player's menus and pickers with a remote afterwards.
+## Cleanup after the native player
+- [ ] Remove `seekBackSeconds`, `seekForwardSeconds` and `controlsHideTimeout` from `AppSettings`, and
+  their strings from the catalog. The system player doesn't use them, and Settings no longer shows them.
 
 ## Localization
 - [ ] Translate "Default Quality" in Settings, which stays English in German.

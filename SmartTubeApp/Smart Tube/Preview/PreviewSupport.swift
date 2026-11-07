@@ -382,15 +382,13 @@ extension SearchViewModel {
 // MARK: - PlaybackViewModel
 
 extension PlaybackViewModel {
-    /// A player showing its controls over `PreviewData.playerVideo`, partway through and without
-    /// any stream. `configure` changes it into the state being previewed.
+    /// A player with `PreviewData.playerVideo`, partway through and without any stream. `configure` changes it into the state being previewed.
     static func preview(configure: (PlaybackViewModel) -> Void = { _ in }) -> PlaybackViewModel {
         let vm = PlaybackViewModel()
         vm.currentVideo = PreviewData.playerVideo
         vm.duration = 635
         vm.currentTime = 212
         vm.isPlaying = true
-        vm.controlsVisible = true
         vm.chapters = PreviewData.chapters
         vm.sponsorSegments = PreviewData.sponsorSegments
         vm.availableFormats = PreviewData.formats

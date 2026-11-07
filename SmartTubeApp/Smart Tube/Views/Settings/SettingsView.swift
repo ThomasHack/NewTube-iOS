@@ -118,28 +118,6 @@ struct SettingsView: View {
             }
             .accessibilityIdentifier("settings.preferredAudioLanguageRow")
 
-            SettingsPicker("Seek Back", selection: $store.settings.seekBackSeconds) {
-                ForEach(AppSettings.availableSeekOptions, id: \.self) { s in
-                    Text("\(s) s").tag(s)
-                }
-            }
-            .accessibilityIdentifier("settings.seekBackRow")
-            SettingsPicker("Seek Forward", selection: $store.settings.seekForwardSeconds) {
-                ForEach(AppSettings.availableSeekOptions, id: \.self) { s in
-                    Text("\(s) s").tag(s)
-                }
-            }
-            .accessibilityIdentifier("settings.seekForwardRow")
-
-            SettingsPicker("Hide Controls After", selection: $store.settings.controlsHideTimeout) {
-                Text("2s").tag(2)
-                Text("3s").tag(3)
-                Text("4s").tag(4)
-                Text("5s").tag(5)
-                Text("8s").tag(8)
-                Text("10s").tag(10)
-            }
-
             SettingsPicker("Video Fit", selection: $store.settings.videoGravityMode) {
                 Text("Fit (letterbox)").tag(AppSettings.VideoGravityMode.fit)
                 Text("Fill (crop)").tag(AppSettings.VideoGravityMode.fill)

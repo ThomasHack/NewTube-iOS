@@ -1,117 +1,174 @@
 import AVFoundation
-import AVKit
 import SmartTubeCore
 import SwiftUI
-import UIKit
-import os
 
 // MARK: - PlayerView
 //
-// Full-screen video player.  Wraps AVKit's `VideoPlayer` and overlays
-// custom controls, chapter markers, and SponsorBlock skip toasts.
-// Mirrors the Android `PlaybackFragment`.
+// Full-screen playback in the system player. This view owns the playback lifecycle and turns the
+// view model's state into what `NativePlayerController` shows.
 
 struct PlayerView: View {
     let video: Video
-    @State var vm: PlaybackViewModel
-    @Environment(\.scenePhase) var scenePhase
-    @Environment(\.dismiss) var dismiss
-    @Environment(SettingsStore.self) var store
-    @Environment(AuthService.self) var authService
-    @Environment(AppNavigator.self) var navigator
-    @State var showSpeedPicker = false
-    @State var showQualityPicker = false
-    @State var showCaptionPicker = false
-    @State var showAudioTrackPicker = false
-    @State var showSleepTimerPicker = false
-    @State var showMoreMenu = false
-    @State var moreMenuContentHeight: CGFloat = 0
-    @State var showDescriptionSheet = false
-    @State var showCommentsSheet = false
-    @State var slideOffset: CGFloat = 0
-    @State var isTransitioning = false
-    /// True while the app is backgrounded. Prevents `onDisappear` from calling
-    /// `suspend()` when the system fires it as a side-effect of backgrounding rather
-    /// than actual navigation away from the player.
-    @State var isInBackground = false
-    /// True while this PlayerView instance is the top-most visible view.
-    /// Guards scenePhase handlers so only the visible instance calls handleForeground/handleBackground,
-    /// preventing ghost VMs from resuming audio when a new PlayerView is pushed on top.
-    @State var isVisible = false
-    /// Drives the quality-change toast shown after the user picks a resolution.
-    @State var qualityToastMessage: String?
-    @FocusState var playerFocused: Bool
-    /// Which playback control is visually highlighted in the overlay.
-    /// nil = not in controls-nav mode; all remote input targets the video layer.
-    @State var highlightedControl: TVPlayerControl? = nil
-    /// Namespace for the player ZStack itself, used with `.focusScope` +
-    /// `.prefersDefaultFocus` so the ZStack claims default focus when presented,
-    /// preventing any child view from stealing focus first.
-    @Namespace var playerBodyNamespace
-    /// Namespace IDs used with `.focusScope` on picker overlays so the tvOS focus
-    /// engine moves focus into the overlay when it opens.
-    @Namespace var moreMenuNamespace
-    @Namespace var qualityPickerNamespace
-    @Namespace var speedPickerNamespace
-    @Namespace var sleepTimerNamespace
-    @Namespace var captionPickerNamespace
-    @Namespace var audioTrackPickerNamespace
-    @Namespace var descriptionOverlayNamespace
-    @Namespace var commentsOverlayNamespace
-    /// Explicitly routes Siri Remote focus when overlays open programmatically.
-    /// `moreMenuFocusedRow` drives D-pad navigation within the more menu via explicit
-    /// `.onMoveCommand` (SwiftUI's spatial engine cannot navigate ZStack overlays).
-    @FocusState var moreMenuFocusedRow: MoreMenuRow?
-    @FocusState var qualityPickerFocused: Bool
-    @FocusState var speedPickerFocused: Bool
-    @FocusState var sleepTimerPickerFocused: Bool
-    @FocusState var captionPickerFocused: Bool
-    @FocusState var audioTrackPickerFocused: Bool
-    @FocusState var skipToastButtonFocused: Bool
+    @State private var vm: PlaybackViewModel
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(SettingsStore.self) private var store
+    @Environment(AuthService.self) private var authService
+    @Environment(AppNavigator.self) private var navigator
+    /// True while the app is backgrounded, when `onDisappear` isn't a real navigation away.
+    @State private var isInBackground = false
+    @State private var showSignIn = false
+
     init(video: Video, api: InnerTubeAPI) {
         self.video = video
         _vm = State(initialValue: PlaybackViewModel(api: api))
     }
 
-    var body: some View {
-        bodyWithLifecycleModifiers
-    }
-
-    // MARK: - Lifecycle + full player body
-    // bodyWithLifecycleModifiers, makeControlsOverlay
-    // → PlayerView+Lifecycle.swift
-
-    // MARK: - Control elements
-    // PlayerControlsOverlay (playPauseButton, seekButton, progressBar, etc.)
-    // → PlayerView+ControlElements.swift
-
-    // MARK: - Picker overlays + share sheet
-    // qualityPickerOverlay / speedPickerOverlay / sleepTimerPickerOverlay
-    // captionPickerOverlay / audioTrackPickerOverlay / presentShareSheet(url:)
-    // → PlayerView+PickerOverlays.swift
-}
-
-// MARK: - Preview state
-
-#if DEBUG
-extension PlayerView {
-    enum PreviewOverlay {
-        case none, moreMenu, speed, quality, captions, audioTrack, sleepTimer, description
-    }
-
-    /// A player already showing `vm`'s state, which doesn't load a video because `vm` has it as
-    /// its current one.
-    init(preview vm: PlaybackViewModel, overlay: PreviewOverlay = .none, highlightedControl: TVPlayerControl? = nil) {
-        self.init(video: vm.currentVideo ?? PreviewData.playerVideo, api: vm.api)
+    /// Doesn't load anything, because `vm` already has its video.
+    init(preview vm: PlaybackViewModel) {
+        video = vm.currentVideo ?? Video(id: "", title: "", channelTitle: "")
         _vm = State(initialValue: vm)
-        _showMoreMenu = State(initialValue: overlay == .moreMenu)
-        _showSpeedPicker = State(initialValue: overlay == .speed)
-        _showQualityPicker = State(initialValue: overlay == .quality)
-        _showCaptionPicker = State(initialValue: overlay == .captions)
-        _showAudioTrackPicker = State(initialValue: overlay == .audioTrack)
-        _showSleepTimerPicker = State(initialValue: overlay == .sleepTimer)
-        _showDescriptionSheet = State(initialValue: overlay == .description)
-        _highlightedControl = State(initialValue: highlightedControl)
+    }
+
+    private var currentVideo: Video { vm.playerInfo?.video ?? video }
+
+    private var menuState: PlayerMenuState {
+        PlayerMenuState(
+            formats: vm.availableFormats,
+            selectedFormat: vm.selectedFormat,
+            playbackSpeed: store.settings.playbackSpeed,
+            captions: vm.availableCaptions,
+            selectedCaption: vm.selectedCaption,
+            sleepTimerMinutes: vm.sleepTimerMinutes,
+            isSignedIn: authService.isSignedIn,
+            likeStatus: vm.likeStatus,
+            isAudioOnly: vm.isAudioOnlyMode,
+            isInQueue: currentVideo.playlistId == CurrentQueueStore.playlistID,
+            isQueueShuffled: store.settings.queueShuffleEnabled,
+            isShowingStats: vm.statsForNerdsVisible,
+            hasPrevious: vm.hasPrevious,
+            hasNext: vm.hasNext,
+            hasChannel: currentVideo.channelId?.isEmpty == false
+        )
+    }
+
+    private var itemInfo: PlayerItemInfo {
+        PlayerItemInfo(
+            videoId: currentVideo.id,
+            title: currentVideo.title,
+            channelTitle: currentVideo.channelTitle,
+            description: currentVideo.description,
+            thumbnailURL: currentVideo.thumbnailURL,
+            duration: vm.duration,
+            chapters: vm.chapters,
+            sponsorSegments: vm.sponsorSegments
+        )
+    }
+
+    var body: some View {
+        NativePlayerController(
+            vm: vm,
+            menuState: menuState,
+            itemInfo: itemInfo,
+            // Read here so a new item, which arrives while loading, updates the controller.
+            isLoading: vm.isLoading,
+            skipSegment: vm.currentToastSegment,
+            videoGravity: store.settings.videoGravityMode.avGravity,
+            perform: perform
+        )
+        .ignoresSafeArea()
+        .onAppear {
+            if vm.currentVideoId == video.id {
+                // Appearing again, e.g. after a sheet. Don't override an intentional pause.
+                if vm.wasPlayingBeforeSuspend { vm.resume() }
+            } else {
+                vm.load(video: video)
+            }
+            vm.setPlaybackSpeed(store.settings.playbackSpeed)
+            vm.updateSettings(store.settings)
+            vm.updateAuthToken(authService.accessToken)
+        }
+        .onDisappear {
+            guard !isInBackground else { return }
+            vm.suspend()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            switch phase {
+            case .background:
+                isInBackground = true
+                vm.handleBackground()
+            case .active:
+                isInBackground = false
+                vm.handleForeground()
+            default:
+                break
+            }
+        }
+        .task(id: vm.isLoading) {
+            guard !vm.isLoading else { return }
+            await vm.prefetchAllQualityTracks()
+        }
+        .alert(
+            "Playback Error",
+            isPresented: Binding(get: { vm.error != nil && !showSignIn }, set: { _ in }),
+            presenting: vm.error
+        ) { error in
+            errorActions(for: error)
+        } message: { error in
+            Text(error.localizedDescription)
+        }
+        .sheet(isPresented: $showSignIn) { SignInView() }
+    }
+
+    // MARK: - Errors
+
+    @ViewBuilder
+    private func errorActions(for error: Error) -> some View {
+        switch error as? APIError {
+        case .ipBlocked:
+            // Retrying from the same IP also fails, and may extend YouTube's block.
+            EmptyView()
+        case .signInRequired:
+            Button("Sign In") { showSignIn = true }
+        default:
+            Button("Try Again") { vm.retryLoad() }
+        }
+        Button("Close", role: .cancel) { navigator.playingVideo = nil }
+    }
+
+    // MARK: - Commands
+
+    private func perform(_ command: PlayerCommand) {
+        switch command {
+        case .selectFormat(let format):
+            vm.selectFormat(format)
+        case .setSpeed(let speed):
+            store.settings.playbackSpeed = speed
+            vm.setPlaybackSpeed(speed)
+        case .selectCaption(let track):
+            vm.selectCaption(track)
+        case .setSleepTimer(let minutes):
+            vm.setSleepTimer(minutes: minutes)
+        case .like:
+            vm.like()
+        case .dislike:
+            vm.dislike()
+        case .toggleAudioOnly:
+            vm.toggleAudioOnlyLive()
+            store.settings.audioOnlyMode = vm.isAudioOnlyMode
+        case .toggleQueueShuffle:
+            store.settings.queueShuffleEnabled.toggle()
+        case .toggleStats:
+            vm.toggleStatsForNerds()
+        case .openChannel:
+            guard let channelId = currentVideo.channelId else { return }
+            vm.stop()
+            navigator.openChannel(id: channelId)
+        case .previousVideo:
+            vm.playPrevious()
+        case .nextVideo:
+            vm.playNext()
+        case .skipSegment:
+            vm.skipToastSegment()
+        }
     }
 }
-#endif

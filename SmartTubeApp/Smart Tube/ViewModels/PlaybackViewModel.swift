@@ -156,9 +156,6 @@ final class PlaybackViewModel {
             )
         }
     }
-    var controlsVisible: Bool = false
-    /// True while the user is holding a long-press to temporarily boost speed to 2×.
-    var isHoldingToSpeed: Bool = false
     let likeDislike: LikeDislikeController
     let comments: CommentsController
     var likeStatus: LikeStatus { likeDislike.likeStatus }
@@ -178,16 +175,10 @@ final class PlaybackViewModel {
     // MARK: - Captions (forwarded to CaptionsManager)
     // MARK: - Audio tracks (forwarded to AudioTrackManager)
 
-    /// True while the user is dragging the progress slider.
-    /// The time observer skips `currentTime` updates while this is set so the
-    /// slider thumb doesn't jump back to the real playhead mid-scrub.
-    var isScrubbing: Bool = false
     /// True if playback was active when `suspend()` was last called.
     /// Used by `PlayerView.onAppear` to decide whether to resume after a
     /// sheet dismissal — prevents overriding an intentional user pause.
     var wasPlayingBeforeSuspend: Bool = false
-    /// Position tracked during a scrub drag; committed to AVPlayer on release.
-    var scrubTime: TimeInterval = 0
 
     /// The chapter whose start time is closest-but-not-greater-than `currentTime`.
     /// Nil when no chapters are available or the video hasn't started.
@@ -279,7 +270,6 @@ final class PlaybackViewModel {
         get { qualityManager.hlsVariantURLs }
         set { qualityManager.hlsVariantURLs = newValue }
     }
-    var controlsTimer: Task<Void, Never>?
     let sleepTimer = SleepTimerController()
     /// Remaining minutes on the sleep timer (nil = off). Observable so PlayerView can show it.
     var sleepTimerMinutes: Int? { sleepTimer.sleepTimerMinutes }
@@ -316,10 +306,6 @@ final class PlaybackViewModel {
         get { captionsManager.captionFetchTask }
         set { captionsManager.captionFetchTask = newValue }
     }
-    /// Timestamp of the last commitScrub(). Used to ignore the spurious
-    /// beginScrubbing() that SwiftUI's Slider fires immediately after commitScrub
-    /// causes a binding re-evaluation and the slider thumb re-positions itself.
-    var lastCommitScrubTime: Date = .distantPast
     /// Debounce task for preview seeks while dragging the slider.
     /// Fires a seek after the thumb has been held still for 300 ms.
     var seekDebounceTask: Task<Void, Never>?

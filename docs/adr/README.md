@@ -18,3 +18,4 @@ with new evidence. Each ADR is ≤ 40 lines and uses `template.md`'s MADR-minima
 | [0011](0011-one-core-package.md) | One package for UI-independent code, the rest in the app | accepted |
 | [0012](0012-app-navigator.md) | One navigator; the player covers the tabs | accepted |
 | [0013](0013-no-shorts.md) | The app has no Shorts | accepted |
+| [0014](0014-system-player.md) | Playback uses the system player | accepted |

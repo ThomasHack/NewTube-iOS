@@ -49,7 +49,7 @@ Full file-ownership-during-parallel-work table: `docs/modernization/PLAN.md` §4
 
 `MainTVTabView` (`Views/RootView.swift`) is a `.sidebarAdaptable` `TabView`. Top to bottom, the sidebar shows the account header, Search, Home, Subscriptions, Library, Settings, then a Channels section sorted alphabetically (`SidebarChannelsViewModel`).
 
-`AppNavigator` holds the selected tab, one `[AppRoute]` path per tab, and the player presentation. Channels and playlists are pushed routes. The player is one `fullScreenCover` on the `TabView`, so they aren't tab content. Opening a channel from the player closes it and pushes the channel onto the current tab. See ADR-0012.
+`AppNavigator` holds the selected tab, one `[AppRoute]` path per tab, and the player presentation. Channels and playlists are pushed routes. The player, which is the system `AVPlayerViewController` (ADR-0014), is one `fullScreenCover` on the `TabView`, so they aren't tab content. Opening a channel from the player closes it and pushes the channel onto the current tab. See ADR-0012.
 
 `AppFeeds` owns the view models of pages reached from the sidebar, because the `TabView` discards a tab's `@State` when another tab is selected. Loaded pages stay as they are for `FeedFreshness.refreshInterval`; after that they refresh while keeping their content on screen.
 
