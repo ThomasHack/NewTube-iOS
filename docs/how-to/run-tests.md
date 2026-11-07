@@ -13,9 +13,8 @@ Tests take a lot of time, so run them deliberately:
 
 - **Unit tests:** only after finishing a larger task. During a task, compiling the affected target
   is enough.
-- **UI tests:** not during the current rework of navigation and large parts of the app. The
-  maintainer tests manually. `NewTubeTVUITests` is disabled in `NewTube.xctestplan`; set
-  `"enabled"` back to `true` there to bring it back. These tests may be out of date until then.
+- **UI tests:** only when asked, because they're slow. `NewTubeTVUITests` injects its Home feed
+  with launch arguments, so it needs no account, and forces English so labels stay stable.
 
 ## Target simulator
 

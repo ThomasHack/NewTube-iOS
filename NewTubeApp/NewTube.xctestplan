@@ -30,7 +30,6 @@
       }
     },
     {
-      "enabled" : false,
       "target" : {
         "containerPath" : "container:NewTubeApp.xcodeproj",
         "identifier" : "1A2B3C4D5E6F1A2B3C4D5E64",

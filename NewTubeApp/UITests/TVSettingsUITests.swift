@@ -1,130 +1,36 @@
 import XCTest
 
-// MARK: - TVSettingsUITests
-//
-// Verifies that the Settings tab is reachable via the tvOS tab bar and that
-// key controls are present in the accessibility tree.
-//
-// No network access is required — all tested elements are static UI.
-//
-// Navigation: tab bar → right × 5 → select = Settings tab
-// (same pattern proven by TVFocusChainUITests.testSettingsTabBarVisibleAfterScrollDownAndUp)
-
-final class TVSettingsUITests: XCTestCase {
-
-    private var app: XCUIApplication!
-    private let remote = XCUIRemote.shared
-
-    // MARK: - Lifecycle
-
+final class TVSettingsUITests: NewTubeUITestCase {
     override func setUpWithError() throws {
-        continueAfterFailure = false
-        app = XCUIApplication()
-        app.launch()
-        try openSettings()
+        try super.setUpWithError()
+        openTab("Settings")
+        assertAppears(element("settings.signInButton"))
     }
 
-    override func tearDownWithError() throws {
-        app = nil
+    func testPlayerSettingsAreReachable() {
+        moveDown(toRow: "settings.preferredQualityPicker")
     }
 
-    // MARK: - Helpers
+    func testResetIsAtTheEndOfTheList() {
+        moveDown(toRow: "settings.sponsorBlockToggle")
+        moveDown(toRow: "settings.resetAllButton")
+    }
 
-    private func openSettings() throws {
-        for _ in 0..<5 { remote.press(.right) }
+    /// The keypad's own identifiers are replaced by the one its parent sets, so keys go by label.
+    func testMismatchedPINsAreRejected() {
+        moveDown(toRow: "settings.setPINButton")
         remote.press(.select)
-        // Wait for resetAllButton as the sentinel that Settings has fully rendered
-        let sentinel = app.descendants(matching: .any)
-            .matching(NSPredicate(format: "identifier == 'settings.resetAllButton'"))
-            .firstMatch
-        guard sentinel.waitForExistence(timeout: 12) else {
-            try captureAndSkip("settings.resetAllButton not found — Settings tab did not open", in: app)
-        }
-    }
+        assertAppears(app.staticTexts["Enter New PIN"])
 
-    // MARK: - Tests
+        assertFocused(app.buttons["1"].firstMatch)
+        for _ in 0..<4 { remote.press(.select) }
+        assertAppears(app.staticTexts["Confirm New PIN"])
 
-    /// The sign-in button must appear in Settings when the user is not signed in.
-    func testSignInButtonVisibleWhenSignedOut() throws {
-        let signInButton = app.descendants(matching: .any)
-            .matching(NSPredicate(format: "identifier == 'settings.signInButton'"))
-            .firstMatch
-        guard signInButton.waitForExistence(timeout: 5) else {
-            try captureAndSkip(
-                "settings.signInButton not found — device may already be signed in (expected a signed-out state for this test)",
-                in: app
-            )
-        }
-        XCTAssertTrue(signInButton.exists, "settings.signInButton must be in the accessibility tree when signed out")
-    }
-
-    /// The SponsorBlock toggle must be in the accessibility tree.
-    func testSponsorBlockToggleExists() {
-        let toggle = app.descendants(matching: .any)
-            .matching(NSPredicate(format: "identifier == 'settings.sponsorBlockToggle'"))
-            .firstMatch
-        XCTAssertTrue(
-            toggle.waitForExistence(timeout: 10),
-            "settings.sponsorBlockToggle must be in the accessibility tree"
-        )
-    }
-
-    /// The Max Resolution picker must be in the accessibility tree.
-    func testPreferredQualityPickerExists() {
-        let picker = app.descendants(matching: .any)
-            .matching(NSPredicate(format: "identifier == 'settings.preferredQualityPicker'"))
-            .firstMatch
-        XCTAssertTrue(
-            picker.waitForExistence(timeout: 10),
-            "settings.preferredQualityPicker must be in the accessibility tree"
-        )
-    }
-
-    /// The Preferred Audio Language row must be in the accessibility tree.
-    func testPreferredAudioLanguageRowExists() {
-        let row = app.descendants(matching: .any)
-            .matching(NSPredicate(format: "identifier == 'settings.preferredAudioLanguageRow'"))
-            .firstMatch
-        XCTAssertTrue(
-            row.waitForExistence(timeout: 10),
-            "settings.preferredAudioLanguageRow must be in the accessibility tree"
-        )
-    }
-
-    /// The Seek Back picker must be in the accessibility tree on tvOS.
-    func testSeekBackRowExists() {
-        let row = app.descendants(matching: .any)
-            .matching(NSPredicate(format: "identifier == 'settings.seekBackRow'"))
-            .firstMatch
-        XCTAssertTrue(
-            row.waitForExistence(timeout: 10),
-            "settings.seekBackRow must be in the accessibility tree on tvOS"
-        )
-    }
-
-    /// The Reset All Settings button must be in the accessibility tree.
-    func testResetAllSettingsButtonExists() {
-        let button = app.descendants(matching: .any)
-            .matching(NSPredicate(format: "identifier == 'settings.resetAllButton'"))
-            .firstMatch
-        XCTAssertTrue(
-            button.waitForExistence(timeout: 10),
-            "settings.resetAllButton must be in the accessibility tree"
-        )
-    }
-
-    /// Regression test for #149: the Settings tab must open on the first select press.
-    /// Before the fix, MainTVTabView used an unbound TabView which made the tvOS focus
-    /// engine require two presses — the first focused the tab, the second activated it.
-    func testSettingsTabOpensSingleSelectPress() throws {
-        // setUpWithError already calls openSettings() which presses select exactly once.
-        // If the sentinel was found (setup succeeded), Settings opened on a single press.
-        let sentinel = app.descendants(matching: .any)
-            .matching(NSPredicate(format: "identifier == 'settings.resetAllButton'"))
-            .firstMatch
-        XCTAssertTrue(
-            sentinel.waitForExistence(timeout: 10),
-            "#149 regression: Settings tab must open after a single select press, not two"
-        )
+        assertFocused(app.buttons["1"].firstMatch)
+        remote.press(.right)
+        assertFocused(app.buttons["2"].firstMatch)
+        for _ in 0..<4 { remote.press(.select) }
+        assertAppears(app.staticTexts["PINs didn't match. Try again."])
+        assertAppears(app.staticTexts["Enter New PIN"])
     }
 }

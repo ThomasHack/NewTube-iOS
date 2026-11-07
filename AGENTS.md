@@ -15,7 +15,7 @@ Architecture map: docs/architecture.md · Glossary: CONTEXT.md · Decisions: doc
 
 ## When to run tests
 - Unit tests: only after finishing a larger task. During a task, compile the affected target instead.
-- UI tests: don't run them while navigation and large parts of the app are being reworked; the maintainer tests manually. They're disabled in `NewTube.xctestplan` and may be out of date.
+- UI tests: only when asked, because they're slow: the same with `test` and `-only-testing:NewTubeTVUITests`. They inject their Home feed and don't need an account.
 
 ## Rules that differ from defaults
 - Swift 6 strict concurrency everywhere. View models are `@MainActor @Observable`. No `ObservableObject`, `@Published`, Combine, `DispatchQueue`, completion handlers in new code.

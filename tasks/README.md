@@ -10,7 +10,3 @@ Remove an item when it's done.
   scheme to open a video directly. It needs an App Group and a shared keychain group to reach the
   app's data and sign-in. Decide which rows to show first; Subscriptions and Continue Watching from
   cached data would load fastest.
-
-## UI tests (last, once everything else is fine)
-- [ ] Bring back `NewTubeTVUITests`. It's disabled in `NewTube.xctestplan`, and it's out of date after
-  the navigation, player and Shorts changes.

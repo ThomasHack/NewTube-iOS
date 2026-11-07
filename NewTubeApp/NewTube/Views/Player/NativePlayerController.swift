@@ -35,6 +35,7 @@ struct NativePlayerController: UIViewControllerRepresentable {
 
     func makeUIViewController(context: Context) -> AVPlayerViewController {
         let controller = AVPlayerViewController()
+        controller.view.accessibilityIdentifier = "player.view"
         controller.player = vm.player
         context.coordinator.addContentOverlay(PlayerContentOverlay(vm: vm), to: controller)
 
