@@ -402,6 +402,14 @@ public struct HomeView: View {
 
     // MARK: - Section feed  (non-Home chips)
 
+    /// Also stops the pagination retry: it would otherwise keep fetching pages while waiting
+    /// for Shorts that will never be shown.
+    private var shortsHiddenInSelectedSection: Bool {
+        let hiddenBySetting = store.settings.hideShorts && selectedSection.type != .history
+        let hiddenInRecommended = selectedSection.type == .recommended && !sectionVM.showsRecommendedShorts
+        return hiddenBySetting || hiddenInRecommended
+    }
+
     @ViewBuilder
     private var sectionFeed: some View {
         if sectionVM.isLoading && sectionVM.videoGroups.isEmpty {
@@ -415,11 +423,10 @@ public struct HomeView: View {
     }
 
     private var feedContent: some View {
-        let hideShorts = store.settings.hideShorts
         let hideLiveShorts = store.settings.hideLiveShorts
         let hideVideoPremieres = store.settings.hideVideoPremieres
         let isShorts = selectedSection.type == .shorts
-        let applyHideShorts = hideShorts && selectedSection.type != .history
+        let applyHideShorts = shortsHiddenInSelectedSection
         // #121: History is the one place watched videos are the point — never filtered.
         let applyHideWatched = store.settings.hideWatchedVideos && selectedSection.type != .history
         let hideWatchedThreshold = store.settings.hideWatchedThreshold
@@ -658,8 +665,7 @@ public struct HomeView: View {
             // runaway loops — pagination stops when pages are exhausted or a load
             // is already in flight.
             let isShortsSectionActive = selectedSection.type == .shorts
-            let applyHide = store.settings.hideShorts && selectedSection.type != .history
-            guard !applyHide,
+            guard !shortsHiddenInSelectedSection,
                 let trigger = sectionVM.videoGroups.last?.videos.last
             else { return }
 

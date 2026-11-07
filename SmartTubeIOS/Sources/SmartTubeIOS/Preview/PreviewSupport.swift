@@ -102,7 +102,9 @@ final class PreviewInnerTubeAPI: InnerTubeAPIProtocol {
     func setAuthToken(_ token: String?) async {}
     func setSAPISID(_ value: String?) async {}
 
-    func fetchHome(continuationToken: String?) async throws -> VideoGroup { feed }
+    func fetchHome(continuationToken: String?) async throws -> VideoGroup {
+        VideoGroup(title: "Recommended", videos: PreviewData.videos + PreviewData.shorts)
+    }
     func fetchHomeRows(continuationToken: String?) async throws -> [VideoGroup] {
         [VideoGroup(title: "Recommended", videos: PreviewData.videos + PreviewData.shorts)]
     }

@@ -136,6 +136,7 @@ public final class HomeViewModel {
     ///     they are not lost to the home/subs interleave ratio in `mergedVideos`
     ///  3. `mergedVideos` shorts — catches any shorts from the home-rec feed
     public var homeShortsVideos: [Video] {
+        guard showsShorts else { return [] }
         let subsShorts = sections.first { $0.section.type == .subscriptions }?.videos.filter { $0.isShort } ?? []
         var seen = Set<String>()
         return (shortsVideos + subsShorts + mergedVideos.filter { $0.isShort })
@@ -152,8 +153,15 @@ public final class HomeViewModel {
     /// so that token refreshes during video playback do not trigger a feed reload.
     private var hasAuthToken: Bool = false
 
-    public init(api: any InnerTubeAPIProtocol = InnerTubeAPI()) {
+    /// When `false`, Shorts are neither fetched nor shown.
+    private let showsShorts: Bool
+
+    public init(
+        api: any InnerTubeAPIProtocol = InnerTubeAPI(),
+        showsShorts: Bool = ShortsFeedPolicy.showsInHomeFeeds
+    ) {
         self.api = api
+        self.showsShorts = showsShorts
         self.sections = Self.shelfSections.map { SectionState(section: $0) }
         observeFeedHideNotifications()
     }
@@ -228,7 +236,9 @@ public final class HomeViewModel {
         loadTask = Task {
             // Fetch shorts via FEshorts in parallel with the home/subs feed.
             // The TV home feed (FEwhat_to_watch) never includes a Shorts shelf.
-            async let fetchedShortsResult: ([Video], String?) = HomeViewModel.fetchShortsVideos(api: self.api)
+            let (api, showsShorts) = (self.api, self.showsShorts)
+            async let fetchedShortsResult: ([Video], String?) =
+                showsShorts ? HomeViewModel.fetchShortsVideos(api: api) : ([], nil)
 
             await withTaskGroup(of: (String, [Video], String?).self) { group in
                 for state in sections {
@@ -354,6 +364,7 @@ public final class HomeViewModel {
     /// Loads the next page unconditionally — no minimum-count threshold — so the row
     /// grows on demand as the user scrolls past the already-loaded cards.
     public func loadNextShortsPage() {
+        guard showsShorts else { return }
         let subsToken = sections.first { $0.section.type == .subscriptions }?.nextPageToken
         homeLog.notice(
             "loadNextShortsPage: called — count=\(shortsVideos.count) isLoading=\(isLoadingMoreShorts) searchToken=\(shortsNextPageToken != nil) subsToken=\(subsToken != nil)"
@@ -425,6 +436,7 @@ public final class HomeViewModel {
     /// the threshold needed to fill 2 horizontal screens.
     /// iOS: ~3 cards/screen → threshold = 6; tvOS: ~4 cards/screen → threshold = 8.
     func loadMoreShortsIfNeeded() async {
+        guard showsShorts else { return }
         #if os(tvOS)
         let threshold = 8
         #else

@@ -43,6 +43,8 @@ public final class BrowseViewModel {
     /// Shorts fetched from FEshorts for the Recommended section.
     /// Always empty for all other sections.
     public private(set) var recommendedShortsVideos: [Video] = []
+    /// When `false`, the Recommended section neither fetches nor shows Shorts.
+    public let showsRecommendedShorts: Bool
     /// Timestamp of the last successful content fetch for the current section.
     /// Used to detect stale feeds after the app returns from background.
     public private(set) var loadedAt: Date? = nil
@@ -78,8 +80,10 @@ public final class BrowseViewModel {
     public init(
         api: any InnerTubeAPIProtocol = InnerTubeAPI(), initialSection: BrowseSection? = nil,
         localHistory: LocalWatchHistoryStore = .shared,
-        watchLaterMembership: WatchLaterMembershipStore = .shared
+        watchLaterMembership: WatchLaterMembershipStore = .shared,
+        showsRecommendedShorts: Bool = ShortsFeedPolicy.showsInHomeFeeds
     ) {
+        self.showsRecommendedShorts = showsRecommendedShorts
         self.localHistory = localHistory
         self.watchLaterMembership = watchLaterMembership
         self.api = api
@@ -404,16 +408,17 @@ public final class BrowseViewModel {
             // FEshorts browseId is deprecated (HTTP 400). The subs TV-browse
             // (tileRenderer, ustreamerConfig "GgIIBQ==") is the most reliable
             // source of many Shorts — mirrors HomeViewModel.homeShortsVideos.
-            async let shortsFetch: VideoGroup? = try? api.fetchShorts()
-            async let subsFetch: VideoGroup? = try? api.fetchSubscriptions()
+            let wantsShorts = showsRecommendedShorts
+            async let shortsFetch: VideoGroup? = wantsShorts ? (try? await api.fetchShorts()) : nil
+            async let subsFetch: VideoGroup? = wantsShorts ? (try? await api.fetchSubscriptions()) : nil
             let (shortsGroup, subsGroup) = await (shortsFetch, subsFetch)
             if !Task.isCancelled {
                 let searchShorts = shortsGroup?.videos ?? []
                 let subsShorts = (subsGroup?.videos ?? []).filter { $0.isShort }
                 let homeShorts = group.videos.filter { $0.isShort }
                 var seen = Set<String>()
-                recommendedShortsVideos = (searchShorts + subsShorts + homeShorts)
-                    .filter { seen.insert($0.id).inserted }
+                recommendedShortsVideos =
+                    wantsShorts ? (searchShorts + subsShorts + homeShorts).filter { seen.insert($0.id).inserted } : []
                 browseLog.notice(
                     "Recommended: \(recommendedShortsVideos.count) shorts (search=\(searchShorts.count) subs=\(subsShorts.count) home=\(homeShorts.count))"
                 )
