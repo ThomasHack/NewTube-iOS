@@ -133,7 +133,7 @@ This makes `SearchViewModel` testable with a mock `SearchService` and decoupled 
 
 | Principle | Practical benefit here |
 |-----------|----------------------|
-| SRP | Keeps `SmartTubeIOSCore` (Foundation-only) cleanly separated from the SwiftUI layer |
+| SRP | Keeps `SmartTubeCore` (UI-independent) cleanly separated from the SwiftUI layer |
 | OCP | New InnerTube client contexts (e.g. WEB, TVHTML5) add without editing existing request logic |
 | LSP | Protocol-based networking (`InnerTubeClient`) allows safe substitution in tests |
 | ISP | View-specific data protocols prevent SwiftUI views from importing unnecessary heavy types |

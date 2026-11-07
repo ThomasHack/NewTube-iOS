@@ -65,8 +65,8 @@ Inspired by the original [SmartTube Android app](https://github.com/yuliskov/Sma
 ## Project Structure
 
 ```
-SmartTubeIOS/          Swift Package — core library (models, InnerTube API, SponsorBlock, views)
-SmartTubeApp/          Xcode project — Apple TV app and UI tests
+SmartTubeCore/         Swift Package — models, InnerTube API, SponsorBlock, stores
+SmartTubeApp/          Xcode project — Apple TV app (views, view models, services) and its tests
 SmartTube.xcworkspace/ Xcode workspace (references both above)
 ```
 

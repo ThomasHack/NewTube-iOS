@@ -15,3 +15,4 @@ with new evidence. Each ADR is ≤ 40 lines and uses `template.md`'s MADR-minima
 | [0008](0008-standby-swap-disabled.md) | Shorts standby-swap "instant swipe" promotion is permanently disabled | superseded by 0010 |
 | [0009](0009-docs-live-with-code.md) | Non-secret docs live in the public repo, with code | accepted |
 | [0010](0010-tvos-only.md) | tvOS is the only platform | accepted |
+| [0011](0011-one-core-package.md) | One package for UI-independent code, the rest in the app | accepted |

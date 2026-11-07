@@ -4,11 +4,11 @@
 
 ## Key files
 
-- **API**: [InnerTubeAPI+Browse.swift](../../SmartTubeIOS/Sources/SmartTubeIOSCore/InnerTubeAPI+Browse.swift) (requests), [InnerTubeAPI+VideoRenderers.swift](../../SmartTubeIOS/Sources/SmartTubeIOSCore/InnerTubeAPI+VideoRenderers.swift) (parsing)
-- **Models**: [VideoGroup.swift](../../SmartTubeIOS/Sources/SmartTubeIOSCore/VideoGroup.swift) (`VideoGroup`, `BrowseSection`), [Video.swift](../../SmartTubeIOS/Sources/SmartTubeIOSCore/Video.swift)
-- **Policy**: [ShortsFeedPolicy.swift](../../SmartTubeIOS/Sources/SmartTubeIOSCore/ShortsFeedPolicy.swift)
-- **View models**: [HomeViewModel.swift](../../SmartTubeIOS/Sources/SmartTubeIOSCore/HomeViewModel.swift), [BrowseViewModel.swift](../../SmartTubeIOS/Sources/SmartTubeIOSCore/BrowseViewModel.swift)
-- **Views**: [HomeView.swift](../../SmartTubeIOS/Sources/SmartTubeIOS/Views/Home/HomeView.swift), [ShortsRowSection.swift](../../SmartTubeIOS/Sources/SmartTubeIOS/Views/Browse/ShortsRowSection.swift), [ShortsCardView.swift](../../SmartTubeIOS/Sources/SmartTubeIOS/Views/Browse/ShortsCardView.swift), [VideoCardView.swift](../../SmartTubeIOS/Sources/SmartTubeIOS/Views/Browse/VideoCardView.swift)
+- **API**: [InnerTubeAPI+Browse.swift](../../SmartTubeCore/Sources/SmartTubeCore/InnerTubeAPI+Browse.swift) (requests), [InnerTubeAPI+VideoRenderers.swift](../../SmartTubeCore/Sources/SmartTubeCore/InnerTubeAPI+VideoRenderers.swift) (parsing)
+- **Models**: [VideoGroup.swift](../../SmartTubeCore/Sources/SmartTubeCore/VideoGroup.swift) (`VideoGroup`, `BrowseSection`), [Video.swift](../../SmartTubeCore/Sources/SmartTubeCore/Video.swift)
+- **Policy**: [ShortsFeedPolicy.swift](../../SmartTubeCore/Sources/SmartTubeCore/ShortsFeedPolicy.swift)
+- **View models**: [HomeViewModel.swift](../../SmartTubeApp/Smart%20Tube/ViewModels/HomeViewModel.swift), [BrowseViewModel.swift](../../SmartTubeApp/Smart%20Tube/ViewModels/BrowseViewModel.swift)
+- **Views**: [HomeView.swift](../../SmartTubeApp/Smart%20Tube/Views/Home/HomeView.swift), [ShortsRowSection.swift](../../SmartTubeApp/Smart%20Tube/Views/Browse/ShortsRowSection.swift), [ShortsCardView.swift](../../SmartTubeApp/Smart%20Tube/Views/Browse/ShortsCardView.swift), [VideoCardView.swift](../../SmartTubeApp/Smart%20Tube/Views/Browse/VideoCardView.swift)
 
 ## Models
 

@@ -40,9 +40,12 @@ it without more RAM.
 
 ## Commands
 
-- `just test-unit` — Swift Testing package tests on the tvOS simulator. `swift test` can't build
-  them, because the `SmartTubeIOS` target needs UIKit and SwiftPM builds for the host Mac.
-- `just test-unit-filter <Suite>` — one suite.
+- `just test-unit` — all Swift Testing unit tests on the tvOS simulator. `swift test` isn't
+  supported, because the package only declares tvOS and SwiftPM builds for the host Mac.
+- `just test-core` — `SmartTubeCore` tests, which run without the app.
+- `just test-app` — `SmartTubeTests`, hosted by the app. The host launches an empty scene, so a test
+  run doesn't start sign-in or network work.
+- `just test-core-filter <Suite>` / `just test-app-filter <Suite>` — one suite.
 - `just test-ui` — UI tests, 3 parallel workers (enable them in the test plan first).
 - `just test-ui-one <SmartTubeTVUITests/Suite/testMethod>` — a single UI test.
 - Device/app log capture during a test run: `docs/how-to/device-logs.md`.

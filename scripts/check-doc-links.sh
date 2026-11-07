@@ -23,6 +23,7 @@ for f in "${files[@]}"; do
             http://*|https://*|mailto:*|\#*) continue ;;
         esac
         target="${target%%#*}"   # strip a trailing #anchor
+        target="${target//%20/ }"   # paths with spaces are URL-encoded in links
         [ -z "$target" ] && continue
         resolved="$dir/$target"
         if [ ! -e "$resolved" ]; then

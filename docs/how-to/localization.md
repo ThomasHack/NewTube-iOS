@@ -28,16 +28,16 @@
 
 The strings file lives at:
 ```
-SmartTube/SmartTubeIOS/Sources/SmartTubeIOS/Localizable.xcstrings
+SmartTubeApp/Smart Tube/Localizable.xcstrings
 ```
 
 ---
 
 ## Adding or Fixing Translations
 
-The automation script lives alongside the strings file:
+The automation script lives in `scripts/`:
 ```
-SmartTube/SmartTubeIOS/Sources/SmartTubeIOS/translate_strings.py
+scripts/translate_strings.py
 ```
 
 It uses Google Translate (via `deep-translator`, no API key required) and correctly protects `%@`, `%lld`, `%d`, `%.2g` format specifiers from being translated or transliterated.
@@ -56,7 +56,7 @@ The venv lives in `/tmp/` so it is wiped on reboot. Re-run the two commands abov
 ### Dry run — preview what would be translated without writing anything
 
 ```bash
-cd SmartTube/SmartTubeIOS/Sources/SmartTubeIOS
+cd scripts
 /tmp/loctranslate_venv/bin/python3 translate_strings.py --dry-run
 ```
 
@@ -67,7 +67,7 @@ cd SmartTube/SmartTubeIOS/Sources/SmartTubeIOS
 Run with no flags. The script is **additive only** — it skips any key/language pair that already has a translation.
 
 ```bash
-cd SmartTube/SmartTubeIOS/Sources/SmartTubeIOS
+cd scripts
 /tmp/loctranslate_venv/bin/python3 translate_strings.py
 ```
 
@@ -112,11 +112,11 @@ Overwrites every entry for that language, even ones that already exist.
 
 3. Run the script:
    ```bash
-   cd SmartTube/SmartTubeIOS/Sources/SmartTubeIOS
+   cd scripts
    /tmp/loctranslate_venv/bin/python3 translate_strings.py
    ```
 
-4. Commit both `Localizable.xcstrings` and `project.pbxproj`.
+4. Commit both `Localizable.xcstrings` and `project.xcproj`.
 
 ---
 
@@ -139,7 +139,7 @@ Xcode will extract it into `Localizable.xcstrings` with an empty `localizations`
 ## Checking coverage
 
 ```bash
-cd SmartTube/SmartTubeIOS/Sources/SmartTubeIOS
+cd "SmartTubeApp/Smart Tube"
 python3 - <<'EOF'
 import json
 with open('Localizable.xcstrings') as f:

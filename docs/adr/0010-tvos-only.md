@@ -19,7 +19,7 @@ gone, along with all code that was never compiled for tvOS. `Package.swift` decl
 source files no longer use platform conditionals. `AVPlayer` is the only playback path.
 
 The package and folder names (`SmartTubeIOS`, `SmartTubeIOSCore`) stay for now, to keep this change
-reviewable. The InnerTube `iOS` client profile also stays: it identifies an API client, not a
+reviewable; ADR-0011 has since renamed them. The InnerTube `iOS` client profile also stays: it identifies an API client, not a
 platform this app runs on.
 
 ## Consequences
