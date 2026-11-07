@@ -41,7 +41,7 @@ struct SearchView: View {
                     Label(entry.query, systemImage: AppSymbol.clock).searchCompletion(entry.query)
                 }
             }
-            ForEach(vm.suggestions, id: \.self) { suggestion in
+            ForEach(suggestionsWithoutHistory, id: \.self) { suggestion in
                 Label(suggestion, systemImage: AppSymbol.search).searchCompletion(suggestion)
             }
         }
@@ -101,6 +101,13 @@ struct SearchView: View {
         .frame(maxWidth: .infinity)
         .padding(.top, 80)
         .accessibilityIdentifier("search.suggestionsContainer")
+    }
+
+    /// The idle screen also lists the history, which can contain the same terms.
+    private var suggestionsWithoutHistory: [String] {
+        guard vm.query.isEmpty else { return vm.suggestions }
+        let history = Set(vm.history.map(\.query))
+        return vm.suggestions.filter { !history.contains($0) }
     }
 
     // MARK: - Active filter chips
@@ -271,6 +278,8 @@ struct SearchFilterSheet: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
+            // A full-screen cover on tvOS doesn't draw a background of its own.
+            .background(.background)
         }
         .accessibilityIdentifier("search.filterSheet")
     }
