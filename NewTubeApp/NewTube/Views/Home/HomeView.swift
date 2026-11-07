@@ -109,10 +109,11 @@ struct HomeView: View {
 
         return ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                // Also keeps the first row clear of the collapsed sidebar above it.
+                // Level with the collapsed sidebar, and keeps the first row clear of it.
                 NewTubeLogo()
                     .frame(maxWidth: .infinity, alignment: .trailing)
                     .padding(.horizontal)
+                    .padding(.top, 52)
                     .padding(.bottom, 32)
                 ForEach(rowGroups) { group in
                     if let title = group.title, !title.isEmpty {
@@ -142,6 +143,7 @@ struct HomeView: View {
                 }
             }
         }
+        .ignoresSafeArea(.container, edges: .top)
         .accessibilityIdentifier("home.sectionFeed")
         .refreshable { sectionVM.loadContent(refresh: true) }
         .focusSection()

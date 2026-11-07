@@ -1,12 +1,12 @@
 {
-  "images": [
+  "images" : [
     {
-      "filename": "app-icon.png",
-      "idiom": "universal"
+      "filename" : "AppIconImage@1x.png",
+      "idiom" : "universal"
     }
   ],
-  "info": {
-    "author": "xcode",
-    "version": 1
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
   }
 }
