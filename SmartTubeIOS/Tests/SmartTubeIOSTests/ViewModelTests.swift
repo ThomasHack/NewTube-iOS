@@ -370,10 +370,10 @@ struct HomeViewModelTests {
         mock.homeRowsResult = [VideoGroup(title: "Rec", videos: [regularVideo, shortVideo])]
         mock.subscriptionsResult = VideoGroup(title: "Subs", videos: [])
 
-        let vm = HomeViewModel(api: mock)
+        let vm = HomeViewModel(api: mock, showsShorts: true)
         defer { vm.cancel() }
         vm.load()
-        await waitForTasks()
+        await waitUntil { vm.loadedAt != nil }
 
         #expect(vm.homeRegularVideos.allSatisfy { !$0.isShort })
         #expect(vm.homeShortsVideos.allSatisfy { $0.isShort })
@@ -397,10 +397,10 @@ struct HomeViewModelTests {
         mock.homeRowsResult = []
         mock.subscriptionsResult = VideoGroup(title: "Subs", videos: [])
 
-        let vm = HomeViewModel(api: mock)
+        let vm = HomeViewModel(api: mock, showsShorts: true)
         defer { vm.cancel() }
         vm.load()
-        await waitForTasks()
+        await waitUntil { vm.loadedAt != nil }
 
         // fetchShortsMore must have been called
         #expect(mock.calls.contains(where: { $0.method == "fetchShortsMore" }))
@@ -419,10 +419,10 @@ struct HomeViewModelTests {
         mock.homeRowsResult = []
         mock.subscriptionsResult = VideoGroup(title: "Subs", videos: [])
 
-        let vm = HomeViewModel(api: mock)
+        let vm = HomeViewModel(api: mock, showsShorts: true)
         defer { vm.cancel() }
         vm.load()
-        await waitForTasks()
+        await waitUntil { vm.loadedAt != nil }
 
         // fetchShortsMore must NOT have been called
         #expect(!mock.calls.contains(where: { $0.method == "fetchShortsMore" }))
@@ -446,7 +446,7 @@ struct HomeViewModelTests {
         mock.homeRowsResult = []
         mock.subscriptionsResult = VideoGroup(title: "Subs", videos: [])
 
-        let vm = HomeViewModel(api: mock)
+        let vm = HomeViewModel(api: mock, showsShorts: true)
         defer { vm.cancel() }
         vm.load()
         await waitForTasks(until: { vm.shortsVideos.count >= 5 })
@@ -483,11 +483,10 @@ struct HomeViewModelTests {
             return VideoGroup(title: "Shorts", videos: page, nextPageToken: "tok_\(callCount)")
         }
 
-        let vm = HomeViewModel(api: mock)
+        let vm = HomeViewModel(api: mock, showsShorts: true)
         defer { vm.cancel() }
         vm.load()
-        await waitForTasks()
-        await waitForShortPreloadCompletion(vm)
+        await waitUntil { vm.homeShortsVideos.count >= 40 }
 
         // 3 initial + repeated pages of 5 must reach the 40-item preload threshold.
         #expect(vm.homeShortsVideos.count >= 40)
@@ -510,10 +509,10 @@ struct HomeViewModelTests {
         mock.homeRowsResult = []
         mock.subscriptionsResult = VideoGroup(title: "Subs", videos: [])
 
-        let vm = HomeViewModel(api: mock)
+        let vm = HomeViewModel(api: mock, showsShorts: true)
         defer { vm.cancel() }
         vm.load()
-        await waitForTasks()
+        await waitUntil { vm.loadedAt != nil }
         await waitForShortPreloadCompletion(vm)
 
         // Below the 40-item threshold, but with no tokens left preload must
@@ -696,19 +695,20 @@ struct BrowseViewModelTests {
     @Test("Watch Later: adds and removes made in the app update the open list at once (#157)")
     func watchLaterListFollowsAppChanges() async {
         let mock = MockInnerTubeAPI()
-        mock.playlistVideosResult = VideoGroup(title: "Watch Later", videos: [makeVideo("wlvid_AAAA")])
+        // Its removal notification reaches every open Watch Later list, so no other test may use this ID.
+        mock.playlistVideosResult = VideoGroup(title: "Watch Later", videos: [makeVideo("wlremoved_AA")])
         let membership = WatchLaterMembershipStore(defaults: UserDefaults(suiteName: "wl-\(UUID().uuidString)")!)
         let section = BrowseSection(id: "watchLater", title: "Watch Later", type: .watchLater)
         let vm = BrowseViewModel(api: mock, initialSection: section, watchLaterMembership: membership)
         await vm.updateAuthToken("fake-token")
-        await waitForTasks(until: { vm.videoGroups.first?.videos.first?.id == "wlvid_AAAA" })
+        await waitForTasks(until: { vm.videoGroups.first?.videos.first?.id == "wlremoved_AA" })
 
         membership.markSaved(makeVideo("newsave_BBBB"), setVideoId: "SETVID_B")
         await waitForTasks(until: { vm.videoGroups.first?.videos.count == 2 })
-        #expect(vm.videoGroups.first?.videos.map(\.id) == ["newsave_BBBB", "wlvid_AAAA"])
+        #expect(vm.videoGroups.first?.videos.map(\.id) == ["newsave_BBBB", "wlremoved_AA"])
         #expect(vm.videoGroups.first?.videos.first?.setVideoId == "SETVID_B")
 
-        membership.markRemoved("wlvid_AAAA")
+        membership.markRemoved("wlremoved_AA")
         await waitForTasks(until: { vm.videoGroups.first?.videos.count == 1 })
         #expect(vm.videoGroups.first?.videos.map(\.id) == ["newsave_BBBB"])
     }

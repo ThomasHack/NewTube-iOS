@@ -47,14 +47,7 @@ it without more RAM.
 - `just test-ui-one <SmartTubeTVUITests/Suite/testMethod>` — a single UI test.
 - Device/app log capture during a test run: `docs/how-to/device-logs.md`.
 
-## Known failures
+## Keychain
 
-These fail independently of any recent change:
-
-- Keychain persistence tests (`TokenManager`, Brand Account `pageId`): the unsigned test host has no
-  Keychain access.
-- Home/Recommended Shorts tests (`homeShortsVideos`, `loadMoreShortsIfNeeded`, `preloadMoreShorts`,
-  `recommendedShortsVideos`): they still expect Shorts in those feeds, which tvOS removed.
-- `fetchShorts sends TVHTML5 clientName`: `fetchShorts` now uses the WEB search path.
-- `SubscriptionsSortTests` pagination test: page 1 hasn't loaded after its fixed 50 ms wait.
-- Now Playing command and audio interruption tests are timing-dependent and vary between runs.
+The test process has no Keychain entitlement, so `SecItemAdd` returns `-34018`, signed or not.
+`TokenManager` tests use `InMemoryTokenStore`, which means `KeychainTokenStore` itself has no unit test.

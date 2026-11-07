@@ -7,11 +7,6 @@ import Testing
 
 /// Yields control enough times so internal @MainActor Tasks spawned by
 /// the ViewModel can complete against an immediately-returning mock API.
-private func waitForSubsTasks() async {
-    for _ in 0..<3 { await Task.yield() }
-    try? await Task.sleep(for: .milliseconds(50))
-}
-
 // MARK: - SubscriptionsSortTests
 
 @Suite("Subscriptions Sort Order")
@@ -104,7 +99,7 @@ struct SubscriptionsSortTests {
         let vm = BrowseViewModel(api: mock, initialSection: section)
         await vm.updateAuthToken("fake-token")
         vm.loadContent(for: section, refresh: true, source: "test")
-        await waitForSubsTasks()
+        await waitUntil { !vm.videoGroups.isEmpty }
 
         let page1 = try #require(vm.videoGroups.first, "page 1 should have loaded")
         #expect(page1.videos.count == 2, "page 1 should load 2 videos")
@@ -120,7 +115,7 @@ struct SubscriptionsSortTests {
         // Trigger pagination using the last (oldest) video from page 1.
         let lastOfPage1 = try #require(page1.videos.last)
         vm.loadMoreIfNeeded(lastVideo: lastOfPage1)
-        await waitForSubsTasks()
+        await waitUntil { vm.videoGroups.first?.videos.count == 4 }
 
         let merged = try #require(vm.videoGroups.first).videos
         try #require(merged.count == 4, "all 4 videos should be present after merge")

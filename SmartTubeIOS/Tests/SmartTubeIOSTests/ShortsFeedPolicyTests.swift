@@ -26,12 +26,6 @@ struct ShortsFeedPolicyTests {
         api.calls.filter { $0.method == method }.count
     }
 
-    /// Yields until `condition` holds, so tests don't depend on a fixed sleep.
-    private func waitUntil(_ condition: () -> Bool) async {
-        let deadline = ContinuousClock.now.advanced(by: .seconds(5))
-        while !condition(), ContinuousClock.now < deadline { await Task.yield() }
-    }
-
     // MARK: Home
 
     @Test("Home with Shorts off doesn't fetch or expose them, and keeps regular videos")

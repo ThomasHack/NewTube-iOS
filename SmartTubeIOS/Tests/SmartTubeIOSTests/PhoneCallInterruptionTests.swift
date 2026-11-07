@@ -48,7 +48,9 @@ struct PhoneCallInterruptionFlagTests {
     }
 }
 
-@Suite("Phone call interruption — AVAudioSession notification handling (#244)")
+// Serial: every live PlaybackViewModel hears these notifications, so a parallel test's
+// .began would overwrite wasPlayingBeforeInterruption and its .ended would clear the flags.
+@Suite("Phone call interruption — AVAudioSession notification handling (#244)", .serialized)
 @MainActor
 struct PhoneCallInterruptionNotificationTests {
 

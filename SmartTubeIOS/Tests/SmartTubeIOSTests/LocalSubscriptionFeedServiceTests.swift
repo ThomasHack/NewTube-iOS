@@ -5,7 +5,8 @@ import Testing
 
 // MARK: - LocalSubscriptionFeedServiceTests
 
-@Suite("Local Subscription Feed Service")
+// Serial: the tests share `RouterURLProtocol.routes`, so a parallel test would replace or clear them.
+@Suite("Local Subscription Feed Service", .serialized)
 @MainActor
 struct LocalSubscriptionFeedServiceTests {
 
@@ -26,7 +27,7 @@ struct LocalSubscriptionFeedServiceTests {
     /// Builds a `LocalSubscriptionFeedService` backed by `RouterURLProtocol`,
     /// seeding its routes for this test. `RouterURLProtocol.routes` is a
     /// shared static — callers must clear it (e.g. `defer { RouterURLProtocol.routes = [:] }`)
-    /// so a route set here can't leak into a concurrently-running test.
+    /// so a route set here can't leak into the next test.
     private func makeService(with routes: [String: Data]) -> LocalSubscriptionFeedService {
         RouterURLProtocol.routes = routes
         let config = URLSessionConfiguration.ephemeral
