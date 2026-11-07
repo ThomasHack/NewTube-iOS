@@ -46,7 +46,7 @@ final class TVPlayerSettingsUITests: XCTestCase {
 
     private var chipBar: XCUIElement {
         app.descendants(matching: .any)
-            .matching(NSPredicate(format: "identifier == 'home.chipBar'"))
+            .matching(NSPredicate(format: "identifier == 'home.sectionContainer'"))
             .firstMatch
     }
 
@@ -110,7 +110,7 @@ final class TVPlayerSettingsUITests: XCTestCase {
     private func openPlayer() throws {
         XCTAssertTrue(
             chipBar.waitForExistence(timeout: 15),
-            "home.chipBar must appear — app failed to launch or content did not load"
+            "home.sectionContainer must appear — app failed to launch or content did not load"
         )
         guard waitForVideoCards(timeout: 20) else {
             XCTFail("No video cards loaded within 20 s — network unavailable or feed empty")
@@ -241,7 +241,7 @@ final class TVPlayerSettingsUITests: XCTestCase {
         app.launch()
 
         // Navigate to the player (same as other tests).
-        XCTAssertTrue(chipBar.waitForExistence(timeout: 15), "home.chipBar must appear")
+        XCTAssertTrue(chipBar.waitForExistence(timeout: 15), "home.sectionContainer must appear")
         guard waitForVideoCards(timeout: 20) else {
             XCTFail("No video cards loaded within 20 s — network unavailable")
             return

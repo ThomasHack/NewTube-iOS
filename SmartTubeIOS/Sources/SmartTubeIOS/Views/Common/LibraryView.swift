@@ -12,7 +12,12 @@ public struct LibraryView: View {
     @Environment(BrowseViewModel.self) private var browseVM
     @Environment(\.innerTubeAPI) private var api
     @Environment(SettingsStore.self) private var store
+    #if os(tvOS)
+    // Subscriptions has its own tab on Apple TV.
+    @State private var selectedSection: LibrarySection = .history
+    #else
     @State private var selectedSection: LibrarySection = .subscriptions
+    #endif
     @State private var selectedVideo: Video?
     @State private var selectedPlaylist: Video?
     @State private var channelDestination: ChannelDestination?
@@ -31,12 +36,18 @@ public struct LibraryView: View {
         case subscriptions = "Subs"
         case history = "History"
         case playlists = "Playlists"
+        case channels = "Channels"
         case rss = "RSS Feeds"
         case downloads = "Downloads"
 
-        #if os(tvOS) || !ENABLE_DOWNLOADS
-        // Downloads saves to Photos library — not supported on tvOS, and compiled out of
-        // App Store builds (guideline 5.2.3). Exclude the chip by hiding it from allCases.
+        #if os(tvOS)
+        // Downloads saves to the Photos library, which tvOS doesn't support.
+        static var allCases: [LibrarySection] {
+            [.history, .playlists, .channels, .rss]
+        }
+        #elseif !ENABLE_DOWNLOADS
+        // Downloads is compiled out of App Store builds (guideline 5.2.3). Exclude the chip by
+        // hiding it from allCases. Channels stays a Home chip on these platforms.
         static var allCases: [LibrarySection] {
             [.subscriptions, .history, .playlists, .rss]
         }
@@ -48,6 +59,7 @@ public struct LibraryView: View {
             case .subscriptions: return .subscriptions
             case .history: return .history
             case .playlists: return .playlists
+            case .channels: return .channels
             case .rss: return .history  // not used — RSS renders its own view
             case .downloads: return .history  // not used — DownloadsView renders its own content
             }
@@ -136,6 +148,8 @@ public struct LibraryView: View {
                     RSSFeedsView()
                 } else if selectedSection == .downloads {
                     downloadsContent
+                } else if selectedSection == .channels {
+                    channelsContent
                 } else if !auth.isSignedIn && selectedSection != .subscriptions {
                     segmentSignInPrompt
                 } else if browseVM.isLoading && browseVM.videoGroups.flatMap({ $0.videos }).isEmpty {
@@ -255,6 +269,22 @@ public struct LibraryView: View {
         .task(id: selectedSection) {
             guard selectedSection == .playlists else { return }
             queueVideosCount = await CurrentQueueStore.shared.videos.count
+        }
+    }
+
+    /// Works signed out too: the view model falls back to locally followed channels.
+    @ViewBuilder private var channelsContent: some View {
+        if browseVM.isLoading && browseVM.subscribedChannels.isEmpty {
+            ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if browseVM.subscribedChannels.isEmpty {
+            emptyLibraryView
+        } else {
+            ChannelListView(channels: browseVM.subscribedChannels) { channel in
+                channelDestination = ChannelDestination(channelId: channel.id)
+            }
+            #if os(tvOS)
+            .focusSection()
+            #endif
         }
     }
 

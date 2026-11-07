@@ -30,7 +30,7 @@ final class TVFocusChainUITests: XCTestCase {
 
     private var chipBar: XCUIElement {
         app.descendants(matching: .any)
-            .matching(NSPredicate(format: "identifier == 'home.chipBar'"))
+            .matching(NSPredicate(format: "identifier == 'home.sectionContainer'"))
             .firstMatch
     }
 
@@ -51,56 +51,13 @@ final class TVFocusChainUITests: XCTestCase {
 
     // MARK: - Tests
 
-    /// Pressing ↓ once from the tab bar enters the chip bar.
-    /// Proven by: ↓ → → → select switches to the next chip's feed
-    /// (only possible if → navigated between chips, meaning focus was in the chip bar).
-    func testDownOneEntersChips() throws {
-        XCTAssertTrue(
-            chipBar.waitForExistence(timeout: 15),
-            "home.chipBar must appear — app failed to launch or content did not load"
-        )
-
-        // Verify chip buttons are accessible before testing focus navigation.
-        let subscriptionsChip = app.buttons.matching(
-            NSPredicate(format: "identifier == 'chip.Subscriptions'")
-        ).firstMatch
-        XCTAssertTrue(
-            subscriptionsChip.waitForExistence(timeout: 5),
-            "chip.Subscriptions must be in the accessibility tree"
-        )
-
-        // Step 1: ↓ from tab bar → chip bar must receive focus
-        remote.press(.down)
-        Thread.sleep(forTimeInterval: 1.0)
-
-        // Step 2: → moves to the next chip (Subscriptions)
-        // If focus was NOT in the chip bar, → would move within video content instead.
-        remote.press(.right)
-        Thread.sleep(forTimeInterval: 0.8)
-
-        // Step 3: select activates the focused chip
-        remote.press(.select)
-        Thread.sleep(forTimeInterval: 1.0)
-
-        // A different chip is now selected — the section container loads immediately
-        // regardless of network state (loading spinner, empty state, or content).
-        let sectionContainer = app.descendants(matching: .any)
-            .matching(NSPredicate(format: "identifier == 'home.sectionContainer'"))
-            .firstMatch
-        XCTAssertTrue(
-            sectionContainer.waitForExistence(timeout: 10),
-            "home.sectionContainer must appear after ↓ + → + select — "
-                + "focus was not in the chip bar after one ↓ press"
-        )
-    }
-
     /// Pressing ↓ twice from the initial state enters the video list.
     /// Verified by pressing select and confirming the player opens.
     func testDownTwiceEntersVideoListAndSelectPlaysVideo() throws {
         // Wait for chip bar to appear (app loaded and feed ready)
         XCTAssertTrue(
             chipBar.waitForExistence(timeout: 15),
-            "home.chipBar must appear — app failed to launch or content did not load"
+            "home.sectionContainer must appear — app failed to launch or content did not load"
         )
 
         // Wait for video cards to load before navigating
@@ -108,11 +65,11 @@ final class TVFocusChainUITests: XCTestCase {
             try captureAndSkip("No video cards loaded within 20 s — network unavailable or feed empty", in: app)
         }
 
-        // Step 1: ↓ from tab bar → chip bar receives focus
+        // Step 1: ↓ from tab bar → first row of the video list receives focus
         remote.press(.down)
         Thread.sleep(forTimeInterval: 0.6)
 
-        // Step 2: ↓ from chip bar → video list receives focus
+        // Step 2: ↓ → second row
         remote.press(.down)
         Thread.sleep(forTimeInterval: 0.6)
 
@@ -127,11 +84,11 @@ final class TVFocusChainUITests: XCTestCase {
         )
     }
 
-    /// Pressing Esc (Menu) from the video list returns focus to chips without playing a video.
-    func testEscFromVideoListReturnsFocusToChipsWithoutPlaying() throws {
+    /// Pressing Esc (Menu) from the video list stays on the feed without playing a video.
+    func testEscFromVideoListStaysOnFeedWithoutPlaying() throws {
         XCTAssertTrue(
             chipBar.waitForExistence(timeout: 15),
-            "home.chipBar must appear"
+            "home.sectionContainer must appear"
         )
 
         guard waitForVideoCards(timeout: 20) else {
@@ -144,14 +101,14 @@ final class TVFocusChainUITests: XCTestCase {
         remote.press(.down)
         Thread.sleep(forTimeInterval: 0.6)
 
-        // Menu/Esc — should return focus to chips, not navigate anywhere
+        // Menu/Esc — must not navigate anywhere or play anything
         remote.press(.menu)
         Thread.sleep(forTimeInterval: 0.5)
 
-        // Chip bar must still be visible (still on Home screen)
+        // The feed must still be visible
         XCTAssertTrue(
             chipBar.exists,
-            "home.chipBar must still exist after pressing Menu/Esc from the video list"
+            "home.sectionContainer must still exist after pressing Menu/Esc from the video list"
         )
 
         // Player must NOT have opened
@@ -202,7 +159,7 @@ final class TVFocusChainUITests: XCTestCase {
     func testPlayerMenuButtonDismissesPlayer() throws {
         XCTAssertTrue(
             chipBar.waitForExistence(timeout: 15),
-            "home.chipBar must appear"
+            "home.sectionContainer must appear"
         )
 
         guard waitForVideoCards(timeout: 20) else {
@@ -235,7 +192,7 @@ final class TVFocusChainUITests: XCTestCase {
         // Home is restored
         XCTAssertTrue(
             chipBar.waitForExistence(timeout: 5),
-            "home.chipBar must reappear after dismissing the player with Menu"
+            "home.sectionContainer must reappear after dismissing the player with Menu"
         )
     }
 
@@ -244,7 +201,7 @@ final class TVFocusChainUITests: XCTestCase {
     func testPlayPauseCommandShowsControlsOverlay() throws {
         XCTAssertTrue(
             chipBar.waitForExistence(timeout: 15),
-            "home.chipBar must appear"
+            "home.sectionContainer must appear"
         )
 
         guard waitForVideoCards(timeout: 20) else {
@@ -348,7 +305,7 @@ final class TVFocusChainUITests: XCTestCase {
     /// visible (hittable) — not stuck transparent due to nav bar animation conflict.
     func testSettingsTabBarVisibleAfterScrollDownAndUp() throws {
         // Navigate to Settings tab (rightmost)
-        for _ in 0..<4 { remote.press(.right) }
+        for _ in 0..<5 { remote.press(.right) }
         remote.press(.select)
         Thread.sleep(forTimeInterval: 2)
 

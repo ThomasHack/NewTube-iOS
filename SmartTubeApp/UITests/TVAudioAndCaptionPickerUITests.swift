@@ -52,7 +52,7 @@ final class TVAudioAndCaptionPickerUITests: XCTestCase {
     }
 
     private var chipBar: XCUIElement {
-        element(identifier: "home.chipBar")
+        element(identifier: "home.sectionContainer")
     }
 
     /// Waits for at least one video card to appear on Home.
@@ -69,7 +69,7 @@ final class TVAudioAndCaptionPickerUITests: XCTestCase {
     /// --uitesting-open-more-menu fires in PlayerView.onAppear.
     private func waitForMoreMenu() throws {
         guard chipBar.waitForExistence(timeout: 15) else {
-            try captureAndSkip("home.chipBar did not appear — app failed to launch", in: app)
+            try captureAndSkip("home.sectionContainer did not appear — app failed to launch", in: app)
         }
         guard waitForVideoCards(timeout: 20) else {
             try captureAndSkip("No video cards loaded — network unavailable or feed empty", in: app)

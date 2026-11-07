@@ -8,7 +8,7 @@ import XCTest
 //
 // No network access is required — all tested elements are static UI.
 //
-// Navigation: tab bar → right × 4 → select = Settings tab
+// Navigation: tab bar → right × 5 → select = Settings tab
 // (same pattern proven by TVFocusChainUITests.testSettingsTabBarVisibleAfterScrollDownAndUp)
 
 final class TVSettingsUITests: XCTestCase {
@@ -32,7 +32,7 @@ final class TVSettingsUITests: XCTestCase {
     // MARK: - Helpers
 
     private func openSettings() throws {
-        for _ in 0..<4 { remote.press(.right) }
+        for _ in 0..<5 { remote.press(.right) }
         remote.press(.select)
         // Wait for resetAllButton as the sentinel that Settings has fully rendered
         let sentinel = app.descendants(matching: .any)

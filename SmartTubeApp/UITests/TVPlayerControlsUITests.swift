@@ -40,7 +40,7 @@ final class TVPlayerControlsUITests: XCTestCase {
 
     private var chipBar: XCUIElement {
         app.descendants(matching: .any)
-            .matching(NSPredicate(format: "identifier == 'home.chipBar'"))
+            .matching(NSPredicate(format: "identifier == 'home.sectionContainer'"))
             .firstMatch
     }
 
@@ -58,7 +58,7 @@ final class TVPlayerControlsUITests: XCTestCase {
     /// With --uitesting-open-more-menu the player will open the more menu automatically on appear.
     private func openPlayer() throws {
         guard chipBar.waitForExistence(timeout: 15) else {
-            try captureAndSkip("home.chipBar not found — app did not reach Home tab", in: app)
+            try captureAndSkip("home.sectionContainer not found — app did not reach Home tab", in: app)
         }
         // Wait for at least one video card so we can navigate into it.
         let predicate = NSPredicate(format: "identifier BEGINSWITH 'video.card.'")
@@ -67,9 +67,9 @@ final class TVPlayerControlsUITests: XCTestCase {
         guard XCTWaiter().wait(for: [cardExpectation], timeout: 20) == .completed else {
             try captureAndSkip("No video cards loaded — network unavailable", in: app)
         }
-        remote.press(.down)  // tab bar → chip bar
+        remote.press(.down)  // tab bar → first video row
         Thread.sleep(forTimeInterval: 0.6)
-        remote.press(.down)  // chip bar → video list
+        remote.press(.down)  // → second video row
         Thread.sleep(forTimeInterval: 0.6)
         remote.press(.select)  // open first video
         guard titleLabel.waitForExistence(timeout: 15) else {

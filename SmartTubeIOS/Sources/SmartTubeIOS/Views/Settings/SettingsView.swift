@@ -342,11 +342,13 @@ public struct SettingsView: View {
                     .accessibilityIdentifier("settings.disableLiquidGlassToggle")
             }
             #endif
+            #if !os(tvOS)
             NavigationLink("Visible Sections") {
                 SectionsSettingsView()
                     .environment(store)
             }
             .accessibilityIdentifier("settings.visibleSectionsLink")
+            #endif
         }
     }
 

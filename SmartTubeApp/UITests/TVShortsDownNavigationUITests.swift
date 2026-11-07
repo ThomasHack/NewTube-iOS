@@ -59,9 +59,9 @@ final class TVShortsDownNavigationUITests: XCTestCase {
     /// after every press so failures are immediately diagnosable.
     func test_ThreeDownPresses_LandOnVideoGrid() throws {
         // Wait for home feed to be ready.
-        let chipBar = app.descendants(matching: .any)["home.chipBar"]
+        let chipBar = app.descendants(matching: .any)["home.sectionContainer"]
         guard chipBar.waitForExistence(timeout: 20) else {
-            try captureAndSkip("home.chipBar did not appear — Home tab not loaded", in: app)
+            try captureAndSkip("home.sectionContainer did not appear — Home tab not loaded", in: app)
         }
 
         // On tvOS the outer HStack's .accessibilityIdentifier("home.shortsRow")

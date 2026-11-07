@@ -42,7 +42,7 @@ final class TVVideoPlaybackRegressionUITests: XCTestCase {
     }
 
     private var chipBar: XCUIElement {
-        element(identifier: "home.chipBar")
+        element(identifier: "home.sectionContainer")
     }
 
     /// Waits for at least one video card to appear on Home.
@@ -60,7 +60,7 @@ final class TVVideoPlaybackRegressionUITests: XCTestCase {
     /// Skips the test if Home content doesn't load (network unavailable).
     private func waitForPlayer(timeout: TimeInterval = 20) throws {
         guard chipBar.waitForExistence(timeout: 15) else {
-            try captureAndSkip("home.chipBar did not appear — app failed to launch", in: app)
+            try captureAndSkip("home.sectionContainer did not appear — app failed to launch", in: app)
         }
         guard waitForVideoCards(timeout: 20) else {
             try captureAndSkip("No video cards loaded — network unavailable or feed empty", in: app)
@@ -107,7 +107,7 @@ final class TVVideoPlaybackRegressionUITests: XCTestCase {
 
         XCTAssertTrue(
             chipBar.waitForExistence(timeout: 8),
-            "home.chipBar must reappear after pressing Menu in the player — "
+            "home.sectionContainer must reappear after pressing Menu in the player — "
                 + "app may have crashed or become unresponsive"
         )
     }
@@ -122,7 +122,7 @@ final class TVVideoPlaybackRegressionUITests: XCTestCase {
         Thread.sleep(forTimeInterval: 2.0)
 
         guard chipBar.waitForExistence(timeout: 8) else {
-            try captureAndSkip("home.chipBar did not reappear after dismissing first player", in: app)
+            try captureAndSkip("home.sectionContainer did not reappear after dismissing first player", in: app)
         }
 
         // Navigate down to video list and select the next card.

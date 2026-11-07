@@ -46,9 +46,6 @@ public struct HomeView: View {
     @State private var shortsCountAtTrigger = 0
     @State private var needsMoreNonShorts = false
     @State private var nonShortsCountAtTrigger = 0
-    #if os(tvOS)
-    @FocusState private var focusedSection: BrowseSection?
-    #endif
     private var visibleSections: [BrowseSection] {
         let types = store.settings.enabledSections
         var all: [BrowseSection] =
@@ -73,18 +70,27 @@ public struct HomeView: View {
         _sectionVM = State(initialValue: BrowseViewModel(api: api))
     }
 
+    #if os(tvOS)
+    /// Apple TV has no chip bar: each tab shows one fixed section.
+    public init(api: InnerTubeAPI, section: BrowseSection) {
+        self.init(api: api)
+        _selectedSection = State(initialValue: section)
+    }
+    #endif
+
     /// Injects the view models directly so previews can supply sample data.
-    init(homeVM: HomeViewModel, sectionVM: BrowseViewModel) {
+    init(homeVM: HomeViewModel, sectionVM: BrowseViewModel, section: BrowseSection? = nil) {
         _homeVM = State(initialValue: homeVM)
         _sectionVM = State(initialValue: sectionVM)
+        if let section { _selectedSection = State(initialValue: section) }
     }
 
     // MARK: - Body
 
     public var body: some View {
         VStack(spacing: 0) {
-            chipBar
             #if !os(tvOS)
+            chipBar
             Divider()
             #endif
             contentArea
@@ -139,13 +145,18 @@ public struct HomeView: View {
                 ?? BrowseSection(id: type.rawValue, title: type.defaultTitle, type: type)
         }
         #endif
+        #if !os(tvOS)
         .onChange(of: visibleSections) { _, newSections in
             if !newSections.contains(selectedSection), let first = newSections.first {
                 selectedSection = first
             }
         }
+        #endif
         .task(id: auth.accessToken) {
+            // Apple TV never shows the mixed Home feed, so it must not be loaded there.
+            #if !os(tvOS)
             await homeVM.updateAuthToken(auth.accessToken)
+            #endif
             await sectionVM.updateAuthToken(auth.accessToken)
         }
         .task(id: selectedSection) {
@@ -173,22 +184,8 @@ public struct HomeView: View {
 
     // MARK: - Chip bar
 
+    #if !os(tvOS)
     private var chipBar: some View {
-        #if os(tvOS)
-        HStack(spacing: 8) {
-            ForEach(visibleSections) { section in
-                chipButton(section: section)
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .frame(maxWidth: .infinity)
-        .background(.ultraThinMaterial)
-        .focusSection()
-        .defaultFocus($focusedSection, selectedSection)
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("home.chipBar")
-        #else
         ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
@@ -206,7 +203,6 @@ public struct HomeView: View {
             }
         }
         .accessibilityIdentifier("home.chipBar")
-        #endif
     }
 
     private func chipButton(section: BrowseSection) -> some View {
@@ -222,33 +218,6 @@ public struct HomeView: View {
                 sectionVM.reload(section: section)
             }
         }
-        #if os(tvOS)
-        let isFocused = focusedSection == section
-        return Button(action: action) {
-            Text(section.title)
-                .font(.headline)
-                .padding(.horizontal, 24)
-                .padding(.vertical, 12)
-                .background(
-                    (isSelected || isFocused) ? Color.primary : Color.secondary.opacity(0.15),
-                    in: Capsule()
-                )
-                .foregroundStyle(
-                    (isSelected || isFocused)
-                        ? Color(white: colorScheme == .dark ? 0 : 1)
-                        : Color.primary
-                )
-                .focusEffectDisabled()
-        }
-        .buttonStyle(.borderless)
-        .scaleEffect(isFocused ? 1.12 : 1.0)
-        .animation(.easeInOut(duration: 0.15), value: focusedSection)
-        .animation(.easeInOut(duration: 0.15), value: selectedSection)
-        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
-        .accessibilityLabel(section.title)
-        .accessibilityIdentifier("chip.\(section.title)")
-        .focused($focusedSection, equals: section)
-        #else
         return Button(action: action) {
             Text(section.title)
                 .font(.subheadline.weight(.medium))
@@ -267,13 +236,13 @@ public struct HomeView: View {
         .buttonStyle(.plain)
         .animation(.easeInOut(duration: 0.15), value: selectedSection)
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
-        #endif
     }
 
     private func select(_ section: BrowseSection) {
         selectedSection = section
         if section.type != .home { sectionVM.select(section: section) }
     }
+    #endif
 
     #if os(iOS)
     // MARK: - Swipe between sections (#159)
@@ -826,13 +795,29 @@ public struct HomeView: View {
 
 #if DEBUG
 extension HomeView {
-    /// A Home screen backed by sample data.
-    static func preview() -> HomeView {
+    /// A feed screen backed by sample data.
+    static func preview(section: BrowseSection? = nil) -> HomeView {
         let api = PreviewInnerTubeAPI()
-        return HomeView(homeVM: HomeViewModel(api: api), sectionVM: BrowseViewModel(api: api))
+        return HomeView(homeVM: HomeViewModel(api: api), sectionVM: BrowseViewModel(api: api), section: section)
     }
 }
 
+#if os(tvOS)
+#Preview("Recommended") {
+    NavigationStack { HomeView.preview(section: BrowseSection(type: .recommended)) }
+        .previewEnvironment()
+}
+
+#Preview("Subscriptions") {
+    NavigationStack { HomeView.preview(section: BrowseSection(type: .subscriptions)) }
+        .previewEnvironment()
+}
+
+#Preview("Signed out") {
+    NavigationStack { HomeView.preview(section: BrowseSection(type: .recommended)) }
+        .previewEnvironment(signedIn: false)
+}
+#else
 #Preview("Signed in") {
     NavigationStack { HomeView.preview() }
         .previewEnvironment()
@@ -842,4 +827,5 @@ extension HomeView {
     NavigationStack { HomeView.preview() }
         .previewEnvironment(signedIn: false)
 }
+#endif
 #endif

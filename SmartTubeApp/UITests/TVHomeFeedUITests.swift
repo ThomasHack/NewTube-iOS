@@ -32,7 +32,7 @@ final class TVHomeFeedUITests: XCTestCase {
 
     private var chipBar: XCUIElement {
         app.descendants(matching: .any)
-            .matching(NSPredicate(format: "identifier == 'home.chipBar'"))
+            .matching(NSPredicate(format: "identifier == 'home.sectionContainer'"))
             .firstMatch
     }
 
@@ -55,18 +55,19 @@ final class TVHomeFeedUITests: XCTestCase {
 
     // MARK: - Tests
 
-    /// The chip bar must appear within 15 s of launch.
-    func testChipBarLoadsWithinTimeout() throws {
+    /// The Recommended feed must appear within 15 s of launch.
+    func testFeedLoadsWithinTimeout() throws {
         guard chipBar.waitForExistence(timeout: 15) else {
-            try captureAndSkip("home.chipBar did not appear within 15 s — Home tab may not have loaded", in: app)
+            try captureAndSkip(
+                "home.sectionContainer did not appear within 15 s — Home tab may not have loaded", in: app)
         }
-        XCTAssertTrue(chipBar.exists, "home.chipBar must exist after appearance")
+        XCTAssertTrue(chipBar.exists, "home.sectionContainer must exist after appearance")
     }
 
     /// Video cards (video.card.*) must populate the Home feed within 20 s.
     func testVideoCardsPopulateHomeFeed() throws {
         guard chipBar.waitForExistence(timeout: 15) else {
-            try captureAndSkip("home.chipBar not found — cannot wait for video cards", in: app)
+            try captureAndSkip("home.sectionContainer not found — cannot wait for video cards", in: app)
         }
         guard waitForVideoCards(timeout: 20) else {
             try captureAndSkip(
@@ -80,7 +81,7 @@ final class TVHomeFeedUITests: XCTestCase {
     /// No XCUIElementTypeAlert and no player.errorBanner should appear on cold launch.
     func testNoErrorBannerOnHomeLoad() throws {
         guard chipBar.waitForExistence(timeout: 15) else {
-            try captureAndSkip("home.chipBar not found — app did not reach Home tab", in: app)
+            try captureAndSkip("home.sectionContainer not found — app did not reach Home tab", in: app)
         }
         // Allow extra time for network requests to settle.
         Thread.sleep(forTimeInterval: 3.0)
@@ -92,49 +93,5 @@ final class TVHomeFeedUITests: XCTestCase {
         XCTAssertFalse(errorBanner.exists, "player.errorBanner should not appear on the Home screen")
     }
 
-    /// Selecting the Subscriptions chip via D-pad should load the Subscriptions feed.
-    func testSelectingSubscriptionsChipLoadsFeed() throws {
-        guard chipBar.waitForExistence(timeout: 15) else {
-            try captureAndSkip("home.chipBar not found — cannot navigate to Subscriptions chip", in: app)
-        }
-        // Press ↓ to move focus from the tab bar into the chip bar.
-        remote.press(.down)
-        Thread.sleep(forTimeInterval: 0.8)
-        // Navigate right to reach the Subscriptions chip (typically the second chip).
-        remote.press(.right)
-        Thread.sleep(forTimeInterval: 0.8)
-        // Activate the focused chip.
-        remote.press(.select)
-        Thread.sleep(forTimeInterval: 1.5)
-        // The section container should load the new feed.
-        guard sectionContainer.waitForExistence(timeout: 15) else {
-            try captureAndSkip("home.sectionContainer did not appear after selecting Subscriptions chip", in: app)
-        }
-        XCTAssertTrue(sectionContainer.exists, "home.sectionContainer must exist after chip selection")
-    }
-
-    /// Navigating back to the Home chip after Subscriptions should restore the chip bar.
-    func testSelectingHomeChipRestoresFeed() throws {
-        guard chipBar.waitForExistence(timeout: 15) else {
-            try captureAndSkip("home.chipBar not found on launch", in: app)
-        }
-        // Move to Subscriptions chip.
-        remote.press(.down)
-        Thread.sleep(forTimeInterval: 0.8)
-        remote.press(.right)
-        Thread.sleep(forTimeInterval: 0.8)
-        remote.press(.select)
-        Thread.sleep(forTimeInterval: 1.5)
-        // Navigate back left to the Home chip and select it.
-        remote.press(.left)
-        Thread.sleep(forTimeInterval: 0.8)
-        remote.press(.select)
-        Thread.sleep(forTimeInterval: 1.5)
-        // The chip bar must still be visible.
-        XCTAssertTrue(
-            chipBar.waitForExistence(timeout: 10),
-            "home.chipBar must still exist after returning to the Home chip"
-        )
-    }
 }
 #endif

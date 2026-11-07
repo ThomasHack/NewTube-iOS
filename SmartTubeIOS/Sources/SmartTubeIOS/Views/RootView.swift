@@ -105,7 +105,14 @@ public struct RootView: View {
 // MARK: - AppSection
 
 enum AppSection: String, CaseIterable, Identifiable {
+    #if os(tvOS)
+    // Apple TV has no chip bar on this tab: it shows recommendations only, and subscriptions
+    // get a tab of their own.
+    case home = "Recommended"
+    case subscriptions = "Subscriptions"
+    #else
     case home = "Home"
+    #endif
     case search = "Search"
     case library = "Library"
     case settings = "Settings"
@@ -115,6 +122,9 @@ enum AppSection: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .home: return AppSymbol.home
+        #if os(tvOS)
+        case .subscriptions: return AppSymbol.subscriptions
+        #endif
         case .search: return AppSymbol.search
         case .library: return AppSymbol.library
         case .settings: return AppSymbol.settings
@@ -124,7 +134,12 @@ enum AppSection: String, CaseIterable, Identifiable {
     @MainActor @ViewBuilder
     func destination(api: InnerTubeAPI) -> some View {
         switch self {
+        #if os(tvOS)
+        case .home: HomeView(api: api, section: BrowseSection(type: .recommended))
+        case .subscriptions: HomeView(api: api, section: BrowseSection(type: .subscriptions))
+        #else
         case .home: HomeView(api: api)
+        #endif
         case .search: SearchView()
         case .library: LibraryView()
         case .settings: SettingsView()
@@ -496,7 +511,8 @@ struct MainSidebarView: View {
     let searchVM = SearchViewModel.preview()
     MainTVTabView { section in
         switch section {
-        case .home: AnyView(HomeView.preview())
+        case .home: AnyView(HomeView.preview(section: BrowseSection(type: .recommended)))
+        case .subscriptions: AnyView(HomeView.preview(section: BrowseSection(type: .subscriptions)))
         case .search: AnyView(SearchView().environment(searchVM))
         case .library: AnyView(LibraryView())
         case .settings: AnyView(SettingsView())

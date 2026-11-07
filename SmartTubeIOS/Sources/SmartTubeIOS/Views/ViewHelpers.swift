@@ -125,6 +125,7 @@ struct DownloadAlertItem: Identifiable {
 enum AppSymbol {
     // MARK: - Navigation tabs
     static let home = "house.fill"
+    static let subscriptions = "rectangle.stack.badge.play.fill"
     static let search = "magnifyingglass"
     static let filter = "line.3.horizontal.decrease.circle"
     static let filterActive = "line.3.horizontal.decrease.circle.fill"

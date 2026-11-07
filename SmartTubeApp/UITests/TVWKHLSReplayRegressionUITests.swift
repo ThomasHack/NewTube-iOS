@@ -69,10 +69,10 @@ final class TVWKHLSReplayRegressionUITests: XCTestCase {
 
         // ── Navigate to Home feed ─────────────────────────────────────────────
         let chipBar = app.descendants(matching: .any)
-            .matching(NSPredicate(format: "identifier == 'home.chipBar'"))
+            .matching(NSPredicate(format: "identifier == 'home.sectionContainer'"))
             .firstMatch
         guard chipBar.waitForExistence(timeout: 15) else {
-            try captureAndSkip("home.chipBar not found — app did not reach Home tab", in: app)
+            try captureAndSkip("home.sectionContainer not found — app did not reach Home tab", in: app)
         }
 
         // Wait for video cards.
@@ -175,7 +175,7 @@ final class TVWKHLSReplayRegressionUITests: XCTestCase {
 
             // Ensure focus returns to tab bar level (press Menu one more time if needed).
             let chipBar = app.descendants(matching: .any)
-                .matching(NSPredicate(format: "identifier == 'home.chipBar'"))
+                .matching(NSPredicate(format: "identifier == 'home.sectionContainer'"))
                 .firstMatch
             if !chipBar.waitForExistence(timeout: 3) {
                 remote.press(.menu)
