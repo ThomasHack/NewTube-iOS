@@ -15,14 +15,11 @@ struct SearchView: View {
     init() {}
 
     var body: some View {
-        @Bindable var vm = vm
-        // Everything is in one scroll view with `.searchable` on it, as in Apple's tvOS search sample,
-        // so focus can move between the search field, the filters and the results.
         ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                tvFilterRow
+            VStack(alignment: .leading, spacing: 32) {
+                searchBar
                 if vm.query.isEmpty {
-                    tvIdleView
+                    idleView
                 } else if vm.isLoading || vm.isAwaitingSearch || !vm.results.isEmpty {
                     resultsView
                 } else {
@@ -31,41 +28,34 @@ struct SearchView: View {
             }
         }
         .scrollClipDisabled()
-        // The system search UI (field and keyboard) lives in the navigation bar, so unlike
-        // the other tabs this screen must not hide it.
-        .searchable(text: $vm.query, prompt: "Search YouTube")
-        .autocorrectionDisabled()
-        .searchSuggestions {
-            if vm.query.isEmpty {
-                ForEach(vm.history) { entry in
-                    Label(entry.query, systemImage: AppSymbol.clock).searchCompletion(entry.query)
-                }
-            }
-            ForEach(vm.suggestions, id: \.self) { suggestion in
-                Label(suggestion, systemImage: AppSymbol.search).searchCompletion(suggestion)
-            }
-        }
-        .onSubmit(of: .search) {
-            if vm.isAwaitingSearch {
-                vm.search()
-            } else {
-                Task { await vm.recordCurrentSearch() }
-            }
-        }
+        .toolbar(.hidden, for: .navigationBar)
         .task(id: vm.query) { await vm.searchAsYouType() }
-        .sheet(isPresented: $showFilterSheet) {
+        .fullScreenCover(isPresented: $showFilterSheet) {
             SearchFilterSheet(current: vm.filter) { newFilter in
                 vm.applyFilter(newFilter)
             }
         }
-        .task(id: vm.query) { await vm.updateSuggestions(for: vm.query) }
     }
 
-    // MARK: - tvOS filter row
+    // MARK: - Search bar
 
-    private var tvFilterRow: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+    /// A text field rather than `.searchable`: Select on a letter of `.searchable`'s inline keyboard
+    /// moved focus to the first control below it. A text field opens the full-screen system keyboard.
+    private var searchBar: some View {
+        @Bindable var vm = vm
+        return ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 16) {
+                TextField("Search YouTube", text: $vm.query)
+                    .autocorrectionDisabled()
+                    .frame(width: 900)
+                    .onSubmit {
+                        if vm.isAwaitingSearch {
+                            vm.search()
+                        } else {
+                            Task { await vm.recordCurrentSearch() }
+                        }
+                    }
+                    .accessibilityIdentifier("search.field")
                 Button {
                     showFilterSheet = true
                 } label: {
@@ -74,33 +64,59 @@ struct SearchView: View {
                 .accessibilityIdentifier("search.filterButton")
                 activeFilterChips
             }
+            .padding(.horizontal)
             .padding(.vertical, 12)
         }
         .scrollClipDisabled()
         .focusSection()
     }
 
-    // MARK: - Idle content
+    // MARK: - Idle content (recent + recommended searches)
 
-    /// Has nothing focusable besides clearing the history. Recent and recommended searches are
-    /// search suggestions, because a list of buttons here took focus from the system keyboard.
-    private var tvIdleView: some View {
-        VStack(spacing: 24) {
-            ContentUnavailableView(
-                "Search YouTube",
-                systemImage: AppSymbol.search,
-                description: Text("Use the keyboard above, or pick a suggestion.")
-            )
+    private var idleView: some View {
+        VStack(alignment: .leading, spacing: 32) {
             if !vm.history.isEmpty {
-                Button("Clear History", role: .destructive) {
-                    vm.clearHistory()
+                querySection("Recent") {
+                    ForEach(vm.history) { entry in
+                        queryButton(entry.query, systemImage: AppSymbol.clock)
+                            .accessibilityIdentifier("search.history.\(entry.query)")
+                    }
+                    Button("Clear History", role: .destructive) {
+                        vm.clearHistory()
+                    }
+                    .accessibilityIdentifier("search.history.clearAll")
                 }
-                .accessibilityIdentifier("search.history.clearAll")
+            }
+            querySection("Recommended") {
+                ForEach(vm.suggestions, id: \.self) { suggestion in
+                    queryButton(suggestion, systemImage: AppSymbol.search)
+                }
             }
         }
-        .frame(maxWidth: .infinity)
-        .padding(.top, 80)
+        .padding(.horizontal)
+        .focusSection()
         .accessibilityIdentifier("search.suggestionsContainer")
+    }
+
+    private func querySection<Content: View>(
+        _ title: LocalizedStringKey, @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(title)
+                .font(.headline)
+                .foregroundStyle(.secondary)
+            content()
+        }
+    }
+
+    private func queryButton(_ query: String, systemImage: String) -> some View {
+        Button {
+            vm.query = query
+            vm.search()
+        } label: {
+            Label(query, systemImage: systemImage)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 
     // MARK: - Active filter chips
@@ -236,61 +252,42 @@ struct SearchFilterSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Sort by") {
-                    Picker("Sort", selection: $draft.sortOrder) {
-                        ForEach(SearchFilter.SortOrder.allCases, id: \.self) { order in
-                            Text(LocalizedStringKey(order.label)).tag(order)
+            SettingsPageLayout {
+                Form {
+                    Section {
+                        SettingsPicker("Sort by", selection: $draft.sortOrder) {
+                            ForEach(SearchFilter.SortOrder.allCases, id: \.self) { order in
+                                Text(LocalizedStringKey(order.label)).tag(order)
+                            }
+                        }
+                        SettingsPicker("Upload date", selection: $draft.uploadDate) {
+                            ForEach(SearchFilter.UploadDate.allCases, id: \.self) { date in
+                                Text(LocalizedStringKey(date.label)).tag(date)
+                            }
+                        }
+                        SettingsPicker("search.filter.type", selection: $draft.type) {
+                            ForEach(SearchFilter.VideoType.allCases, id: \.self) { type in
+                                Text(LocalizedStringKey(type.label)).tag(type)
+                            }
+                        }
+                        SettingsPicker("Duration", selection: $draft.duration) {
+                            ForEach(SearchFilter.Duration.allCases, id: \.self) { dur in
+                                Text(LocalizedStringKey(dur.label)).tag(dur)
+                            }
                         }
                     }
-                    .pickerStyle(.inline)
-                    .labelsHidden()
-                }
-
-                Section("Upload date") {
-                    Picker("Upload date", selection: $draft.uploadDate) {
-                        ForEach(SearchFilter.UploadDate.allCases, id: \.self) { date in
-                            Text(LocalizedStringKey(date.label)).tag(date)
+                    Section {
+                        Button("Apply") {
+                            onApply(draft)
+                            dismiss()
                         }
-                    }
-                    .pickerStyle(.inline)
-                    .labelsHidden()
-                }
-
-                Section(String(localized: "search.filter.type")) {
-                    Picker(String(localized: "search.filter.type"), selection: $draft.type) {
-                        ForEach(SearchFilter.VideoType.allCases, id: \.self) { type in
-                            Text(LocalizedStringKey(type.label)).tag(type)
-                        }
-                    }
-                    .pickerStyle(.inline)
-                    .labelsHidden()
-                }
-
-                Section("Duration") {
-                    Picker("Duration", selection: $draft.duration) {
-                        ForEach(SearchFilter.Duration.allCases, id: \.self) { dur in
-                            Text(LocalizedStringKey(dur.label)).tag(dur)
-                        }
-                    }
-                    .pickerStyle(.inline)
-                    .labelsHidden()
-                }
-            }
-            .navigationTitle("Search filters")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Apply") {
-                        onApply(draft)
-                        dismiss()
+                        .accessibilityIdentifier("search.filterApplyButton")
+                        Button("Cancel", role: .cancel) { dismiss() }
                     }
                 }
             }
+            .toolbar(.hidden, for: .navigationBar)
         }
-        .presentationDetents([.medium, .large])
         .accessibilityIdentifier("search.filterSheet")
     }
 }
