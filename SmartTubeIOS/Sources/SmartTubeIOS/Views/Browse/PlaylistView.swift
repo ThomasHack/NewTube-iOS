@@ -28,6 +28,13 @@ public struct PlaylistView: View {
         _vm = State(initialValue: PlaylistViewModel(api: api))
     }
 
+    /// Injects the view model directly so previews can supply sample data.
+    init(playlistId: String, playlistTitle: String, viewModel: PlaylistViewModel) {
+        self.playlistId = playlistId
+        self.playlistTitle = playlistTitle
+        _vm = State(initialValue: viewModel)
+    }
+
     public var body: some View {
         Group {
             if vm.isLoading && vm.videos.isEmpty {
@@ -240,3 +247,18 @@ public struct PlaylistView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
+
+// MARK: - Previews
+
+#if DEBUG
+#Preview {
+    NavigationStack {
+        PlaylistView(
+            playlistId: "PLpreview",
+            playlistTitle: "Open Movies",
+            viewModel: PlaylistViewModel(api: PreviewInnerTubeAPI())
+        )
+    }
+    .previewEnvironment()
+}
+#endif

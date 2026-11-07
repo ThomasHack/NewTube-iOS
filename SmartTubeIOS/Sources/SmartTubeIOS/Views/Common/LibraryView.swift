@@ -346,3 +346,17 @@ extension LibraryView {
         #endif
     }
 }
+
+// MARK: - Previews
+
+#if DEBUG
+#Preview("Signed in") {
+    NavigationStack { LibraryView() }
+        .previewEnvironment()
+}
+
+#Preview("Signed out") {
+    NavigationStack { LibraryView() }
+        .previewEnvironment(signedIn: false)
+}
+#endif

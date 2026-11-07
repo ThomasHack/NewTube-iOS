@@ -487,3 +487,21 @@ struct MainSidebarView: View {
         }
     }
 }
+
+// MARK: - Previews
+
+#if DEBUG && os(tvOS)
+#Preview("Tab bar") {
+    // MainTVTabView injects its own SearchViewModel, so sample data has to go inside it.
+    let searchVM = SearchViewModel.preview()
+    MainTVTabView { section in
+        switch section {
+        case .home: AnyView(HomeView.preview())
+        case .search: AnyView(SearchView().environment(searchVM))
+        case .library: AnyView(LibraryView())
+        case .settings: AnyView(SettingsView())
+        }
+    }
+    .previewEnvironment()
+}
+#endif

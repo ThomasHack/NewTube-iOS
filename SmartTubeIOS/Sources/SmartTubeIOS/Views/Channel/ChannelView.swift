@@ -33,6 +33,12 @@ public struct ChannelView: View {
         self.channelId = channelId
     }
 
+    /// Injects the view model directly so previews can supply sample data.
+    init(channelId: String, viewModel: ChannelViewModel) {
+        self.channelId = channelId
+        _vm = State(initialValue: viewModel)
+    }
+
     public var body: some View {
         Group {
             if vm.isLoading && vm.channel == nil {
@@ -319,3 +325,14 @@ public struct ChannelView: View {
         }
     }
 }
+
+// MARK: - Previews
+
+#if DEBUG
+#Preview {
+    NavigationStack {
+        ChannelView(channelId: PreviewData.channel.id, viewModel: ChannelViewModel(api: PreviewInnerTubeAPI()))
+    }
+    .previewEnvironment()
+}
+#endif

@@ -815,3 +815,25 @@ public struct HomeView: View {
         }
     }
 }
+
+// MARK: - Previews
+
+#if DEBUG
+extension HomeView {
+    /// A Home screen backed by sample data.
+    static func preview() -> HomeView {
+        let api = PreviewInnerTubeAPI()
+        return HomeView(homeVM: HomeViewModel(api: api), sectionVM: BrowseViewModel(api: api))
+    }
+}
+
+#Preview("Signed in") {
+    NavigationStack { HomeView.preview() }
+        .previewEnvironment()
+}
+
+#Preview("Signed out") {
+    NavigationStack { HomeView.preview() }
+        .previewEnvironment(signedIn: false)
+}
+#endif

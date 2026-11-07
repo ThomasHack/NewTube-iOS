@@ -547,3 +547,24 @@ struct SearchFilterSheet: View {
         .accessibilityIdentifier("search.filterSheet")
     }
 }
+
+// MARK: - Previews
+
+#if DEBUG
+#Preview("Idle") {
+    NavigationStack { SearchView() }
+        .previewEnvironment()
+}
+
+#Preview("Results") {
+    NavigationStack { SearchView() }
+        .environment(SearchViewModel.preview(query: "open movies"))
+        .previewEnvironment()
+}
+
+#Preview("No results") {
+    NavigationStack { SearchView() }
+        .environment(SearchViewModel.preview(query: "zzzzzz", results: []))
+        .previewEnvironment()
+}
+#endif

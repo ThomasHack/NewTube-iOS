@@ -631,3 +631,17 @@ struct SponsorBlockExcludedChannelsView: View {
         #endif
     }
 }
+
+// MARK: - Previews
+
+#if DEBUG
+#Preview("Signed in") {
+    NavigationStack { SettingsView() }
+        .previewEnvironment()
+}
+
+#Preview("Signed out") {
+    NavigationStack { SettingsView() }
+        .previewEnvironment(signedIn: false)
+}
+#endif

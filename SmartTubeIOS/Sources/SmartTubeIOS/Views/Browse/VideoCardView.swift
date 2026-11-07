@@ -721,17 +721,20 @@ public struct VideoCardView: View {
 // MARK: - Preview
 
 #if DEBUG
-#Preview {
-    VideoCardView(
-        video: Video(
-            id: "dQw4w9WgXcQ",
-            title: "Rick Astley – Never Gonna Give You Up",
-            channelTitle: "Rick Astley",
-            duration: 213,
-            viewCount: 1_400_000_000
-        )
-    )
+#Preview("Card") {
+    VideoCardView(video: PreviewData.videos[0], onSelect: {})
+        #if os(tvOS)
+    .frame(width: 420)
+        #else
     .frame(width: 320)
-    .padding()
+        #endif
+        .padding()
+        .previewEnvironment()
+}
+
+#Preview("Compact") {
+    VideoCardView(video: PreviewData.videos[1], compact: true, onSelect: {})
+        .padding()
+        .previewEnvironment()
 }
 #endif
