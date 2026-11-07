@@ -16,11 +16,11 @@ struct SearchView: View {
 
     var body: some View {
         @Bindable var vm = vm
-        VStack(spacing: 0) {
-            if !vm.query.isEmpty {
+        // Everything is in one scroll view with `.searchable` on it, as in Apple's tvOS search sample,
+        // so focus can move between the search field, the filters and the results.
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
                 tvFilterRow
-            }
-            Group {
                 if vm.query.isEmpty {
                     tvIdleView
                 } else if vm.isLoading || vm.isAwaitingSearch || !vm.results.isEmpty {
@@ -30,6 +30,7 @@ struct SearchView: View {
                 }
             }
         }
+        .scrollClipDisabled()
         // The system search UI (field and keyboard) lives in the navigation bar, so unlike
         // the other tabs this screen must not hide it.
         .searchable(text: $vm.query, prompt: "Search YouTube")
@@ -97,7 +98,8 @@ struct SearchView: View {
                 .accessibilityIdentifier("search.history.clearAll")
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity)
+        .padding(.top, 80)
         .accessibilityIdentifier("search.suggestionsContainer")
     }
 
@@ -146,7 +148,7 @@ struct SearchView: View {
         let displayResults = vm.results
             .filter { !$0.isShort }
             .filter { !hideVideoPremieres || !$0.isUpcoming }
-        return ScrollView {
+        return VStack {
             if (vm.isLoading || vm.isAwaitingSearch) && vm.results.isEmpty {
                 ProgressView().frame(maxWidth: .infinity).padding()
             }
@@ -194,8 +196,8 @@ struct SearchView: View {
                 .font(.headline)
                 .foregroundStyle(.secondary)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding()
+        .frame(maxWidth: .infinity)
+        .padding(.top, 80)
     }
 }
 
