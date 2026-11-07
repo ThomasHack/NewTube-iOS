@@ -41,49 +41,10 @@ extension AppSettings.AccentColorChoice {
         }
     }
 
-    /// The `AccentColor` asset defines no color of its own, so the default choice needs one.
-    var resolvedColor: Color { color ?? .blue }
-
     var swatch: some View {
         Image(systemName: AppSymbol.colorSwatch)
-            .foregroundStyle(resolvedColor)
+            .foregroundStyle(color ?? .blue)  // The `AccentColor` asset defines no color of its own.
     }
-}
-
-// MARK: - PrimaryActionButtonStyle
-
-/// A screen's main action. `.borderedProminent` looks the same as a normal button on tvOS when
-/// it isn't focused, so this fills the button with the accent color.
-struct PrimaryActionButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        Label(configuration: configuration)
-    }
-
-    private struct Label: View {
-        let configuration: Configuration
-        @Environment(\.isFocused) private var isFocused
-        @Environment(SettingsStore.self) private var store
-
-        var body: some View {
-            configuration.label
-                .fontWeight(.semibold)
-                .foregroundStyle(.white)
-                .padding(.horizontal, 40)
-                .padding(.vertical, 20)
-                .background(
-                    store.settings.accentColor.resolvedColor.opacity(isFocused ? 1 : 0.7),
-                    in: Capsule()
-                )
-                .scaleEffect(isFocused ? 1.06 : 1)
-                .shadow(color: .black.opacity(isFocused ? 0.4 : 0), radius: 12, y: 6)
-                .opacity(configuration.isPressed ? 0.8 : 1)
-                .animation(.easeOut(duration: 0.15), value: isFocused)
-        }
-    }
-}
-
-extension ButtonStyle where Self == PrimaryActionButtonStyle {
-    static var primaryAction: PrimaryActionButtonStyle { PrimaryActionButtonStyle() }
 }
 
 // MARK: - AlertItem

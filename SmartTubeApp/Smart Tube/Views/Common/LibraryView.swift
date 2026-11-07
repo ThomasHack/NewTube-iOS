@@ -221,7 +221,7 @@ struct LibraryView: View {
                 Button("Search") {
                     navigator.openSearch()
                 }
-                .buttonStyle(.primaryAction)
+                .buttonStyle(.borderedProminent)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
@@ -246,7 +246,7 @@ struct LibraryView: View {
                 .font(.headline)
                 .foregroundStyle(.secondary)
             Button("Sign In") { showSignIn = true }
-                .buttonStyle(.primaryAction)
+                .buttonStyle(.borderedProminent)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

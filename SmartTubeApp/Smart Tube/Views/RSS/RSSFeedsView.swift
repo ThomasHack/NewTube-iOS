@@ -63,7 +63,7 @@ struct RSSFeedsView: View {
             } label: {
                 Label("Add RSS Feed", systemImage: "plus")
             }
-            .buttonStyle(.primaryAction)
+            .buttonStyle(.borderedProminent)
             .accessibilityIdentifier("rss.emptyAddFeedButton")
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

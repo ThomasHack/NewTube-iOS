@@ -274,7 +274,7 @@ struct SearchFilterSheet: View {
                     } label: {
                         Text("Apply").frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.primaryAction)
+                    .buttonStyle(.borderedProminent)
                     .padding(.top, 20)
                     .accessibilityIdentifier("search.filterApplyButton")
                     Button(role: .cancel) {
