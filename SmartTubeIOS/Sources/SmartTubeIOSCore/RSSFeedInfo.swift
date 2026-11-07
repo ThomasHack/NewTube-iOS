@@ -37,11 +37,6 @@ extension RSSFeedInfo {
             .value
     }
 
-    /// Returns `true` when the URL is a YouTube Atom/RSS feed URL.
-    public static func isYouTubeRSSFeed(_ url: URL) -> Bool {
-        url.host == "www.youtube.com" && url.path == "/feeds/videos.xml"
-    }
-
     /// Builds a YouTube RSS feed URL from a channel ID.
     public static func feedURL(for channelId: String) -> URL? {
         URL(string: "https://www.youtube.com/feeds/videos.xml?channel_id=\(channelId)")

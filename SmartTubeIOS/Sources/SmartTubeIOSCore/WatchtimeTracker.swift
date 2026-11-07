@@ -133,11 +133,6 @@ public final class WatchtimeTracker {
         )
     }
 
-    /// Indicates whether the tracker has the session parameters required by YouTube.
-    public var hasTrackingSession: Bool {
-        InnerTubeAPI.trackingSession(from: trackingURLs) != nil
-    }
-
     // MARK: - Checkpoint (periodic / suspend / stop)
 
     /// Throttled entry point for the players' time observers: forwards to `checkpoint`
@@ -234,33 +229,6 @@ public final class WatchtimeTracker {
             segmentStart: isFinal ? duration : segStart,
             segmentEnd: isFinal ? duration : position,
             final: isFinal)
-    }
-
-    /// Flushes the segment before a seek and starts the next segment at the target.
-    /// This mirrors Android SmartTube's onSeekPositionChanged history update.
-    public func recordSeek(
-        to targetPosition: TimeInterval, from currentPosition: TimeInterval, duration: TimeInterval
-    ) async {
-        guard !videoId.isEmpty, duration > 0 else { return }
-        if didReportFinal {
-            // Rewatching after the final ping (Loop replays via seekTo(0), or a seek back out of
-            // the last 5%): open a fresh record so the new progress is saved and reported again,
-            // instead of leaving the stored position stuck at the end.
-            guard !Self.isNearEnd(position: targetPosition, duration: duration) else { return }
-            didReportFinal = false
-            recordOpenedAt = nil
-            segmentStart = max(0, min(duration, targetPosition))
-            lastCheckpointAt = nil
-            return
-        }
-        guard currentPosition > 0 else {
-            segmentStart = max(0, min(duration, targetPosition))
-            return
-        }
-
-        await checkpoint(position: currentPosition, duration: duration)
-        segmentStart = max(0, min(duration, targetPosition))
-        lastCheckpointAt = nil
     }
 
     // MARK: - Android parity helpers

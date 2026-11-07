@@ -17,7 +17,6 @@ private let pickerLog = AppLogger(category: "PlayerMenu")
 //   • sleepTimerPickerOverlay    — sleep timer duration
 //   • captionPickerOverlay       — subtitle/caption track selection
 //   • audioTrackPickerOverlay    — audio track selection
-//   • presentShareSheet(url:)    — UIActivityViewController (iOS only)
 
 extension PlayerView {
 

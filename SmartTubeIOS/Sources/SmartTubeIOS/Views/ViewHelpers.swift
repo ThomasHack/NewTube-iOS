@@ -24,28 +24,7 @@ struct ChannelDestination: Identifiable, Hashable {
 
 // MARK: - Shared layout constants
 
-/// tvOS: fixed 4 columns (flexible) — predictable across all TV sizes.
-let videoGridColumns = [
-    GridItem(.flexible(), spacing: 40),
-    GridItem(.flexible(), spacing: 40),
-    GridItem(.flexible(), spacing: 40),
-    GridItem(.flexible(), spacing: 40),
-]
 let videoGridRowSpacing: CGFloat = 40
-
-// MARK: - Layout orientation
-
-private struct IsLandscapeLayoutKey: EnvironmentKey {
-    static let defaultValue = false
-}
-
-extension EnvironmentValues {
-    /// `true` when the root window is wider than tall; set by `RootView`.
-    var isLandscapeLayout: Bool {
-        get { self[IsLandscapeLayoutKey.self] }
-        set { self[IsLandscapeLayoutKey.self] = newValue }
-    }
-}
 
 // MARK: - Accent color
 
@@ -91,10 +70,10 @@ extension AppSettings.AccentColorChoice {
     }
 }
 
-// MARK: - DownloadAlertItem
+// MARK: - AlertItem
 
-/// Shared alert payload used by views that trigger video downloads.
-struct DownloadAlertItem: Identifiable {
+/// Shared alert payload for card actions.
+struct AlertItem: Identifiable {
     let id = UUID()
     let title: String
     let message: String
@@ -118,8 +97,6 @@ enum AppSymbol {
 
     // MARK: - Navigation / chevrons
     static let chevronLeft = "chevron.left"
-    static let chevronUp = "chevron.up"
-    static let chevronDown = "chevron.down"
 
     // MARK: - Playback controls
     static let previousTrack = "backward.end.fill"
@@ -132,10 +109,6 @@ enum AppSymbol {
     // MARK: - Actions
     static let checkmark = "checkmark"
     static let xmark = "xmark"
-    static let xmarkCircle = "xmark.circle.fill"
-    static let share = "square.and.arrow.up"
-    static let copyDoc = "doc.on.doc"
-    static let download = "arrow.down.to.line"
     static let watchLater = "clock.badge"
     static let audioOnly = "waveform.circle"
 

@@ -42,12 +42,6 @@ public struct Video: Identifiable, Hashable, Codable, Sendable {
     // MARK: DeArrow overrides (applied from VideoPreloadCache after cache consume)
     public var deArrowTitle: String?
     public var deArrowThumbnailTimestamp: Double?
-    // MARK: Local playback (in-app downloads — never persisted to cache JSON)
-    /// Transient local file URL set when playing a downloaded video.
-    /// Excluded from `CodingKeys` — never persisted to JSON cache.
-    public var localFileURL: URL? = nil
-    /// `true` when this video refers to a local downloaded file rather than a remote stream.
-    public var isDownloaded: Bool { localFileURL != nil }
 
     private enum CodingKeys: String, CodingKey {
         case id, title, channelTitle, channelId, description, thumbnailURL, duration
@@ -55,7 +49,6 @@ public struct Video: Identifiable, Hashable, Codable, Sendable {
         case watchProgress, playlistId, playlistIndex, setVideoId, badges
         case notInterestedToken, dontLikeToken, hideChannelToken
         case deArrowTitle, deArrowThumbnailTimestamp
-        // localFileURL intentionally omitted — runtime only, never persisted to cache JSON
     }
 
     public init(
@@ -151,16 +144,6 @@ public extension Video {
     func isWatched(threshold: Double) -> Bool {
         guard let watchProgress else { return false }
         return watchProgress >= threshold
-    }
-
-    /// The URL the app's own Share actions hand to ShareLink/UIActivityViewController
-    /// (#104). Deliberately just `watch?v=<id>` — no `si=` or other tracking query
-    /// parameters — so this is the single place to check/fix if that ever regresses,
-    /// instead of four separate `URL(string: "https://www.youtube.com/watch?v=...")`
-    /// literals across VideoCardView, ShortsCardView, TOSPlayerView, and
-    /// PlayerView+Overlays.
-    var shareURL: URL? {
-        URL(string: "https://www.youtube.com/watch?v=\(id)")
     }
 
     /// Standard-definition thumbnail (640×480). Available for most videos.

@@ -106,16 +106,6 @@ struct RSSFeedStoreTests {
         #expect(RSSFeedInfo.channelId(from: url) == nil)
     }
 
-    @Test func isYouTubeRSSFeed_returnsTrueForFeedURL() {
-        let url = URL(string: "https://www.youtube.com/feeds/videos.xml?channel_id=UCtest")!
-        #expect(RSSFeedInfo.isYouTubeRSSFeed(url) == true)
-    }
-
-    @Test func isYouTubeRSSFeed_returnsFalseForChannelURL() {
-        let url = URL(string: "https://www.youtube.com/channel/UCtest")!
-        #expect(RSSFeedInfo.isYouTubeRSSFeed(url) == false)
-    }
-
     @Test func feedURL_buildsCorrectURL() {
         let url = RSSFeedInfo.feedURL(for: "UCtest123")
         #expect(url?.absoluteString == "https://www.youtube.com/feeds/videos.xml?channel_id=UCtest123")

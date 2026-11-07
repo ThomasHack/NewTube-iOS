@@ -29,9 +29,8 @@ public struct LibraryView: View {
         case playlists = "Playlists"
         case channels = "Channels"
         case rss = "RSS Feeds"
-        case downloads = "Downloads"
 
-        // Downloads saves to the Photos library, which tvOS doesn't support.
+        // Subscriptions have their own tab.
         static var allCases: [LibrarySection] {
             [.history, .playlists, .channels, .rss]
         }
@@ -44,7 +43,6 @@ public struct LibraryView: View {
             case .playlists: return .playlists
             case .channels: return .channels
             case .rss: return .history  // not used — RSS renders its own view
-            case .downloads: return .history  // not used — DownloadsView renders its own content
             }
         }
     }
@@ -113,8 +111,6 @@ public struct LibraryView: View {
             Group {
                 if selectedSection == .rss {
                     RSSFeedsView()
-                } else if selectedSection == .downloads {
-                    downloadsContent
                 } else if selectedSection == .channels {
                     channelsContent
                 } else if !auth.isSignedIn && selectedSection != .subscriptions {
@@ -178,7 +174,7 @@ public struct LibraryView: View {
             }
         }
         .onChange(of: selectedSection) { _, section in
-            guard section != .rss && section != .downloads else { return }
+            guard section != .rss else { return }
             browseVM.select(
                 section: BrowseSection(
                     id: section.id,
@@ -205,7 +201,7 @@ public struct LibraryView: View {
             }
         }
         .onAppear {
-            guard selectedSection != .rss && selectedSection != .downloads else { return }
+            guard selectedSection != .rss else { return }
             browseVM.select(
                 section: BrowseSection(
                     id: selectedSection.id,
@@ -316,11 +312,6 @@ public struct LibraryView: View {
             .buttonStyle(.borderedProminent)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-}
-
-extension LibraryView {
-    @ViewBuilder fileprivate var downloadsContent: some View {
     }
 }
 

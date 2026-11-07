@@ -48,7 +48,6 @@ extension PlaybackViewModel {
         {
             playerLog.notice("[fix12] same-video re-open — reusing parked AVPlayerItem for \(video.id)")
             parkedVideoId = nil
-            // Cancel the now-useless wkHLS serialExtract started by stop().
             currentVideo = video
             isLoading = false
             isPlaying = false
@@ -355,7 +354,7 @@ extension PlaybackViewModel {
         // Fetch the BotGuard PO token before the primary stream attempt.
         // Awaited (with a 2 s safety timeout) so api.hasPoToken(for:) returns true during
         // the rqh=1 adaptive stream check in tryAllStreams — preventing an unnecessary
-        // WKWebView fallback on every cold start.
+        // fallback on every cold start.
         // BotGuardClient completes in <500 ms on first run; cached result returns in <1 ms
         // thereafter (TTL ~12 h). The 2 s timeout is a safety net for slow networks only.
         let capturedAPI = api
@@ -368,114 +367,6 @@ extension PlaybackViewModel {
                 group.cancelAll()
             }
         }
-
-        // Local-file fast path — bypass all network fetches for downloaded videos.
-        // The path must be inside Documents/SmartTubeDownloads/ to prevent path-traversal
-        // from a crafted Video object.
-        if let localURL = video.localFileURL {
-            let downloadsDir = FileManager.default
-                .urls(for: .documentDirectory, in: .userDomainMask)[0]
-                .appendingPathComponent("SmartTubeDownloads").path
-            if localURL.path.hasPrefix(downloadsDir),
-                FileManager.default.fileExists(atPath: localURL.path)
-            {
-                let item = AVPlayerItem(url: localURL)
-                item.audioTimePitchAlgorithm = .spectral
-                // Wire up observers BEFORE replaceCurrentItem (task-80 rule).
-                itemObserverTask?.cancel()
-                itemObserverTask = Task { [weak self] in
-                    for await status in item.statusStream {
-                        guard let self, !Task.isCancelled else { return }
-                        switch status {
-                        case .readyToPlay:
-                            playerLog.notice(
-                                "[benchmark] readyToPlay — local-file — videoId=\(video.id) title=\(video.title)")
-                            self.loadAudioTracks(from: item)
-                            self.isLoading = false
-                        case .failed:
-                            playerLog.error("❌ local-file AVPlayerItem failed: \(String(describing: item.error))")
-                            self.error = item.error
-                        case .unknown:
-                            break
-                        @unknown default:
-                            break
-                        }
-                    }
-                }
-                player.replaceCurrentItem(with: item)
-                endObserverTask?.cancel()
-                endObserverTask = Task { [weak self] in
-                    let notifications = NotificationCenter.default.notifications(
-                        named: AVPlayerItem.didPlayToEndTimeNotification,
-                        object: item
-                    )
-                    for await _ in notifications {
-                        guard let self, !Task.isCancelled else { return }
-                        self.handlePlaybackEnd()
-                    }
-                }
-                stallObserverTask?.cancel()
-                stallObserverTask = Task { @MainActor [weak self] in
-                    let notifications = NotificationCenter.default.notifications(
-                        named: AVPlayerItem.playbackStalledNotification,
-                        object: item
-                    )
-                    for await _ in notifications {
-                        guard let self, !Task.isCancelled else { return }
-                        self.stallCount += 1
-                        let t = Int(self.currentTime)
-                        playerLog.notice(
-                            "[stall] AVPlayerItemPlaybackStalled at t=\(t)s stall#\(self.stallCount) video=\(self.currentVideo?.id ?? "unknown")"
-                        )
-                        // Stall recovery (#193): wait 2 s for AVPlayer to self-heal;
-                        // if still stalled, nudge the pipeline with a near-zero seek
-                        // + explicit rate restore. Capped at 3 attempts per item.
-                        let recoveryCount = self.stallCount
-                        if recoveryCount <= 3 {
-                            Task { @MainActor [weak self] in
-                                try? await Task.sleep(nanoseconds: 2_000_000_000)
-                                guard let self, self.isPlaying, self.player.rate == 0,
-                                    !self.isQualityChangePending
-                                else { return }
-                                let seekT = self.currentTime
-                                playerLog.notice(
-                                    "[stall] recovery#\(recoveryCount): seeking to \(seekT)s to flush pipeline")
-                                self.player.seek(
-                                    to: CMTime(seconds: seekT, preferredTimescale: 600),
-                                    toleranceBefore: .zero,
-                                    toleranceAfter: CMTime(seconds: 1, preferredTimescale: 600)
-                                ) { [weak self] _ in
-                                    Task { @MainActor [weak self] in
-                                        guard let self, self.isPlaying else { return }
-                                        self.player.rate = Float(self.settings.playbackSpeed)
-                                        playerLog.notice("[stall] recovery#\(recoveryCount): rate restored")
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                setupRemoteCommandCenter()
-                do {
-                    try AVAudioSession.sharedInstance().setActive(true)
-                } catch {
-                    playerLog.error("[loadAsync] local: AVAudioSession setActive failed: \(error.localizedDescription)")
-                }
-                player.rate = Float(settings.playbackSpeed)
-                isPlaying = true
-                // Downloaded videos have no related videos — clear any stale state from a
-                // previous YouTube session so autoplay does not fire a YouTube video when
-                // the download ends. (Bug #224: wrong video played after local file ends.)
-                relatedVideos = []
-                hasNext = false
-                updateNowPlayingInfo()
-                playerLog.notice("[loadAsync] local-file fast path: playing \(localURL.lastPathComponent)")
-                return
-            }
-            // File missing or path invalid — fall through to network re-stream.
-            playerLog.notice("[loadAsync] localFileURL set but file not accessible, falling through: \(localURL.path)")
-        }
-
         do {
             // --- Cache-first load ---
             // Check VideoPreloadCache for all data types. Fresh hits skip the network
@@ -490,9 +381,7 @@ extension PlaybackViewModel {
             } else {
                 playerLog.notice("PREFETCH_MISS: \(video.id) — \(cacheVerdict)")
             }
-            let wkHLSCacheHit = await VideoPreloadCache.shared.cachedWKHLSURL(for: video.id) != nil
-            self.cacheStatusSummary =
-                "pi:\(cached.playerInfo != nil ? "HIT" : "MISS") wkHLS:\(wkHLSCacheHit ? "HIT" : "MISS")"
+            self.cacheStatusSummary = "pi:\(cached.playerInfo != nil ? "HIT" : "MISS")"
 
             // Apply cached DeArrow overrides (community title / thumbnail timestamp).
             // Done immediately after consume() so VideoCardView can show the override
@@ -1073,22 +962,6 @@ extension PlaybackViewModel {
         prefetchTask?.cancel()
         prefetchTask = nil
         AVAssetTrackCache.shared.clear()
-        // Evict the cached WKWebView HLS URL for the video that just stopped.
-        // CDN stream sessions are single-use: re-using the same manifest URL with a
-        // new AVPlayerItem on a subsequent tap resumes from the previous position or
-        // serves recycled session content, which the user sees as a wrong / different
-        // video for ~1s before the 403 fires. Evicting here forces a fresh extraction
-        // on re-tap while still allowing neighbour pre-warms to populate the cache.
-        //
-        // fix10: after evicting the stale CDN URL, start a fresh wkHLS extraction via
-        // serialExtract. When extraction completes (~1.25s), the URL is stored in cache
-        // so Phase -1a finds it on the next load() for this video (bypassing the full
-        // exhaustiveRetry race entirely → ~0.5s faster). The task is also assigned to
-        // wkHLSEarlyTask so racePathB can use it if the re-tap happens before extraction
-        // completes (< 1.25s after stop).
-        if let stoppedVideoId = currentVideo?.id {
-            Task { await VideoPreloadCache.shared.invalidateWKHLSURL(for: stoppedVideoId) }
-        }
         itemObserverTask?.cancel()
         itemObserverTask = nil
         endObserverTask?.cancel()
@@ -1251,11 +1124,6 @@ extension PlaybackViewModel {
         }  // end of non-inject related-videos branch
 
         guard !Task.isCancelled else { return }
-
-        // Launch WKWebView pre-extraction as soon as relatedVideos is populated.
-        // Starting here (before endCards/trackingURLs) gives ~0.6–3 s more lead
-        // time for the warm extraction to complete before the user swipes.
-
         // --- End cards ---
         if let cachedCards = cached.endCards, !cached.staleFields.contains(.endCards) {
             playerLog.notice("cache HIT: endCards (skipping network)")

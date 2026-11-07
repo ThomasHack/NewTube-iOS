@@ -1,10 +1,8 @@
 // MARK: - SponsorBlockDecisionEngine
 //
-// Pure "what should happen at this playback time" decision logic, shared
-// between SponsorBlockSkipManager (AVPlayer-based, standard player) and
-// TOSPlayerViewModel+SponsorBlock (JS-tick-based, TOS player). Each adapter
-// keeps its own seek mechanism, logging, and async-confirmation plumbing —
-// only the decision moves here.
+// Pure "what should happen at this playback time" decision logic, used by
+// SponsorBlockSkipManager, which owns the seek mechanism, logging, and
+// async-confirmation plumbing.
 
 /// What `SponsorBlockDecisionEngine.decide(...)` says should happen at the
 /// current playback time.

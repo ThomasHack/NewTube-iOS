@@ -3,11 +3,6 @@ import SwiftUI
 
 // MARK: - Comments overlay
 //
-// Shared between PlayerView (standard player, including tvOS) and
-// TOSPlayerView — both rendered an identical dim-backdrop bottom sheet
-// listing `CommentRowView`s. tvOS-only focus handling stays behind
-// `#if os(tvOS)` since PlayerView renders this on tvOS too.
-
 /// Dim-backdrop bottom sheet listing video comments, or a loading/empty state.
 struct CommentsOverlayView: View {
     let comments: [Comment]

@@ -3,8 +3,6 @@ import SwiftUI
 import UIKit
 import os
 
-private let shortsLog = Logger(subsystem: "com.void.smarttube.app", category: "ShortsPlayer")
-
 extension ShortsPlayerView {
 
     // MARK: - Navigation
@@ -56,13 +54,6 @@ extension ShortsPlayerView {
                 }
             }
         }
-        // prewarmStandby(for:) is no longer called — see the long comment above in
-        // the #if os(iOS) block of this function. Pre-warming a standby WKWebView
-        // that's never actually promoted (the promotion path is disabled) would
-        // just burn CPU/battery/memory decoding video nobody sees. The function and
-        // its supporting VM infrastructure (isStandby/activate/loadShortAsStandby)
-        // are left in place, unused, in case the underlying WKWebView-reparenting
-        // bug is ever fixed and this is revisited. See #279.
     }
 
     /// Fetches an additional batch of Shorts and appends them, deduplicating by id.
@@ -77,35 +68,6 @@ extension ShortsPlayerView {
             let newVideos = group.videos.filter { !existingIDs.contains($0.id) }
             guard !newVideos.isEmpty else { return }
             videos.append(contentsOf: newVideos)
-        }
-    }
-
-    /// Fetches a batch of Shorts, prepends them before the current video, adjusts
-    /// `currentIndex` to keep the current video in place, then animates down into
-    /// the last prepended video — giving the user new content above.
-    func loadMoreAtStart() {
-        guard !ProcessInfo.processInfo.arguments.contains("--uitesting") else {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { slideOffset = 0 }
-            return
-        }
-        guard !isFetchingMore else {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { slideOffset = 0 }
-            return
-        }
-        isFetchingMore = true
-        // Spring back to centre while the fetch is in flight.
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { slideOffset = 0 }
-        let existingIDs = Set(videos.map(\.id))
-        Task { @MainActor in
-            defer { isFetchingMore = false }
-            guard let group = try? await api.fetchShorts() else { return }
-            let newVideos = group.videos.filter { !existingIDs.contains($0.id) }
-            guard !newVideos.isEmpty else { return }
-            // Prepend the new videos; re-anchor currentIndex so the on-screen
-            // video doesn't change, then animate down to the last prepended video.
-            videos.insert(contentsOf: newVideos, at: 0)
-            currentIndex += newVideos.count
-            performVerticalTransition(direction: 1) { goTo(currentIndex - 1) }
         }
     }
 

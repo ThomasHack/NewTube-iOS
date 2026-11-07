@@ -47,13 +47,6 @@ extension PlaybackViewModel {
         playerLog.debug("[scrub] beginScrubbing done — isScrubbing=\(self.isScrubbing)")
     }
 
-    /// Called on every incremental slider position update while dragging.
-    /// Only updates the local `scrubTime` — does NOT seek AVPlayer, preventing
-    /// rapid-seek stalls. Seeking happens only on `commitScrub`.
-    public func updateScrub(to time: TimeInterval) {
-        scrubTime = time
-    }
-
     /// Called when the user releases the slider. Issues a single precise seek.
     public func commitScrub() {
         // SwiftUI's Slider fires onEditingChanged(false) on initialization (when the
@@ -101,23 +94,4 @@ extension PlaybackViewModel {
         }
     }
 
-    /// Called when the user begins a long-press on the video surface (controls hidden).
-    /// Temporarily boosts playback to 2× until `endHoldSpeed()` is called.
-    public func beginHoldSpeed() {
-        guard isPlaying, !isHoldingToSpeed else { return }
-        isHoldingToSpeed = true
-        player.rate = 2.0
-        playerLog.notice("[hold-speed] began — boosting to 2×")
-    }
-
-    /// Called when the user lifts their finger after a long-press speed boost.
-    /// Restores playback to the configured speed.
-    public func endHoldSpeed() {
-        guard isHoldingToSpeed else { return }
-        isHoldingToSpeed = false
-        if isPlaying {
-            player.rate = Float(settings.playbackSpeed)
-        }
-        playerLog.notice("[hold-speed] ended — restored to \(self.settings.playbackSpeed)×")
-    }
 }

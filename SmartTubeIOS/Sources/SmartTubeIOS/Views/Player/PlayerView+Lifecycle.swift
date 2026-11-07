@@ -36,24 +36,12 @@ extension PlayerView {
                 // into the accessibility tree so XCUITest can always read it.
                 .accessibilityHidden(false)
                 .allowsHitTesting(false)
-            // Probe stream result — only present during single-method probe runs.
-            // Exposes the stream type + max resolution so StreamMethodProbeUITests
-            // can read it without needing to parse device logs.
-            if let result = vm.probeStreamResult {
-                Text(result)
-                    .font(.caption)
-                    .opacity(0)
-                    .accessibilityIdentifier("player.probeStreamResult")
-                    .accessibilityLabel(result)
-                    .accessibilityHidden(false)
-                    .allowsHitTesting(false)
-            }
         }
     }
 
     // MARK: - Player content base view
     //
-    // Contains the GeometryReader / ZStack with AVLayer, controls, and iOS swipe gesture.
+    // Contains the GeometryReader / ZStack with AVLayer, and controls.
     // Extracted from bodyWithLifecycleModifiers so the Swift type-checker handles each
     // property in a separate inference scope (compiler error: "unable to type-check
     // this expression in reasonable time").
@@ -431,7 +419,7 @@ extension PlayerView {
             vm.updateAuthToken(authService.accessToken)
             // UI testing only: force-show controls so the test can find player.nextBtn.
             if ProcessInfo.processInfo.arguments.contains("--uitesting-show-controls") {
-                swipeLog.notice("[PlayerView] --uitesting-show-controls (non-iOS) — showing controls")
+                swipeLog.notice("[PlayerView] --uitesting-show-controls — showing controls")
                 vm.showControls()
                 vm.cancelControlsHide()
             }
@@ -514,7 +502,6 @@ extension PlayerView {
             size: size,
             safeAreaInsets: safeAreaInsets,
             video: video,
-            controlScale: controlScale,
             showMoreMenu: $showMoreMenu,
             channelDestination: $channelDestination,
             vm: vm,

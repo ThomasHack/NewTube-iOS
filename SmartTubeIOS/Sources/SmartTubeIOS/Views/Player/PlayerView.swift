@@ -31,7 +31,7 @@ public struct PlayerView: View {
     @State var isTransitioning = false
     @State var channelDestination: ChannelDestination?
     /// True while the app is backgrounded. Prevents `onDisappear` from calling
-    /// `suspend()` when iOS fires it as a side-effect of backgrounding rather
+    /// `suspend()` when the system fires it as a side-effect of backgrounding rather
     /// than actual navigation away from the player.
     @State var isInBackground = false
     /// True while this PlayerView instance is the top-most visible view.
@@ -68,12 +68,6 @@ public struct PlayerView: View {
     @FocusState var captionPickerFocused: Bool
     @FocusState var audioTrackPickerFocused: Bool
     @FocusState var skipToastButtonFocused: Bool
-
-    /// Scales player control icon sizes up on iPad so they're easier to tap.
-    var controlScale: CGFloat {
-        1.0
-    }
-
     public init(video: Video, api: InnerTubeAPI) {
         self.video = video
         _vm = State(initialValue: PlaybackViewModel(api: api))

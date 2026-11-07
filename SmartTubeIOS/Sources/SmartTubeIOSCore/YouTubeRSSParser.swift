@@ -13,7 +13,7 @@ public struct RSSParseResult: Sendable {
 
 /// Parses YouTube's public Atom/RSS feed into Video objects.
 ///
-/// Uses Foundation's `XMLParser` (SAX) — available on iOS, tvOS, and macOS.
+/// Uses Foundation's `XMLParser` (SAX).
 /// Tolerates partial results: returns whatever was successfully parsed before
 /// any error rather than throwing.
 ///

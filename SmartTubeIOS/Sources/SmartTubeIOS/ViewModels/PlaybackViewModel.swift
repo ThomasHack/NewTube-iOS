@@ -36,10 +36,6 @@ public final class PlaybackViewModel {
     /// enters the multi-phase stream-negotiation fallback chain. `nil` while the
     /// fast path is still in-flight or after loading completes.
     public internal(set) var retryStatusMessage: String? = nil
-    /// Populated by `probeStreamMethod` after a successful single-method probe.
-    /// Format: `"HLS 1080p"`, `"1080p"`, `"1080p rqh=1"`, `"muxed 720p"`, `"WKWebView-HLS"`, etc.
-    /// `nil` in normal (non-probe) playback. Read by `player.probeStreamResult` accessibility element.
-    var probeStreamResult: String? = nil
     /// True only during the initial load sequence (before first readyToPlay).
     /// The 8s loadTracks timeout in attemptComposition is applied only while this
     /// flag is set, giving fast startup (≤20 s) for the initial stream.
@@ -163,10 +159,6 @@ public final class PlaybackViewModel {
     public var controlsVisible: Bool = false
     /// True while the user is holding a long-press to temporarily boost speed to 2×.
     public internal(set) var isHoldingToSpeed: Bool = false
-    /// True when the player is displaying in landscape orientation.
-    /// Updated automatically when the device rotates or when the
-    /// "Landscape Always Play" setting forces landscape mode.
-    public var isLandscape: Bool = false
     let likeDislike: LikeDislikeController
     let comments: CommentsController
     public var likeStatus: LikeStatus { likeDislike.likeStatus }
@@ -217,13 +209,6 @@ public final class PlaybackViewModel {
         return chapters.contains { $0.startTime < current.startTime }
     }
 
-    /// True when at least one VIDEO end card is within its display window at the current playhead.
-    /// Used by `PlayerView` to suppress swipe-overlay tap-to-toggle-controls so taps land on cards.
-    public var hasVisibleEndCards: Bool {
-        let ms = Int(currentTime * 1000)
-        return endCards.contains { $0.style == .video && $0.videoId != nil && ms >= $0.startMs && ms <= $0.endMs }
-    }
-
     // MARK: - History
 
     /// Videos played before the current one (oldest first).
@@ -249,7 +234,7 @@ public final class PlaybackViewModel {
     var timeToPlayMs: Int = 0
     /// Elapsed ms from `load()` to the quality-ramp task firing (~readyToPlay + 800 ms). 0 = not yet measured.
     var timeToHighQualityMs: Int = 0
-    /// Cache hit/miss summary set at load time (e.g. "pi:HIT wkHLS:MISS").
+    /// Cache hit/miss summary set at load time (e.g. "pi:HIT").
     var cacheStatusSummary: String = ""
     /// Task running the exhaustive retry loop; cancelled on new load or retryLoad.
     var exhaustiveRetryTask: Task<Void, Never>?
@@ -347,22 +332,11 @@ public final class PlaybackViewModel {
     /// or pre-warms AVAssetTrack arrays for the user's preferred quality tier.
     /// Cancelled on every new video load.
     var prefetchTask: Task<Void, Never>?
-    /// Early WKWebView HLS extraction task, started concurrently with the primary iOS
-    /// path in loadAsync() so the result is ready (or close to ready) by the time
-    /// exhaustiveRetry reaches Phase -2. Cancelled by load() only when a different
-    /// video is requested; preserved across stop() so same-video replay can reuse it.
-    /// fix2/fix30: TVEmbedded PlayerInfo pre-fetch started concurrently with the race paths.
-    /// On tvOS: started inside tryAllStreams alongside the AndroidVR rqh=1 timeout (fix2).
-    /// On iOS: started at the beginning of exhaustiveRetry alongside the race group (fix30).
+    /// fix2/fix30: TVEmbedded PlayerInfo pre-fetch started inside tryAllStreams alongside
+    /// the AndroidVR rqh=1 timeout.
     /// By the time exhaustiveRetry reaches Phase 1, the result is typically ready —
     /// eliminating the sequential ~0.5 s Phase 1 network fetch.
     var tvEmbeddedEarlyTask: Task<PlayerInfo?, Never>?
-
-    /// Set to `true` when WKWebView HLS fails with a CDN permission error (HTTP 403 /
-    /// "You do not have permission"). Cleared by load(). When set, serial WKWebView
-    /// extraction is skipped in exhaustiveRetry — a fresh extraction yields the same
-    /// URL signed by the same CDN session, so the same 403 is guaranteed.
-    var wkHLSPermissionDenied: Bool = false
 
     // fix12: videoId of the item stop() left alive in player.currentItem (parked).
     // When load() is called for the same id and the item is still .readyToPlay, the

@@ -11,14 +11,6 @@ public struct AppSettings: Codable {
     public var autoplayEnabled: Bool
     public var subtitlesLanguage: String?
     public var backgroundPlaybackEnabled: Bool
-    /// When `true`, the player automatically rotates to landscape when a video starts on iPhone.
-    public var landscapeAlwaysPlay: Bool
-    /// When `true`, Picture-in-Picture is available and the PiP button is shown in the player.
-    public var pipEnabled: Bool
-    /// When `true` (default), pressing back or swiping down minimizes the player to the
-    /// in-app mini-player bar instead of stopping playback. When `false`, the player is
-    /// dismissed and playback stops — mirrors the behaviour of a standalone player app.
-    public var miniPlayerEnabled: Bool
     /// Seconds to seek backward (configurable; default 10 mirrors Android's default).
     public var seekBackSeconds: Int
     /// Seconds to seek forward (configurable; default 30 mirrors Android's default).
@@ -54,12 +46,6 @@ public struct AppSettings: Codable {
     public var hideWatchedVideos: Bool
     /// 0.0...1.0 — how far into a video counts as "watched" for `hideWatchedVideos`.
     public var hideWatchedThreshold: Double
-    /// #107/#143: opts the app out of iOS 26's Liquid Glass tab bar. Apple's documented
-    /// mechanism (`UIDesignRequiresCompatibility` in Info.plist) is build-time only and
-    /// can't back a live, per-user toggle — see `TabBarLiquidGlassConfigurator`, which
-    /// instead restyles the actual on-screen `UITabBar` instance directly. Takes effect
-    /// immediately, no restart needed.
-    public var disableLiquidGlass: Bool
     /// #126: SHA256 hex digest of the Settings-screen parental-control PIN (see
     /// `SettingsPINHasher`). `nil` means no PIN is configured and Settings behaves as
     /// today with no lock. Never stores the raw PIN.
@@ -73,10 +59,6 @@ public struct AppSettings: Codable {
     public var perDeviceRecommendationsEnabled: Bool
     public var themeName: ThemeName
     public var accentColor: AccentColorChoice
-    /// Video grid column count when the window is taller than wide (ignored on tvOS).
-    public var gridColumnsPortrait: Int
-    /// Video grid column count when the window is wider than tall (ignored on tvOS).
-    public var gridColumnsLandscape: Int
     /// Ordered list of section types visible in the sidebar/tab bar.
     /// When empty, all default sections are shown.
     public var enabledSections: [BrowseSection.SectionType]
@@ -165,21 +147,6 @@ public struct AppSettings: Codable {
     /// When `true`, local user data (subscriptions, RSS feeds, video state, queue) is
     /// synced to iCloud via `NSUbiquitousKeyValueStore`. Defaults to `false` (opt-in).
     public var iCloudSyncEnabled: Bool
-
-    // MARK: Experimental (macOS / iOS)
-    /// When `true` on macOS, the YouTube IFrame-based TOS-compliant player is used
-    /// instead of the AVPlayer-based pipeline. Ads will play. Quality control is unavailable.
-    /// Opt-in experiment — has no effect on tvOS.
-    public var useTOSPlayerOnMac: Bool
-
-    // Note: there is no `useTOSPlayerOnIOS` setting. The TOS-compliant player is
-    // always used on iOS (PlayerRouter.open(), gated #if os(iOS)) — see
-    // SettingsStore.useTOSPlayerOnIOS, which is a non-persisted, hardcoded-true
-    // property (overridable only by UI test launch arguments). It has no effect
-    // on macOS or tvOS. Automatically falls back to the AVPlayer pipeline for a
-    // given video if the embed reports a fatal error (TOSPlayerStateStore.markFallback
-    // — see TOSPlayerView.onFallback).
-
     // MARK: Schema version
     /// Persisted schema version. Starts at 1 for newly stored settings.
     /// Old JSON lacking this key decodes as 0, signalling a pre-migration store.
@@ -191,10 +158,8 @@ public struct AppSettings: Codable {
     /// Canonical ordered list of selectable playback speeds — single source of truth.
     public static let availableSpeeds: [Double] = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
 
-    /// Canonical ordered list of selectable seek-interval values (seconds) — used by Stepper on iOS and Picker on tvOS.
+    /// Canonical ordered list of selectable seek-interval values (seconds) — used by the Settings pickers.
     public static let availableSeekOptions: [Int] = [5, 10, 15, 20, 30, 45, 60]
-
-    public static let availableGridColumnCounts: ClosedRange<Int> = 1...3
 
     /// `.system` keeps the `AccentColor` asset from the app bundle.
     public enum AccentColorChoice: String, Codable, CaseIterable, Sendable {
@@ -256,9 +221,6 @@ public struct AppSettings: Codable {
         autoplayEnabled = true
         subtitlesLanguage = nil
         backgroundPlaybackEnabled = false
-        landscapeAlwaysPlay = false
-        pipEnabled = true
-        miniPlayerEnabled = true
         seekBackSeconds = 10
         seekForwardSeconds = 30
         controlsHideTimeout = 4
@@ -271,7 +233,6 @@ public struct AppSettings: Codable {
         highResThumbnails = false
         hideWatchedVideos = false
         hideWatchedThreshold = 0.9
-        disableLiquidGlass = false
         settingsPINHash = nil
         hideShorts = false
         hideLiveShorts = false
@@ -279,8 +240,6 @@ public struct AppSettings: Codable {
         perDeviceRecommendationsEnabled = true
         themeName = .system
         accentColor = .system
-        gridColumnsPortrait = 2
-        gridColumnsLandscape = 3
         enabledSections = BrowseSection.defaultSections.map(\.type)
         historyState = .enabled
         sponsorBlockEnabled = true
@@ -307,7 +266,6 @@ public struct AppSettings: Codable {
         audioOnlyMode = false
         preferH264 = false
         iCloudSyncEnabled = false
-        useTOSPlayerOnMac = false
         settingsVersion = 1
     }
 }
@@ -340,9 +298,6 @@ extension AppSettings {
         case autoplayEnabled
         case subtitlesLanguage
         case backgroundPlaybackEnabled
-        case landscapeAlwaysPlay
-        case pipEnabled
-        case miniPlayerEnabled
         case seekBackSeconds
         case seekForwardSeconds
         case controlsHideTimeout
@@ -355,7 +310,6 @@ extension AppSettings {
         case highResThumbnails
         case hideWatchedVideos
         case hideWatchedThreshold
-        case disableLiquidGlass
         case settingsPINHash
         case hideShorts
         case hideLiveShorts
@@ -363,8 +317,6 @@ extension AppSettings {
         case perDeviceRecommendationsEnabled
         case themeName
         case accentColor
-        case gridColumnsPortrait
-        case gridColumnsLandscape
         case enabledSections
         case historyState
         case sponsorBlockEnabled
@@ -379,7 +331,6 @@ extension AppSettings {
         case audioOnlyMode
         case preferH264
         case iCloudSyncEnabled
-        case useTOSPlayerOnMac
     }
 
     public init(from decoder: Decoder) throws {
@@ -392,9 +343,6 @@ extension AppSettings {
         subtitlesLanguage = c.safeDecode(String?.self, forKey: .subtitlesLanguage, default: d.subtitlesLanguage)
         backgroundPlaybackEnabled = c.safeDecode(
             Bool.self, forKey: .backgroundPlaybackEnabled, default: d.backgroundPlaybackEnabled)
-        landscapeAlwaysPlay = c.safeDecode(Bool.self, forKey: .landscapeAlwaysPlay, default: d.landscapeAlwaysPlay)
-        pipEnabled = c.safeDecode(Bool.self, forKey: .pipEnabled, default: d.pipEnabled)
-        miniPlayerEnabled = c.safeDecode(Bool.self, forKey: .miniPlayerEnabled, default: d.miniPlayerEnabled)
         seekBackSeconds = c.safeDecode(Int.self, forKey: .seekBackSeconds, default: d.seekBackSeconds)
         seekForwardSeconds = c.safeDecode(Int.self, forKey: .seekForwardSeconds, default: d.seekForwardSeconds)
         controlsHideTimeout = c.safeDecode(Int.self, forKey: .controlsHideTimeout, default: d.controlsHideTimeout)
@@ -408,7 +356,6 @@ extension AppSettings {
         hideWatchedVideos = c.safeDecode(Bool.self, forKey: .hideWatchedVideos, default: d.hideWatchedVideos)
         hideWatchedThreshold = c.safeDecode(
             Double.self, forKey: .hideWatchedThreshold, default: d.hideWatchedThreshold)
-        disableLiquidGlass = c.safeDecode(Bool.self, forKey: .disableLiquidGlass, default: d.disableLiquidGlass)
         settingsPINHash = c.safeDecode(String?.self, forKey: .settingsPINHash, default: d.settingsPINHash)
         hideShorts = c.safeDecode(Bool.self, forKey: .hideShorts, default: d.hideShorts)
         hideLiveShorts = c.safeDecode(Bool.self, forKey: .hideLiveShorts, default: d.hideLiveShorts)
@@ -417,17 +364,6 @@ extension AppSettings {
             Bool.self, forKey: .perDeviceRecommendationsEnabled, default: d.perDeviceRecommendationsEnabled)
         themeName = c.safeDecode(ThemeName.self, forKey: .themeName, default: d.themeName)
         accentColor = c.safeDecode(AccentColorChoice.self, forKey: .accentColor, default: d.accentColor)
-        let columns = Self.availableGridColumnCounts
-        gridColumnsPortrait = min(
-            max(
-                c.safeDecode(Int.self, forKey: .gridColumnsPortrait, default: d.gridColumnsPortrait), columns.lowerBound
-            ),
-            columns.upperBound)
-        gridColumnsLandscape = min(
-            max(
-                c.safeDecode(Int.self, forKey: .gridColumnsLandscape, default: d.gridColumnsLandscape),
-                columns.lowerBound),
-            columns.upperBound)
         enabledSections = c.safeDecode(
             [BrowseSection.SectionType].self, forKey: .enabledSections, default: d.enabledSections)
         historyState = c.safeDecode(HistoryState.self, forKey: .historyState, default: d.historyState)
@@ -449,6 +385,5 @@ extension AppSettings {
         audioOnlyMode = c.safeDecode(Bool.self, forKey: .audioOnlyMode, default: d.audioOnlyMode)
         preferH264 = c.safeDecode(Bool.self, forKey: .preferH264, default: d.preferH264)
         iCloudSyncEnabled = c.safeDecode(Bool.self, forKey: .iCloudSyncEnabled, default: d.iCloudSyncEnabled)
-        useTOSPlayerOnMac = c.safeDecode(Bool.self, forKey: .useTOSPlayerOnMac, default: d.useTOSPlayerOnMac)
     }
 }

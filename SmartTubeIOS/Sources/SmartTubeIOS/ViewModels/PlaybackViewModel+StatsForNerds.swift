@@ -153,7 +153,7 @@ public struct StatsForNerdsSnapshot: Sendable {
     public var timeToPlayMs: Int
     /// Elapsed ms from `load()` to the quality-ramp task firing (~readyToPlay + 800 ms). 0 = not yet measured.
     public var timeToHighQualityMs: Int
-    /// Cache hit/miss summary at load time (e.g. "pi:HIT wkHLS:MISS").
+    /// Cache hit/miss summary at load time (e.g. "pi:HIT").
     public var cacheStatus: String
     /// Host + path of the stream URL handed to AVPlayer (no query string). Empty when not yet loaded.
     public var streamURL: String

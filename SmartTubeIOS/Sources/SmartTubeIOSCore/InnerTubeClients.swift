@@ -98,17 +98,6 @@ package enum InnerTubeClients {
         package static let userAgent =
             "Mozilla/5.0 (iPad; CPU OS 16_7_10 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1,gzip(gfe)"
     }
-
-    /// YouTube Studio (creator) web client. Per yt-dlp research, this client is exempt
-    /// from Proof-of-Origin (rqh=1) CDN enforcement on adaptive streams, unlike the
-    /// standard WEB (1), iOS (5), or Android (3) clients. Its adaptive stream URLs can
-    /// be used in AVMutableComposition without a pot= token.
-    package enum WebCreator {
-        package static let name = "WEB_CREATOR"
-        package static let nameID = "62"
-        package static let version = "1.20260708.06.00"
-    }
-
     /// WEB client with macOS Safari UA — mirrors yt-dlp's `web_safari` client config
     /// (commit 48a61d0f). YouTube returns `hlsManifestUrl` for this client even for
     /// non-embeddable videos, while returning only `serverAbrStreamingUrl` (SABR) for

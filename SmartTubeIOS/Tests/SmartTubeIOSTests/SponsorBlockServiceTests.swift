@@ -80,36 +80,4 @@ struct SponsorBlockServiceTests {
         #expect(segments.first?.apiUUID == nil)
     }
 
-    @Test("reportIncorrect sends a downvote (type=0) with the segment's UUID")
-    func reportIncorrectSendsCorrectVote() async {
-        StubURLProtocol.responses = ["voteOnSponsorTime": (200, Data("{}".utf8))]
-        StubURLProtocol.capturedURLs = [:]
-        StubURLProtocol.capturedMethods = [:]
-        let service = makeService()
-
-        let ok = await service.reportIncorrect(uuid: "abc123def456")
-
-        #expect(ok)
-        guard let url = StubURLProtocol.capturedURLs["voteOnSponsorTime"],
-            let comps = URLComponents(url: url, resolvingAgainstBaseURL: false)
-        else {
-            Issue.record("No request captured for voteOnSponsorTime")
-            return
-        }
-        let queryItems = comps.queryItems ?? []
-        #expect(queryItems.contains { $0.name == "UUID" && $0.value == "abc123def456" })
-        #expect(queryItems.contains { $0.name == "type" && $0.value == "0" })
-        #expect(queryItems.contains { $0.name == "userID" })
-        #expect(StubURLProtocol.capturedMethods["voteOnSponsorTime"] == "POST")
-    }
-
-    @Test("reportIncorrect returns false on an HTTP error")
-    func reportIncorrectReturnsFalseOnError() async {
-        StubURLProtocol.responses = ["voteOnSponsorTime": (500, Data("{}".utf8))]
-        let service = makeService()
-
-        let ok = await service.reportIncorrect(uuid: "abc123def456")
-
-        #expect(!ok)
-    }
 }

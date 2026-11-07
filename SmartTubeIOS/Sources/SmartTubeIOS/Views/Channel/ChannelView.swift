@@ -24,7 +24,6 @@ public struct ChannelView: View {
     @Environment(SettingsStore.self) private var store
     @Environment(AuthService.self) private var auth
     @Environment(\.innerTubeAPI) private var api
-    @Environment(\.isLandscapeLayout) private var isLandscapeLayout
 
     public init(channelId: String) {
         self.channelId = channelId

@@ -76,27 +76,6 @@ final class AudioTrackManager {
         playerLog.notice("Audio → \(track?.name ?? "Auto (preference cleared)")")
     }
 
-    /// Populates available audio tracks from YouTube's YT-EXT-AUDIO-CONTENT-ID HLS manifest
-    /// format (not #EXT-X-MEDIA groups). Auto-applies the user's saved language preference.
-    /// Does NOT set audioSelectionGroup — track switching is handled via onHLSLanguageChange.
-    func loadHLSVariantTracks(_ tracks: [AudioTrack]) {
-        guard !tracks.isEmpty else { return }
-        availableAudioTracks = tracks
-        let preferred = delegate?.settings.preferredAudioLanguage
-        if let pref = preferred,
-            let preferredTrack = tracks.first(where: { $0.languageCode == pref })
-        {
-            selectedAudioTrack = preferredTrack
-        } else if let originalTrack = tracks.first(where: { $0.isOriginal }) {
-            selectedAudioTrack = originalTrack
-        } else {
-            selectedAudioTrack = tracks.first
-        }
-        playerLog.notice(
-            "AudioTrackManager: loaded \(tracks.count) HLS variant track(s) — selected: \(selectedAudioTrack?.name ?? "nil")"
-        )
-    }
-
     /// Loads alternate audio renditions from the HLS manifest of `item` and auto-applies
     /// the user's saved language preference.
     func loadAudioTracks(from item: AVPlayerItem) {

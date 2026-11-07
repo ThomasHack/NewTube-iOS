@@ -16,7 +16,6 @@ struct PlayerControlsOverlay: View {
     let size: CGSize
     let safeAreaInsets: EdgeInsets
     let video: Video
-    let controlScale: CGFloat
     @Binding var showMoreMenu: Bool
     @Binding var channelDestination: ChannelDestination?
 
@@ -72,7 +71,7 @@ struct PlayerControlsOverlay: View {
                     height: 64
                 ) {
                     Image(systemName: "ellipsis")
-                        .font(.system(size: 18 * controlScale))
+                        .font(.system(size: 18))
                         .foregroundStyle(.white)
                 }
             }
@@ -123,7 +122,7 @@ struct PlayerControlsOverlay: View {
                         height: 64
                     ) {
                         Image(systemName: AppSymbol.previousTrack)
-                            .font(.system(size: 18 * controlScale))
+                            .font(.system(size: 18))
                             .foregroundStyle(vm.hasPrevious && !vm.isLoading ? .white : .white.opacity(0.3))
                     }
 
@@ -139,7 +138,7 @@ struct PlayerControlsOverlay: View {
                             height: 64
                         ) {
                             Image(systemName: AppSymbol.previousChapter)
-                                .font(.system(size: 18 * controlScale))
+                                .font(.system(size: 18))
                                 .foregroundStyle(vm.hasPreviousChapter && !vm.isLoading ? .white : .white.opacity(0.3))
                         }
                     }
@@ -158,7 +157,7 @@ struct PlayerControlsOverlay: View {
                             height: 64
                         ) {
                             Image(systemName: AppSymbol.nextChapter)
-                                .font(.system(size: 18 * controlScale))
+                                .font(.system(size: 18))
                                 .foregroundStyle(vm.hasNextChapter && !vm.isLoading ? .white : .white.opacity(0.3))
                         }
                     }
@@ -174,7 +173,7 @@ struct PlayerControlsOverlay: View {
                         height: 64
                     ) {
                         Image(systemName: AppSymbol.nextTrack)
-                            .font(.system(size: 18 * controlScale))
+                            .font(.system(size: 18))
                             .foregroundStyle(vm.hasNext ? .white : .white.opacity(0.3))
                     }
                 }
@@ -248,7 +247,7 @@ extension PlayerControlsOverlay {
     var playPauseIcon: some View {
         Image(systemName: vm.videoEnded ? "arrow.counterclockwise" : (vm.isPlaying ? "pause.fill" : "play.fill"))
             .renderingMode(.original)
-            .font(.system(size: 42 * controlScale))
+            .font(.system(size: 42))
             .foregroundStyle(.white)
     }
 
@@ -272,7 +271,7 @@ extension PlayerControlsOverlay {
     func seekIcon(symbol: String) -> some View {
         Image(systemName: symbol)
             .renderingMode(.original)
-            .font(.system(size: 28 * controlScale))
+            .font(.system(size: 28))
             .foregroundStyle(.white)
     }
 
@@ -280,89 +279,6 @@ extension PlayerControlsOverlay {
 
     var progressBar: some View {
         tvProgressBar
-    }
-
-    var iosProgressBar: some View {
-        // Wrap in an outer GeometryReader so the highPriorityGesture below can
-        // reference the bar's width.  The gesture is placed on the full-height
-        // VStack (tooltip row + track row = 60 pt) so any touch in that area —
-        // including the 28 pt invisible tooltip strip above the visible bar — will
-        // activate the scrub drag.  Previously the gesture was only on the inner
-        // 28 pt track ZStack, which meant touches on the empty tooltip row were
-        // silently swallowed without triggering the seek.
-        GeometryReader { outerGeo in
-            let hPad: CGFloat = 20
-            let trackW = outerGeo.size.width - hPad * 2
-
-            VStack(spacing: 4) {
-                // Tooltip row — always occupies space so layout doesn't jump
-                GeometryReader { geo in
-                    if vm.isScrubbing && vm.duration > 0 {
-                        let fraction = CGFloat(vm.scrubTime / vm.duration)
-                        let thumbX = hPad + trackW * fraction
-                        let chapterAtScrub = vm.chapters.last(where: { $0.startTime <= vm.scrubTime })
-                        let labelW: CGFloat = chapterAtScrub != nil ? min(outerGeo.size.width * 0.5, 180) : 64
-                        let clampedX = min(max(thumbX, hPad + labelW / 2), outerGeo.size.width - hPad - labelW / 2)
-
-                        VStack(spacing: 2) {
-                            if let chapter = chapterAtScrub {
-                                Text(chapter.title)
-                                    .font(.caption2.weight(.medium))
-                                    .foregroundStyle(.white.opacity(0.85))
-                                    .lineLimit(1)
-                                    .truncationMode(.tail)
-                            }
-                            Text(formatDuration(vm.scrubTime))
-                                .font(.caption.monospacedDigit())
-                                .fontWeight(.semibold)
-                                .foregroundStyle(.white)
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(.black.opacity(0.7), in: RoundedRectangle(cornerRadius: 6))
-                        .frame(width: labelW)
-                        .position(x: clampedX, y: geo.size.height / 2)
-                    }
-                }
-                .frame(height: 28)
-
-                // Track + slider row (custom — fully transparent thumb and track)
-                GeometryReader { geo in
-                    let time = vm.isScrubbing ? vm.scrubTime : vm.currentTime
-                    let progress = vm.duration > 0 ? CGFloat(time / vm.duration) : 0
-                    let thumbX = hPad + trackW * progress
-
-                    ZStack {
-                        // Background track
-                        Capsule()
-                            .fill(Color.white.opacity(0.2))
-                            .frame(height: 4)
-                            .padding(.horizontal, hPad)
-
-                        // Progress fill
-                        HStack(spacing: 0) {
-                            Capsule()
-                                .fill(Color.red.opacity(0.5))
-                                .frame(width: max(thumbX - hPad, 0), height: 4)
-                            Spacer(minLength: 0)
-                        }
-                        .padding(.leading, hPad)
-
-                        // Thumb
-                        Circle()
-                            .fill(Color.white.opacity(0.5))
-                            .frame(width: 16, height: 16)
-                            .position(x: thumbX, y: geo.size.height / 2)
-                    }
-                    .overlay(sponsorBlockMarkers)
-                    .overlay(chapterMarkers)
-                }
-                .frame(height: 28)
-            }
-            .contentShape(Rectangle())
-        }
-        .frame(height: 60)
-        .accessibilityIdentifier("player.progressBar")
     }
 
     // Chapter tick marks on the progress bar — small white notches at each chapter boundary.
@@ -414,32 +330,6 @@ extension PlayerControlsOverlay {
 extension PlayerView {
 
     // MARK: - Slide transition
-
-    /// Animates the current content off-screen in `direction` (-1 = left, +1 = right),
-    /// runs `action` to load the next/previous video, then slides the new content in
-    /// from the opposite side.
-    func performHorizontalTransition(direction: CGFloat, screenWidth: CGFloat, action: @escaping () -> Void) {
-        // Set the re-entry guard synchronously so any concurrent gesture event
-        // arriving before the Task runs still sees isTransitioning == true.
-        isTransitioning = true
-        // Defer ALL SwiftUI state mutations (incl. the initial slide-out animation)
-        // into the async Task so none of them execute synchronously inside UIKit's
-        // touch-event delivery pass. On iOS 26 the UpdateCycle framework throws when
-        // @Observable/@State mutations happen synchronously during event dispatch.
-        Task { @MainActor in
-            withAnimation(.easeIn(duration: 0.2)) {
-                slideOffset = direction * screenWidth
-            }
-            try? await Task.sleep(for: .milliseconds(220))
-            action()  // load new video, clears AVPlayer
-            slideOffset = -direction * screenWidth  // snap to opposite side (off-screen)
-            withAnimation(.easeOut(duration: 0.25)) {
-                slideOffset = 0  // slide new content in
-            }
-            try? await Task.sleep(for: .milliseconds(270))
-            isTransitioning = false
-        }
-    }
 
     // MARK: - Toast / error
 

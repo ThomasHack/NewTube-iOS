@@ -27,7 +27,7 @@ public struct ShortsPlayerView: View {
     @State var isTransitioning = false
     @State var isFetchingMore = false
     /// True while the app is backgrounded — guards onDisappear from calling stop()
-    /// when iOS fires it as a side-effect of backgrounding rather than navigation.
+    /// when the system fires it as a side-effect of backgrounding rather than navigation.
     @State var isInBackground = false
     let api: InnerTubeAPI
 
@@ -86,10 +86,6 @@ public struct ShortsPlayerView: View {
                         .animation(.easeInOut(duration: 0.2), value: vm.statsForNerdsVisible)
                 }
             }
-            // Single-tap always toggles play/pause via the UIKit window-level tap
-            // recognizer inside SwipeGestureOverlay (onTap above). WKWebView absorbs
-            // UIKit touches before this SwiftUI view sees them, so .onTapGesture here
-            // would never fire — the window-level path is the only reliable one.
             .offset(y: slideOffset)
             .background(Color.black.ignoresSafeArea())
             // Siri Remote D-pad: up/down navigate prev/next short.

@@ -5,7 +5,7 @@ import SwiftUI
 // Reusable 4-digit PIN entry: dot progress indicator + on-screen numeric keypad.
 // Used both by SettingsPINLockView (verifying an existing PIN to unlock Settings) and
 // ParentalControlsSheet (setting/changing/removing the PIN) — built as on-screen buttons
-// rather than a TextField/keyboard so behavior is identical on iOS, macOS and tvOS
+// rather than a TextField/keyboard so it works with the Siri Remote
 // (a tvOS on-screen keyboard for a numeric PIN is a poor, slow experience with the
 // focus engine; this reads exactly like every other tvOS/iOS PIN pad).
 

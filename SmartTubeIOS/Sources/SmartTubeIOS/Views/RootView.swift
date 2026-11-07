@@ -2,47 +2,29 @@ import OSLog
 import SmartTubeIOSCore
 import SwiftUI
 
-private let rootLog = Logger(subsystem: "com.void.smarttube.app", category: "RootView")
-
 // MARK: - RootView
 //
 // Entry point that decides whether to show the main tab UI or the
-// sign-in screen.  On macOS it uses a sidebar-based navigation.
+// sign-in screen.
 
 public struct RootView: View {
     @Environment(AuthService.self) private var auth
     @Environment(SettingsStore.self) private var store
     @Environment(BrowseViewModel.self) private var browseVM
     @Environment(\.innerTubeAPI) private var api
-    /// Shared download service — observed here so the completion alert is shown
-    /// at a stable level unaffected by context menu dismiss animations on cards.
-    @State private var cardDownloadAlertItem: DownloadAlertItem?
-    @State private var isLandscapeLayout = false
 
     public init() {}
 
     public var body: some View {
         @Bindable var browseVM = browseVM
-        // Explicitly read cardDownloadService.state in body so SwiftUI's
-        // @Observable tracking engine registers this view as a subscriber.
-        // Without this, onChange(of: cardDownloadService.state) may not fire
-        // when the state changes on an environment-injected @Observable object.
-        Group {
-            MainTVTabView()
-        }
-        .environment(\.isLandscapeLayout, isLandscapeLayout)
-        .onGeometryChange(for: Bool.self) {
-            $0.size.width > $0.size.height
-        } action: {
-            isLandscapeLayout = $0
-        }
-        .tint(store.settings.accentColor.color)
-        .preferredColorScheme(store.settings.themeName.colorScheme)
-        .sheet(isPresented: .constant(!auth.isSignedIn && requiresAuth)) {
-            // Sign-in prompt is shown as a dismissible sheet so users
-            // can still browse without being signed in.
-            SignInView()
-        }
+        MainTVTabView()
+            .tint(store.settings.accentColor.color)
+            .preferredColorScheme(store.settings.themeName.colorScheme)
+            .sheet(isPresented: .constant(!auth.isSignedIn && requiresAuth)) {
+                // Sign-in prompt is shown as a dismissible sheet so users
+                // can still browse without being signed in.
+                SignInView()
+            }
     }
 
     private var requiresAuth: Bool { false }  // guest browsing is allowed
@@ -79,58 +61,6 @@ enum AppSection: String, CaseIterable, Identifiable {
         case .search: SearchView()
         case .library: LibraryView()
         case .settings: SettingsView()
-        }
-    }
-}
-
-// MARK: - MainTabView  (iOS / iPadOS)
-
-// Propagates the bottom safe-area inset (tab bar + home indicator) from inside a
-// NavigationStack tab to the enclosing MainTabView so the mini player overlay can
-// be positioned exactly at the top of the tab bar without hard-coding its height.
-private struct TabBarBottomInsetKey: PreferenceKey {
-    static let defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = max(value, nextValue())
-    }
-}
-
-struct MainTabView: View {
-    @State private var searchVM = SearchViewModel()
-    @State private var selectedTab: AppSection = .home
-    @State private var tabBarBottomInset: CGFloat = 0
-    @Environment(\.innerTubeAPI) private var api
-    @Environment(SettingsStore.self) private var store
-
-    var body: some View {
-        TabView(selection: $selectedTab) {
-            ForEach(AppSection.allCases) { section in
-                NavigationStack { section.destination(api: api) }
-                    // Capture the bottom safe-area inset as seen from inside the tab
-                    // (UITabBarController sets this to tab-bar height + home-indicator).
-                    // The value is propagated up to tabBarBottomInset via PreferenceKey
-                    // so the mini-player overlay can be positioned above the tab bar.
-                    .background {
-                        GeometryReader { geo in
-                            Color.clear
-                                .preference(
-                                    key: TabBarBottomInsetKey.self,
-                                    value: geo.safeAreaInsets.bottom
-                                )
-                        }
-                    }
-                    .tabItem { Label(section.rawValue, systemImage: section.icon) }
-                    .tag(section)
-                    .accessibilityIdentifier("tab.\(section.rawValue.lowercased())")
-            }
-        }
-        .onPreferenceChange(TabBarBottomInsetKey.self) { tabBarBottomInset = $0 }
-        .environment(searchVM)
-        .onReceive(NotificationCenter.default.publisher(for: .navigateToSearch)) { _ in
-            selectedTab = .search
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .activeChannelDidChange)) { _ in
-            selectedTab = .home
         }
     }
 }
@@ -172,74 +102,6 @@ struct MainTVTabView: View {
         .environment(searchVM)
         .onReceive(NotificationCenter.default.publisher(for: .activeChannelDidChange)) { _ in
             selectedTab = .home
-        }
-    }
-}
-
-// MARK: - MainSidebarView  (macOS)
-
-struct MainSidebarView: View {
-    @Environment(AuthService.self) private var auth
-    @Environment(BrowseViewModel.self) private var browseVM
-    @Environment(SettingsStore.self) private var store
-    @Environment(\.innerTubeAPI) private var api
-    @State private var searchVM = SearchViewModel()
-
-    @State private var selectedSection: AppSection? = .home
-    /// Set when the IFrame player hits a fatal embed error on the current video so we
-    /// drop through to the standard PlayerView for that video only. Cleared when the
-    /// video changes.
-    @State private var tosPlayerFallbackVideoId: String? = nil
-
-    var body: some View {
-        @Bindable var browseVM = browseVM
-        ZStack {
-            NavigationSplitView {
-                List(AppSection.allCases, selection: $selectedSection) { section in
-                    Label(section.rawValue, systemImage: section.icon)
-                        .tag(section)
-                }
-                .navigationTitle("SmartTube")
-                if auth.isSignedIn {
-                    Divider()
-                    HStack {
-                        AsyncImage(url: auth.accountAvatarURL) { img in
-                            img.resizable()
-                        } placeholder: {
-                            Color.gray
-                        }
-                        .frame(width: 28, height: 28)
-                        .clipShape(Circle())
-                        Text(auth.accountName ?? "Account")
-                            .font(.subheadline)
-                    }
-                    .padding(.horizontal)
-                    .padding(.bottom, 8)
-                }
-            } detail: {
-                NavigationStack { (selectedSection ?? .home).destination(api: api) }
-            }
-            .environment(searchVM)
-            .onReceive(NotificationCenter.default.publisher(for: .activeChannelDidChange)) { _ in
-                selectedSection = .home
-            }
-
-            // Full-window player overlay — avoids macOS sheet coordinate issues that
-            // prevent XCUITest click events from reaching controls inside a popover window.
-            if let video = browseVM.deepLinkedVideo {
-                PlayerView(video: video, api: api)
-                    .environment(store)
-                    .environment(auth)
-                    .environment(browseVM)
-                    .ignoresSafeArea()
-            }
-        }
-        // When a different video is opened, clear the per-video fallback guard so
-        // the next video gets a fresh attempt through the TOS player.
-        .onChange(of: browseVM.deepLinkedVideo?.id) { _, newId in
-            if newId != tosPlayerFallbackVideoId {
-                tosPlayerFallbackVideoId = nil
-            }
         }
     }
 }

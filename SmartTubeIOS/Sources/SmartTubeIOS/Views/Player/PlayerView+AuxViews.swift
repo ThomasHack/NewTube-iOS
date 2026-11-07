@@ -92,23 +92,6 @@ struct StatsForNerdsOverlay: View {
 
 // MARK: - RelatedVideosView
 
-struct RelatedVideosView: View {
-    let videos: [Video]
-    let onSelect: (Video) -> Void
-
-    var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 8) {
-                ForEach(videos) { video in
-                    VideoCardView(video: video, compact: true)
-                        .padding(.horizontal)
-                        .onTapGesture { onSelect(video) }
-                }
-            }
-        }
-    }
-}
-
 // MARK: - CommentRowView
 
 struct CommentRowView: View {
@@ -158,12 +141,6 @@ struct CommentRowView: View {
     }
 }
 
-// MARK: - EndCardOverlay
-
-/// Positions YouTube end-screen cards absolutely within the player bounds.
-/// Cards are shown only during their `startMs…endMs` window and dismissed when
-/// the controls overlay is visible (consistent with official YouTube behaviour).
-
 // MARK: - AppSettings.VideoGravityMode → AVLayerVideoGravity mapping
 
 extension AppSettings.VideoGravityMode {
@@ -173,20 +150,3 @@ extension AppSettings.VideoGravityMode {
 }
 
 // MARK: - AirPlayRoutePickerView
-
-/// Wraps `AVRoutePickerView` (the iOS AirPlay button) in a SwiftUI-compatible view.
-struct AirPlayRoutePickerView: UIViewRepresentable {
-    func makeUIView(context: Context) -> AVRoutePickerView {
-        let picker = AVRoutePickerView()
-        picker.tintColor = .white
-        picker.activeTintColor = UIColor.systemBlue
-        // Set the identifier directly on the UIKit view so XCUITest can find it.
-        // The SwiftUI `.accessibilityIdentifier()` modifier applies to the hosting
-        // wrapper view, not to AVRoutePickerView itself.
-        picker.accessibilityIdentifier = "player.airPlayButton"
-        picker.isAccessibilityElement = true
-        picker.accessibilityTraits = [.button]
-        return picker
-    }
-    func updateUIView(_ uiView: AVRoutePickerView, context: Context) {}
-}

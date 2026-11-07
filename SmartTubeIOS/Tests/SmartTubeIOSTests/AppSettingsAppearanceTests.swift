@@ -10,14 +10,6 @@ struct AppSettingsAppearanceTests {
         try JSONDecoder().decode(AppSettings.self, from: Data(json.utf8))
     }
 
-    @Test("Missing keys fall back to defaults")
-    func missingKeysUseDefaults() throws {
-        let settings = try decode("{}")
-        #expect(settings.accentColor == .system)
-        #expect(settings.gridColumnsPortrait == 2)
-        #expect(settings.gridColumnsLandscape == 3)
-    }
-
     @Test("Accent color round-trips", arguments: AppSettings.AccentColorChoice.allCases)
     func accentColorRoundTrip(choice: AppSettings.AccentColorChoice) throws {
         var settings = AppSettings()
@@ -29,20 +21,6 @@ struct AppSettingsAppearanceTests {
     @Test("Unknown accent color falls back to system")
     func unknownAccentColor() throws {
         #expect(try decode(#"{"accentColor": "chartreuse"}"#).accentColor == .system)
-    }
-
-    @Test("Column counts are clamped to the selectable range")
-    func columnsClamped() throws {
-        let settings = try decode(#"{"gridColumnsPortrait": 0, "gridColumnsLandscape": 9}"#)
-        #expect(settings.gridColumnsPortrait == 1)
-        #expect(settings.gridColumnsLandscape == 3)
-    }
-
-    @Test("Valid column counts are preserved")
-    func columnsPreserved() throws {
-        let settings = try decode(#"{"gridColumnsPortrait": 1, "gridColumnsLandscape": 2}"#)
-        #expect(settings.gridColumnsPortrait == 1)
-        #expect(settings.gridColumnsLandscape == 2)
     }
 
     @Test("High-res thumbnails default off and decode when present")

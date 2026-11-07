@@ -3,19 +3,13 @@ import AVKit
 import SwiftUI
 import UIKit
 
-// MARK: - Platform-specific AVKit / UIKit views
-//
-// Extracted from PlayerView.swift to keep that file under 1 000 lines.
-
-// MARK: - FullScreenPlayerLayerView (iOS)
-
 // MARK: - AVPlayerLayerView
 
 /// Lightweight UIViewRepresentable wrapping an `AVPlayerLayer` directly.
 /// Unlike `VideoPlayer` / `AVPlayerViewController`, it does not interfere
 /// with the UIKit accessibility tree so SwiftUI overlays remain reachable.
-/// On tvOS, `AVPlayerViewController` would provide system transport controls
-/// but `AVPlayerLayer` is used here for layout consistency with iOS.
+/// `AVPlayerViewController` would also bring system transport controls, which the
+/// custom player UI replaces.
 /// Named `PlayerAVLayerView` to avoid a module-level name clash with
 /// `ShortsPlayerView`, which uses this type via `videoGravity: .resizeAspectFill`.
 struct PlayerAVLayerView: UIViewRepresentable {
@@ -60,42 +54,6 @@ struct PlayerAVLayerView: UIViewRepresentable {
 
 // MARK: - PiPDelegate
 
-/// AVPictureInPictureControllerDelegate that notifies a SwiftUI closure when
-/// PiP starts or stops, and implements the restore callback required for a
-/// smooth transition back to full-screen without rebuffering.
-final class PiPDelegate: NSObject, AVPictureInPictureControllerDelegate {
-    private let onActiveChange: (Bool) -> Void
-    private let onDidStart: (() -> Void)?
-
-    init(onActiveChange: @escaping (Bool) -> Void, onDidStart: (() -> Void)? = nil) {
-        self.onActiveChange = onActiveChange
-        self.onDidStart = onDidStart
-    }
-
-    func pictureInPictureControllerDidStartPictureInPicture(_ controller: AVPictureInPictureController) {
-        onDidStart?()
-        onActiveChange(true)
-    }
-
-    func pictureInPictureControllerDidStopPictureInPicture(_ controller: AVPictureInPictureController) {
-        onActiveChange(false)
-    }
-
-    /// Called when the user taps the PiP window to return to the app.
-    /// Must call completionHandler(true) once the UI is ready to show the video
-    /// again — without this iOS cannot complete the restore animation and the
-    /// player rebuffers/stutters.
-    func pictureInPictureController(
-        _ controller: AVPictureInPictureController,
-        restoreUserInterfaceForPictureInPictureStopWithCompletionHandler completionHandler: @escaping (Bool) -> Void
-    ) {
-        // The AVPlayerLayer is always present and visible in PlayerView, so the
-        // UI is immediately ready. Calling completionHandler(true) right away
-        // lets AVKit animate the video seamlessly back into the layer.
-        completionHandler(true)
-    }
-}
-
 // MARK: - HoldSpeedBadge
 
 struct HoldSpeedBadge: View {
@@ -113,7 +71,3 @@ struct HoldSpeedBadge: View {
         .allowsHitTesting(false)
     }
 }
-
-// MARK: - SwipeGestureOverlay (horizontal)
-
-// MARK: - PlayerNSLayerView (macOS)

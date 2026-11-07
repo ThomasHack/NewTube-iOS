@@ -130,17 +130,6 @@ public struct SignInView: View {
 
     // MARK: - Loading screen
 
-    private var loadingView: some View {
-        VStack(spacing: 16) {
-            ProgressView()
-                .controlSize(.large)
-            Text("Connecting to Google…")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
     // MARK: - Activation code screen
 
     /// Builds the URL that Google accepts to auto-fill the user code:
@@ -154,102 +143,6 @@ public struct SignInView: View {
         return components.url?.absoluteString ?? info.verificationURL.absoluteString
     }
 
-    private func activationView(info: AuthService.ActivationInfo) -> some View {
-        ScrollView {
-            VStack(spacing: 28) {
-                Spacer(minLength: 20)
-
-                Image(systemName: AppSymbol.tvMediabox)
-                    .font(.system(size: 64))
-                    .foregroundStyle(.red)
-
-                VStack(spacing: 6) {
-                    Text("Activate SmartTube")
-                        .font(.title2).fontWeight(.bold)
-                    Text(
-                        "On this device, tap the button below — the sign-in page opens with your code already filled in."
-                    )
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                }
-
-                // Primary CTA: opens the activation URL with user_code pre-filled.
-                // On macOS use ASWebAuthenticationSession so the page opens in an
-                // in-app browser sheet rather than the external default browser.
-                Button {
-                    openURL(URL(string: activationQRURL(info: info)) ?? info.verificationURL)
-                } label: {
-                    Label("Open Activation Page", systemImage: "arrow.up.right")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-
-                // ── Or: scan from another device ────────────────────────────
-                HStack(spacing: 8) {
-                    Rectangle().fill(Color.secondary.opacity(0.3)).frame(height: 1)
-                    Text("Or scan from another device")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize()
-                    Rectangle().fill(Color.secondary.opacity(0.3)).frame(height: 1)
-                }
-
-                // QR code — scan to open the activation URL with code pre-filled
-                QRCodeView(content: activationQRURL(info: info))
-                    .frame(width: 180, height: 180)
-                    .padding(8)
-                    .background(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .shadow(color: .black.opacity(0.08), radius: 8, y: 2)
-
-                Text("Scan to open activation page")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                // User code box
-                Text(info.userCode)
-                    .font(.system(size: 42, weight: .bold, design: .monospaced))
-                    .tracking(6)
-                    .padding(.vertical, 20)
-                    .padding(.horizontal, 32)
-                    .background(Color.secondary.opacity(0.12))
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-
-                Button {
-                } label: {
-                    Label("Copy Code", systemImage: AppSymbol.copyDoc)
-                }
-                .buttonStyle(.bordered)
-
-                // Countdown
-                CountdownView(expiresAt: info.expiresAt) {
-                    // Code expired — restart
-                    Task { await auth.beginSignIn() }
-                }
-
-                VStack(spacing: 8) {
-                    ProgressView()
-                    Text("Waiting for authorisation…")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.top, 8)
-
-                Button(role: .cancel) {
-                    auth.cancelSignIn()
-                } label: {
-                    Text("Use a different account")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer(minLength: 20)
-            }
-            .padding()
-        }
-    }
 }
 
 // MARK: - QRCodeView

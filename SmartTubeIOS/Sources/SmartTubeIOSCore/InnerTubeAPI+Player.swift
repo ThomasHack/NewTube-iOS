@@ -20,28 +20,12 @@ extension InnerTubeAPI {
         body["contentCheckOk"] = true
         let data = try await postPlayer(body: body)
         var info = try parsePlayerInfo(from: data, videoId: videoId)
-        // Apply a WKWebView-extracted pot= token (Option B) when available.
-        // The token is stored by storeExternalPoToken() after the hidden WKWebView
-        // extracts it from the YouTube player's /player API request body.
         if hasPot, let pot = poToken {
             tubeLog.notice(
                 "[InnerTube] ✅ poToken applied to \(videoId, privacy: .public) via iOS client (len=\(pot.count))")
             info = info.applyingPoToken(pot)
         }
         return info
-    }
-
-    /// Fetches player info using the Web client, which returns muxed (video+audio)
-    /// MP4 streams suitable for direct file download and saving to Photos.
-    /// The iOS client only returns adaptive-only streams; the Web client includes
-    /// itag 18 (360p muxed) and itag 22 (720p muxed) in the `formats` array.
-    public func fetchPlayerInfoForDownload(videoId: String) async throws -> PlayerInfo {
-        var body = makeBody(client: webClientContext)
-        body["videoId"] = videoId
-        body["racyCheckOk"] = true
-        body["contentCheckOk"] = true
-        let data = try await post(endpoint: "player", body: body)
-        return try parsePlayerInfo(from: data, videoId: videoId)
     }
 
     /// Fetches player info using the WebSafari client with `serviceIntegrityDimensions.poToken`
@@ -230,52 +214,6 @@ extension InnerTubeAPI {
         return try parsePlayerInfo(from: data, videoId: videoId)
     }
 
-    /// Fetches player info using the WEB_CREATOR (YouTube Studio) client.
-    /// Per yt-dlp documentation, this client is exempt from rqh=1 CDN enforcement on
-    /// adaptive streams — the returned video/audio URLs do NOT require a pot= token.
-    /// Requires a signed-in session (Bearer auth injected by postWebCreator). Without
-    /// auth, YouTube returns signInRequired and omits streamingData entirely.
-    /// Used in `exhaustiveRetry` as a fallback before the muxed-only phase.
-    public func fetchPlayerInfoWebCreator(videoId: String) async throws -> PlayerInfo {
-        // Inject visitorData so YouTube's session resolution works correctly.
-        var clientFields = (webCreatorClientContext["client"] as? [String: Any]) ?? [:]
-        if let vd = visitorData { clientFields["visitorData"] = vd }
-
-        // html5Preference + signatureTimestamp: same as fetchPlayerInfoAuthenticated.
-        // Without STS, YouTube may return "The page needs to be reloaded".
-        let sts = await fetchSignatureTimestampIfNeeded()
-        var cpbc: [String: Any] = ["html5Preference": "HTML5_PREF_WANTS"]
-        if let sts { cpbc["signatureTimestamp"] = sts }
-
-        var body = makeBody(client: ["client": clientFields])
-        body["videoId"] = videoId
-        body["racyCheckOk"] = true
-        body["contentCheckOk"] = true
-        body["playbackContext"] = ["contentPlaybackContext": cpbc]
-        let data = try await postWebCreator(body: body)
-        return try parsePlayerInfo(from: data, videoId: videoId)
-    }
-
-    /// Fetches player info using the authenticated WEB client (nameID=1, www.youtube.com).
-    /// Mirrors yt-dlp's `web` OAuth client: `Bearer {token}` + `X-Goog-AuthUser: 0`.
-    /// For authenticated users, adaptive stream URLs from the WEB client do not carry
-    /// `rqh=1` CDN enforcement, making this the primary authenticated adaptive path.
-    /// Throws `APIError.notAuthenticated` when no auth token is present.
-    public func fetchPlayerInfoWebAuthenticated(videoId: String) async throws -> PlayerInfo {
-        let sts = await fetchSignatureTimestampIfNeeded()
-        var cpbc: [String: Any] = ["html5Preference": "HTML5_PREF_WANTS"]
-        if let sts { cpbc["signatureTimestamp"] = sts }
-        var clientFields = (webClientContext["client"] as? [String: Any]) ?? [:]
-        if let vd = visitorData { clientFields["visitorData"] = vd }
-        var body = makeBody(client: ["client": clientFields])
-        body["videoId"] = videoId
-        body["racyCheckOk"] = true
-        body["contentCheckOk"] = true
-        body["playbackContext"] = ["contentPlaybackContext": cpbc]
-        let data = try await postWebAuthenticated(body: body)
-        return try parsePlayerInfo(from: data, videoId: videoId)
-    }
-
     /// Fetches player info using the authenticated iOS client.
     /// The unauthenticated iOS player request omits `streamingData` for some videos
     /// (e.g. embed-disabled or account-restricted content). Adding a Bearer auth token
@@ -294,29 +232,6 @@ extension InnerTubeAPI {
             info = info.applyingPoToken(pot)
         }
         return info
-    }
-
-    /// Resolves watch-history tracking data through the authenticated player clients.
-    /// Device-code accounts reject the authenticated iOS client with HTTP 400, while
-    /// the TV or WEB client may still return playbackTracking for the same account.
-    public func fetchHistoryTrackingURLs(videoId: String) async -> PlaybackTrackingURLs? {
-        let clients: [(String, () async throws -> PlayerInfo)] = [
-            ("tv-auth", { try await self.fetchPlayerInfoAuthenticated(videoId: videoId) }),
-            ("web-auth", { try await self.fetchPlayerInfoWebAuthenticated(videoId: videoId) }),
-            ("ios-auth", { try await self.fetchPlayerInfoiOSAuthenticated(videoId: videoId) }),
-        ]
-        for (client, fetch) in clients {
-            do {
-                let info = try await fetch()
-                if let urls = info.trackingURLs,
-                    Self.trackingSession(from: urls) != nil
-                {
-                    return urls
-                }
-            } catch {
-            }
-        }
-        return nil
     }
 
     public func fetchPlayerInfoAuthenticated(videoId: String) async throws -> PlayerInfo {

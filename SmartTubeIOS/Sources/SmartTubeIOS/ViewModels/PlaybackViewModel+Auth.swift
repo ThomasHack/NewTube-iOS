@@ -33,10 +33,4 @@ extension PlaybackViewModel {
         }
     }
 
-    /// Propagates the YouTube.com SAPISID cookie to the PlaybackViewModel's own
-    /// InnerTubeAPI instance so WEB_CREATOR requests use SAPISIDHASH auth.
-    public func updateSAPISID(_ sapisid: String?) {
-        Task { await api.setSAPISID(sapisid) }
-        Task { await VideoPreloadCache.shared.setSAPISID(sapisid) }
-    }
 }

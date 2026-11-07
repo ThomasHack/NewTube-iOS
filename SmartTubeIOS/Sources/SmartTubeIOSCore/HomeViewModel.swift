@@ -272,7 +272,7 @@ public final class HomeViewModel {
             rebuildMergedVideos()
             shortsVideos = await fetchedShortsResult.0
             shortsNextPageToken = await fetchedShortsResult.1
-            // Fill the initial threshold (6 iOS / 8 tvOS) quickly.
+            // Fill the initial threshold quickly.
             // Further pages are loaded lazily as the user scrolls to the last card.
             await loadMoreShortsIfNeeded()
             isRefreshing = false
@@ -434,7 +434,7 @@ public final class HomeViewModel {
 
     /// Auto-loads an additional page of FEshorts if the current count falls below
     /// the threshold needed to fill 2 horizontal screens.
-    /// iOS: ~3 cards/screen → threshold = 6; tvOS: ~4 cards/screen → threshold = 8.
+    /// ~4 cards/screen → threshold = 8.
     func loadMoreShortsIfNeeded() async {
         guard showsShorts else { return }
         let threshold = 8

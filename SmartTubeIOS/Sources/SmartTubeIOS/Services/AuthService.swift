@@ -114,19 +114,6 @@ public final class AuthService {
                 }
             }
         }
-        // UI-testing override: wipe all auth state (in-memory + keychain +
-        // cookies) and immediately begin a device-code sign-in. Used by the
-        // TOSPlayerIOSUITests one-time setup script — the simulator's prior
-        // sign-in cookies were stale server-side, and the test needs a fresh
-        // `__Secure-YT_TVFAS` to pass. The test runner reads the userCode from
-        // the device log, shows it to the user, the user enters it at
-        // youtube.com/activate on a real device, and the sign-in completes.
-        if ProcessInfo.processInfo.arguments.contains("--uitesting-trigger-sign-in") {
-            Task { @MainActor in
-                self.clearAllForTest()
-                await self.beginSignIn()
-            }
-        }
     }
 
     // MARK: - Public API
@@ -238,49 +225,6 @@ public final class AuthService {
         isSignedIn = false
         pendingActivation = nil
         clearKeychain()
-    }
-
-    /// Clears the in-memory auth session without touching the keychain.
-    /// Used by `--uitesting-sign-out` so UI tests can verify signed-out UI on a
-    /// simulator that has real credentials stored in the keychain.
-    public func clearSession() {
-        pollTask?.cancel()
-        pollTask = nil
-        tokenRefreshTask?.cancel()
-        tokenRefreshTask = nil
-        accessToken = nil
-        sapisid = nil
-        refreshToken = nil
-        tokenExpiry = nil
-        accountName = nil
-        accountAvatarURL = nil
-        resetChannels()
-        isSignedIn = false
-        pendingActivation = nil
-    }
-
-    /// Clears EVERYTHING (in-memory + keychain + cookies). Used by the test
-    /// setup path that needs to drive a fresh device-code sign-in (the
-    /// simulator's stale `__Secure-YT_TVFAS` from an earlier sign-in
-    /// wasn't being honored by YouTube's player-config check — see
-    /// TOSPlayerIOSUITests' skip message for the full root cause).
-    public func clearAllForTest() {
-        clearSession()
-        clearKeychain()
-        // Wipe both cookie stores (URLSession's binarycookies + WKWebView's
-        // origin index). Without this, the IFrame would still see stale
-        // cookies from the previous sign-in.
-        if let cookies = HTTPCookieStorage.shared.cookies {
-            for cookie in cookies {
-                HTTPCookieStorage.shared.deleteCookie(cookie)
-            }
-        }
-        // WKWebsiteDataStore is only available where WebKit ships (iOS, macOS,
-        // visionOS, iPadOS). tvOS has no WebKit framework at all, so skip the
-        // WKWebView-side cookie wipe there — the URLSession/HTTPCookieStorage
-        // wipe above is the only one that exists.
-        authLog.notice(
-            "[clearAllForTest] cleared in-memory + keychain + HTTPCookieStorage (no WebKit on this platform)")
     }
 
     /// Returns a valid access token, refreshing if necessary.

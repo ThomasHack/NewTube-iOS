@@ -38,14 +38,9 @@ extension PlaybackViewModel {
         // auto-hide so XCUITest can always click player.nextBtn. Any call that restarts
         // the timer (e.g. from readyToPlay → showControls()) is suppressed here.
         if ProcessInfo.processInfo.arguments.contains("--uitesting-show-controls") { return }
-        // Fix #125: in landscape (fullscreen), give the user 50% more time before controls
-        // disappear. The default timeout (from AppSettings) is 4 s → 6 s in landscape.
-        let timeout =
-            isLandscape
-            ? Double(settings.controlsHideTimeout) * 1.5
-            : Double(settings.controlsHideTimeout)
+        let timeout = Double(settings.controlsHideTimeout)
         playerLog.debug(
-            "[controls] scheduleControlsHide — resetting \(timeout)s timer (landscape=\(self.isLandscape)), isScrubbing=\(self.isScrubbing)"
+            "[controls] scheduleControlsHide — resetting \(timeout)s timer, isScrubbing=\(self.isScrubbing)"
         )
         controlsTimer?.cancel()
         controlsTimer = Task {

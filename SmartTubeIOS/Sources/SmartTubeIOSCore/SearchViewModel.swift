@@ -34,13 +34,6 @@ public final class SearchViewModel {
         "documentary", "gaming highlights",
     ]
 
-    /// History entries that match the current query (case-insensitive). Returns
-    /// the full history when the query is empty.
-    public var filteredHistory: [SearchHistoryEntry] {
-        guard !query.isEmpty else { return history }
-        return history.filter { $0.query.localizedCaseInsensitiveContains(query) }
-    }
-
     public init(api: any InnerTubeAPIProtocol = InnerTubeAPI(), historyStore: SearchHistoryStore = .shared) {
         self.api = api
         self.historyStore = historyStore
@@ -136,14 +129,6 @@ public final class SearchViewModel {
     private func recordSearch(_ query: String) async {
         await historyStore.add(query)
         history = await historyStore.all
-    }
-
-    /// Removes a single entry from history.
-    public func removeHistoryEntry(_ query: String) {
-        Task {
-            await historyStore.remove(query)
-            history = await historyStore.all
-        }
     }
 
     /// Clears all history entries.

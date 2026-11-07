@@ -37,24 +37,6 @@ public struct HomeView: View {
     @State private var shortsCountAtTrigger = 0
     @State private var needsMoreNonShorts = false
     @State private var nonShortsCountAtTrigger = 0
-    private var visibleSections: [BrowseSection] {
-        let types = store.settings.enabledSections
-        var all: [BrowseSection] =
-            types.isEmpty
-            ? BrowseSection.defaultSections
-            : types.compactMap { type in BrowseSection.allSections.first { $0.type == type } }
-        // Always keep a "Recommended" chip directly after the "Home" chip so the
-        // user can filter to only recommended videos regardless of settings.
-        if !all.contains(where: { $0.type == .recommended }),
-            let homeIdx = all.firstIndex(where: { $0.type == .home })
-        {
-            all.insert(BrowseSection(type: .recommended), at: homeIdx + 1)
-        }
-        if store.settings.hideShorts {
-            return all.filter { $0.type != .shorts }
-        }
-        return all
-    }
 
     public init(api: InnerTubeAPI) {
         _homeVM = State(initialValue: HomeViewModel(api: api))

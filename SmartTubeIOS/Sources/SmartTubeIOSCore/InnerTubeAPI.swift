@@ -48,34 +48,10 @@ public actor InnerTubeAPI {
 
     // MARK: - External PoToken API (Option B)
 
-    /// Returns the current visitor data identifier (from the most recent InnerTube response).
-    /// Used by BotGuardWebViewRunner to mint a PoToken for the correct session identifier.
-    public func currentVisitorData() -> String? { visitorData }
-
-    /// Stores a PO token that was extracted from the YouTube player running inside a
-    /// hidden WKWebView (see `YouTubeWebViewHLSExtractor.extractedPoToken`).
-    /// The token is applied to all subsequent `fetchPlayerInfo` calls for `videoId`
-    /// via `applyingPoToken`, allowing rqh=1 adaptive streams to be retried with CDN auth.
-    public func storeExternalPoToken(_ token: String, for videoId: String) {
-        poToken = token
-        poTokenVideoId = videoId
-    }
-
     /// Returns true when a PO token is cached for the given video ID.
     /// Used by `tryAllStreams` to decide whether to attempt rqh=1 adaptive composition.
     public func hasPoToken(for videoId: String) -> Bool {
         return poToken != nil && poTokenVideoId == videoId
-    }
-
-    /// Returns the cached PO token for `videoId`, or nil if none is available.
-    /// Phase -1a uses this to recover the BotGuard-minted token when
-    /// `VideoPreloadCache.wkHLSPoTokenCache` is empty (e.g. for videos that have no
-    /// `serviceIntegrityDimensions.poToken` in their player API response — the WKWebView
-    /// extractor stores nil in the cache, but BotGuard may have minted a token separately
-    /// during the 2 s prefetchPoToken window in loadAsync).
-    public func currentPoToken(for videoId: String) -> String? {
-        guard poTokenVideoId == videoId else { return nil }
-        return poToken
     }
 
     /// Fetches a PO token from the configured provider in the background and caches it
@@ -213,19 +189,6 @@ public actor InnerTubeAPI {
         ]
     ]
 
-    /// The WEB_CREATOR (YouTube Studio) client context used as a fallback player source.
-    /// Per yt-dlp documentation, this client is exempt from rqh=1 CDN enforcement on
-    /// adaptive streams — URLs returned by WEB_CREATOR do not require a pot= token.
-    let webCreatorClientContext: [String: Any] = [
-        "client": [
-            "hl": "en",
-            "gl": "US",
-            "clientName": InnerTubeClients.WebCreator.name,
-            "clientVersion": InnerTubeClients.WebCreator.version,
-            "clientScreen": "WATCH",
-        ]
-    ]
-
     /// MWEB (m.youtube.com / iPad Safari) client context.
     /// Per yt-dlp, MWEB does not require a PO Token for HLS — returns `hlsManifestUrl`
     /// for a wider range of videos than the embed-restricted WEB_EMBEDDED_PLAYER client.
@@ -329,17 +292,6 @@ public actor InnerTubeAPI {
         self.sapisid = value
     }
 
-    /// Returns whether the SAPISID cookie is currently set.
-    /// Used by callers in other modules to avoid redundant recovery attempts.
-    public var hasSAPISID: Bool { sapisid != nil }
-
     // MARK: - Visitor data
 
-    /// Clears the stored per-device `visitorData` token.
-    /// Called when the user disables "Per-Device Recommendations" in Settings so
-    /// the next home-feed request uses YouTube's default shared recommendation algorithm.
-    public func resetVisitorData() {
-        visitorData = nil
-        tubeLog.notice("visitorData cleared (per-device recommendations disabled)")
-    }
 }

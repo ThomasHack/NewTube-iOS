@@ -34,9 +34,6 @@ struct AppSettingsMigrationTests {
                 "playbackSpeed": 1.5,
                 "autoplayEnabled": false,
                 "backgroundPlaybackEnabled": false,
-                "landscapeAlwaysPlay": true,
-                "pipEnabled": false,
-                "miniPlayerEnabled": true,
                 "seekBackSeconds": 15,
                 "seekForwardSeconds": 45,
                 "controlsHideTimeout": 6,
@@ -67,8 +64,6 @@ struct AppSettingsMigrationTests {
         #expect(settings.preferredQuality == .q1080)
         #expect(settings.playbackSpeed == 1.5)
         #expect(settings.autoplayEnabled == false)
-        #expect(settings.landscapeAlwaysPlay == true)
-        #expect(settings.pipEnabled == false)
         #expect(settings.seekBackSeconds == 15)
         #expect(settings.seekForwardSeconds == 45)
         #expect(settings.controlsHideTimeout == 6)
@@ -103,9 +98,6 @@ struct AppSettingsMigrationTests {
                 "playbackSpeed": 2.0,
                 "autoplayEnabled": true,
                 "backgroundPlaybackEnabled": false,
-                "landscapeAlwaysPlay": false,
-                "pipEnabled": true,
-                "miniPlayerEnabled": true,
                 "seekBackSeconds": 10,
                 "seekForwardSeconds": 30,
                 "controlsHideTimeout": "bad_value",
@@ -156,7 +148,6 @@ struct AppSettingsMigrationTests {
         original.playbackSpeed = 0.75
         original.autoplayEnabled = false
         original.subtitlesLanguage = "fr"
-        original.landscapeAlwaysPlay = true
         original.seekBackSeconds = 20
         original.seekForwardSeconds = 60
         original.controlsHideTimeout = 8
@@ -176,7 +167,6 @@ struct AppSettingsMigrationTests {
         #expect(decoded.playbackSpeed == original.playbackSpeed)
         #expect(decoded.autoplayEnabled == original.autoplayEnabled)
         #expect(decoded.subtitlesLanguage == original.subtitlesLanguage)
-        #expect(decoded.landscapeAlwaysPlay == original.landscapeAlwaysPlay)
         #expect(decoded.seekBackSeconds == original.seekBackSeconds)
         #expect(decoded.seekForwardSeconds == original.seekForwardSeconds)
         #expect(decoded.controlsHideTimeout == original.controlsHideTimeout)

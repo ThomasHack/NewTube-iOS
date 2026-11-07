@@ -83,35 +83,6 @@ struct WatchtimeTrackerOverlapTests {
         #expect(finalFlags(StatsCountingURLProtocol.watchtimePings()).filter { $0 }.count == 1)
     }
 
-    @Test("seeking back after the final ping reopens tracking (Loop / rewatch)")
-    func seekBackAfterFinalReopensTracking() async {
-        StatsCountingURLProtocol.reset()
-        let tracker = makeTracker()
-        await tracker.checkpoint(position: 10, duration: 1000)
-        await tracker.checkpoint(position: 990, duration: 1000)  // final
-        let afterFinal = StatsCountingURLProtocol.watchtimePings().count
-
-        await tracker.checkpoint(position: 30, duration: 1000)  // still finished: ignored
-        #expect(StatsCountingURLProtocol.watchtimePings().count == afterFinal)
-
-        await tracker.recordSeek(to: 0, from: 1000, duration: 1000)
-        await tracker.checkpoint(position: 30, duration: 1000)
-        #expect(StatsCountingURLProtocol.watchtimePings().count == afterFinal + 1)
-    }
-
-    @Test("a seek within the end zone after the final ping stays finished")
-    func seekWithinEndZoneStaysFinished() async {
-        StatsCountingURLProtocol.reset()
-        let tracker = makeTracker()
-        await tracker.checkpoint(position: 10, duration: 1000)
-        await tracker.checkpoint(position: 990, duration: 1000)
-        let afterFinal = StatsCountingURLProtocol.watchtimePings().count
-
-        await tracker.recordSeek(to: 980, from: 995, duration: 1000)
-        await tracker.checkpoint(position: 985, duration: 1000)
-        #expect(StatsCountingURLProtocol.watchtimePings().count == afterFinal)
-    }
-
     @Test("sequential checkpoints still report each new interval")
     func sequentialCheckpointsStillReport() async {
         StatsCountingURLProtocol.reset()

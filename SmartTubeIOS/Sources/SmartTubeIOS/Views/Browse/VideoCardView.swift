@@ -28,16 +28,14 @@ public struct VideoCardView: View {
     /// Pass `"WL"` when inside the Watch Later playlist so the context menu shows
     /// "Remove from Watch Later" instead of "Save to Watch Later".
     public var currentPlaylistId: String? = nil
-    /// Called when the user taps/selects the card on tvOS (via `.onTapGesture`).
-    /// iOS call sites continue using their own tap handlers; this is only invoked
-    /// from the `#else` (tvOS) modifier block below.
+    /// Called when the user selects the card.
     public var onSelect: (() -> Void)? = nil
 
     @Environment(AuthService.self) private var authService
     @Environment(SettingsStore.self) private var store
     @Environment(\.innerTubeAPI) private var api
     @State private var localProgress: Double?
-    @State private var watchLaterAlert: DownloadAlertItem?
+    @State private var watchLaterAlert: AlertItem?
     @State private var playlistPickerMode: PlaylistPickerSheet.Mode?
     /// Index into `video.thumbnailFallbackURLs`. -1 = use primary `thumbnailURL`.
     @State private var thumbnailFallbackIndex: Int = -1
@@ -63,8 +61,8 @@ public struct VideoCardView: View {
     }
 
     // MARK: - Shared card content (tasks + context menu)
-    // Extracted so the tvOS body can wrap it in a Button (which handles the
-    // Select button press natively) while iOS continues using the bare view.
+    // Extracted so the body can wrap it in a Button, which handles the Select button
+    // press natively.
 
     private var cardContent: some View {
         Group {
@@ -84,16 +82,6 @@ public struct VideoCardView: View {
                 authToken: authService.accessToken,
                 priority: .visible
             )
-            // Pre-warm BotGuardWebViewRunner when cards scroll into view so the
-            // WKWebView youtube.com context is ready before the user taps. Only
-            // runs once — isReady short-circuits all subsequent calls (~0ms).
-            // fix16: Await BotGuard BEFORE preWarm so its SOCS cookie is in the shared
-            // .default() WKWebView data store before extractHLSURL creates its WKWebView.
-            // Without this, uN7uKLsGRWw (rqh=1) hits a GDPR redirect on a cold data store
-            // and times out at 40 s. With the SOCS cookie already set, extraction is ~2 s.
-            // BotGuard.prepare() is idempotent (no-op if already ready, or coalescences with
-            // an ongoing task), so all card tasks joining the same prepare() call pay ≤8 s
-            // total — not per-card.
         }
         .contextMenu {
             if let channelId = video.channelId, !channelId.isEmpty {
@@ -120,7 +108,7 @@ public struct VideoCardView: View {
                             let setVideoId = video.setVideoId
                                 ?? WatchLaterMembershipStore.shared.setVideoId(for: video.id)
                         else {
-                            watchLaterAlert = DownloadAlertItem(
+                            watchLaterAlert = AlertItem(
                                 title: String(localized: "Could Not Remove", bundle: .module),
                                 message: String(
                                     localized: "Missing playlist entry information for \"\(video.title)\".",
@@ -132,14 +120,14 @@ public struct VideoCardView: View {
                             do {
                                 try await api.removeFromWatchLater(setVideoId: setVideoId)
                                 WatchLaterMembershipStore.shared.markRemoved(video.id)
-                                watchLaterAlert = DownloadAlertItem(
+                                watchLaterAlert = AlertItem(
                                     title: String(localized: "Removed from Watch Later", bundle: .module),
                                     message: String(
                                         localized: "\"\(video.title)\" was removed from your Watch Later playlist.",
                                         bundle: .module)
                                 )
                             } catch {
-                                watchLaterAlert = DownloadAlertItem(
+                                watchLaterAlert = AlertItem(
                                     title: String(localized: "Could Not Remove", bundle: .module),
                                     message: error.localizedDescription
                                 )
@@ -154,14 +142,14 @@ public struct VideoCardView: View {
                             do {
                                 let setVideoId = try await api.addToWatchLater(videoId: video.id)
                                 WatchLaterMembershipStore.shared.markSaved(video, setVideoId: setVideoId)
-                                watchLaterAlert = DownloadAlertItem(
+                                watchLaterAlert = AlertItem(
                                     title: String(localized: "Saved to Watch Later", bundle: .module),
                                     message: String(
                                         localized: "\"\(video.title)\" was added to your Watch Later playlist.",
                                         bundle: .module)
                                 )
                             } catch {
-                                watchLaterAlert = DownloadAlertItem(
+                                watchLaterAlert = AlertItem(
                                     title: String(localized: "Could Not Save", bundle: .module),
                                     message: error.localizedDescription
                                 )
@@ -294,13 +282,13 @@ public struct VideoCardView: View {
     private func handlePlaylistPickerResult(_ result: Result<PlaylistInfo, Error>) {
         switch result {
         case .success(let playlist):
-            watchLaterAlert = DownloadAlertItem(
+            watchLaterAlert = AlertItem(
                 title: String(localized: "Added to Playlist", bundle: .module),
                 message: String(
                     localized: "\"\(video.title)\" was added to \"\(playlist.title)\".", bundle: .module)
             )
         case .failure(let error):
-            watchLaterAlert = DownloadAlertItem(
+            watchLaterAlert = AlertItem(
                 title: String(localized: "Could Not Update Playlist", bundle: .module),
                 message: error.localizedDescription
             )
@@ -361,11 +349,6 @@ public struct VideoCardView: View {
             }
             .padding(.horizontal, 2)
         }
-        // #153: without an explicit content shape, SwiftUI's default hit-test area for this
-        // compound view can leave gaps (the VStack spacing, padding) untappable — invisible on
-        // iOS/tvOS where touches are more forgiving, but very noticeable with a precise mouse
-        // pointer on macOS. The caller (VideoGridSection) attaches its whole-card tap gesture
-        // externally, so it needs this view's own hit-test region to cover its full frame.
         .contentShape(Rectangle())
     }
 

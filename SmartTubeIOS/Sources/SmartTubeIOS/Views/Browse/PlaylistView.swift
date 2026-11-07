@@ -14,7 +14,6 @@ public struct PlaylistView: View {
     @Environment(SettingsStore.self) private var store
     @Environment(\.innerTubeAPI) private var api
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.isLandscapeLayout) private var isLandscapeLayout
     @State private var vm: PlaylistViewModel
     @State private var selectedVideo: Video?
     @State private var channelDestination: ChannelDestination?

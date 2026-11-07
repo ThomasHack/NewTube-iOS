@@ -52,51 +52,9 @@ public actor SponsorBlockService {
             start: segment[0], end: segment[1], category: category, apiUUID: dict["UUID"] as? String)
     }
 
-    /// Reports a segment as incorrect (#67) — SponsorBlock's downvote (`type=0`).
-    /// `uuid` is the segment's `apiUUID` (its own identifier), not `SponsorSegment.id`.
-    /// SponsorBlock requires a `userID` even for anonymous voting, to rate-limit abuse
-    /// without any account — `SponsorBlockUserID.current` generates and persists one
-    /// locally the first time it's needed.
-    /// Returns `true` if the API accepted the vote (a 200 response).
-    public func reportIncorrect(uuid: String) async -> Bool {
-        var comps = URLComponents(string: "\(baseURL)/voteOnSponsorTime")
-        comps?.queryItems = [
-            URLQueryItem(name: "UUID", value: uuid),
-            URLQueryItem(name: "userID", value: SponsorBlockUserID.current),
-            URLQueryItem(name: "type", value: "0"),
-        ]
-        guard let url = comps?.url else { return false }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        do {
-            let (_, response) = try await session.data(for: request)
-            let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
-            return (200..<300).contains(statusCode)
-        } catch {
-            return false
-        }
-    }
 }
 
 // MARK: - SponsorBlockUserID
-//
-// SponsorBlock's vote/submit endpoints require a `userID` even for fully anonymous
-// use — it's a random, locally-generated, non-account-linked string used only to
-// rate-limit abuse. Generated once and persisted so repeat votes from this install
-// are attributed consistently (matters for SponsorBlock's own reputation system,
-// even though the app never surfaces an identity for it).
-enum SponsorBlockUserID {
-    private static let defaultsKey = "com.smarttube.sponsorBlockUserID"
-
-    static var current: String {
-        if let existing = UserDefaults.standard.string(forKey: defaultsKey) {
-            return existing
-        }
-        let generated = UUID().uuidString
-        UserDefaults.standard.set(generated, forKey: defaultsKey)
-        return generated
-    }
-}
 
 // MARK: - DeArrowService
 //

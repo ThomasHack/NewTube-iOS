@@ -20,7 +20,7 @@ private struct MoreMenuContentHeightKey: PreferenceKey {
 // sheet presentation fires onDisappear and tears down playback.
 //
 // Includes:
-//   • moreMenuOverlay      — all top-bar actions + share/download
+//   • moreMenuOverlay      — all top-bar actions
 //   • descriptionOverlay   — scrollable video description
 //   • commentsOverlay      — video comments list
 //   • loadComments()       — async comment fetching
@@ -173,11 +173,9 @@ extension PlayerView {
             moreMenuSpeedRow
             moreMenuQualityRow
             moreMenuLikeDislikeRow
-            moreMenuShareRow
             moreMenuSleepTimerRow
             moreMenuAudioOnlyRow
             moreMenuQueueShuffleRow
-            moreMenuDownloadRow
             moreMenuCaptionsRow
             moreMenuAudioTrackRow
             moreMenuDescriptionRow
@@ -420,9 +418,6 @@ extension PlayerView {
         }
     }
 
-    @ViewBuilder private var moreMenuShareRow: some View {
-    }
-
     @ViewBuilder private var moreMenuSleepTimerRow: some View {
         Button {
             menuLog.notice("[moreMenu] Sleep Timer row tapped — closing moreMenu, opening sleepTimerPicker")
@@ -519,9 +514,6 @@ extension PlayerView {
             .focused($moreMenuFocusedRow, equals: .queueShuffle)
             Divider()
         }
-    }
-
-    @ViewBuilder private var moreMenuDownloadRow: some View {
     }
 
     @ViewBuilder private var moreMenuCaptionsRow: some View {

@@ -14,7 +14,7 @@ struct ShortsCardView: View {
     @Environment(AuthService.self) private var authService
     @Environment(SettingsStore.self) private var store
     @Environment(\.innerTubeAPI) private var api
-    @State private var watchLaterAlert: DownloadAlertItem?
+    @State private var watchLaterAlert: AlertItem?
 
     /// Primary thumbnail URL: portrait oardefault.jpg when the API provided one
     /// (reelItemRenderer), landscape thumbnailURL otherwise.
@@ -75,14 +75,14 @@ struct ShortsCardView: View {
                     Task {
                         do {
                             try await api.addToWatchLater(videoId: video.id)
-                            watchLaterAlert = DownloadAlertItem(
+                            watchLaterAlert = AlertItem(
                                 title: String(localized: "Saved to Watch Later", bundle: .module),
                                 message: String(
                                     localized: "\"\(video.title)\" was added to your Watch Later playlist.",
                                     bundle: .module)
                             )
                         } catch {
-                            watchLaterAlert = DownloadAlertItem(
+                            watchLaterAlert = AlertItem(
                                 title: String(localized: "Could Not Save", bundle: .module),
                                 message: error.localizedDescription
                             )
