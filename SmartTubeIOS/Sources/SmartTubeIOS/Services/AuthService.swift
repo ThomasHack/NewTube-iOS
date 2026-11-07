@@ -89,6 +89,9 @@ public final class AuthService {
     private var isSigningIn: Bool = false
 
     public let tokenManager: TokenManager
+    /// Receives `.activeChannelDidChange`. Tests pass their own, so a channel switch doesn't
+    /// reload the feed view models of tests running in parallel.
+    let notificationCenter: NotificationCenter
 
     // MARK: - Static endpoint URLs (known-valid literals)
 
@@ -96,7 +99,8 @@ public final class AuthService {
     static let tokenURL = URL(string: "https://oauth2.googleapis.com/token")!
     static let accountsListURL = URL(string: "https://www.youtube.com/youtubei/v1/account/accounts_list")!
 
-    public init() {
+    public init(notificationCenter: NotificationCenter = .default) {
+        self.notificationCenter = notificationCenter
         tokenManager = TokenManager()
         loadFromKeychain()
         // UI-testing override: treat the session as signed-in so the home feed

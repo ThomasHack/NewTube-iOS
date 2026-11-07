@@ -2,7 +2,8 @@ import Foundation
 
 // MARK: - TokenManager
 //
-// Actor that owns all Keychain storage for OAuth tokens.
+// Actor that owns the persisted OAuth tokens, kept in a `TokenStore` (the Keychain
+// in the app).
 //
 // AuthService creates and holds a TokenManager, reading initial token state
 // via `initialSnapshot` (nonisolated — safe from synchronous init).
@@ -44,7 +45,7 @@ public actor TokenManager {
     private var sapisid: String?
     private var pageId: String?
 
-    private let service: String
+    private let store: any TokenStore
 
     // MARK: - Stream
 
@@ -56,14 +57,14 @@ public actor TokenManager {
 
     // MARK: - Initial snapshot
 
-    /// Snapshot of Keychain values at init time.
+    /// Snapshot of the stored values at init time.
     /// `nonisolated let` — AuthService.init() reads this without `await`.
     public nonisolated let initialSnapshot: Snapshot
 
     // MARK: - Init
 
-    public init(keychainService: String = "com.smarttube.auth") {
-        service = keychainService
+    public init(store: any TokenStore = KeychainTokenStore()) {
+        self.store = store
 
         var cont: AsyncStream<Update>.Continuation!
         let stream = AsyncStream<Update> { cont = $0 }
@@ -71,18 +72,13 @@ public actor TokenManager {
         continuation = cont
 
         let snap = Snapshot(
-            accessToken: Self.kcGet(service: keychainService, key: "st_access_token"),
-            refreshToken: Self.kcGet(service: keychainService, key: "st_refresh_token"),
-            tokenExpiry: {
-                guard let s = Self.kcGet(service: keychainService, key: "st_token_expiry")
-                else { return nil }
-                return ISO8601DateFormatter().date(from: s)
-            }(),
-            accountName: Self.kcGet(service: keychainService, key: "st_account_name"),
-            accountAvatarURL: Self.kcGet(service: keychainService, key: "st_avatar_url")
-                .flatMap(URL.init(string:)),
-            sapisid: Self.kcGet(service: keychainService, key: "st_sapisid"),
-            pageId: Self.kcGet(service: keychainService, key: "st_page_id")
+            accessToken: store.value(forKey: "st_access_token"),
+            refreshToken: store.value(forKey: "st_refresh_token"),
+            tokenExpiry: store.value(forKey: "st_token_expiry").flatMap { ISO8601DateFormatter().date(from: $0) },
+            accountName: store.value(forKey: "st_account_name"),
+            accountAvatarURL: store.value(forKey: "st_avatar_url").flatMap(URL.init(string:)),
+            sapisid: store.value(forKey: "st_sapisid"),
+            pageId: store.value(forKey: "st_page_id")
         )
         initialSnapshot = snap
         accessToken = snap.accessToken
@@ -126,12 +122,12 @@ public actor TokenManager {
     /// is available on the next launch without requiring a fresh cookie exchange.
     public func setSAPISID(_ value: String?) {
         sapisid = value
-        Self.kcSet(service: service, key: "st_sapisid", value: value)
+        store.setValue(value, forKey: "st_sapisid")
     }
 
     public func setPageId(_ value: String?) {
         pageId = value
-        Self.kcSet(service: service, key: "st_page_id", value: value)
+        store.setValue(value, forKey: "st_page_id")
     }
 
     public func clearToken() {
@@ -146,15 +142,15 @@ public actor TokenManager {
         continuation?.yield(.signedOut)
     }
 
-    // MARK: - Private Keychain I/O
+    // MARK: - Private persistence
 
     private func persistToKeychain() {
         let fmt = ISO8601DateFormatter()
-        Self.kcSet(service: service, key: "st_access_token", value: accessToken)
-        Self.kcSet(service: service, key: "st_refresh_token", value: refreshToken)
-        Self.kcSet(service: service, key: "st_token_expiry", value: tokenExpiry.map { fmt.string(from: $0) })
-        Self.kcSet(service: service, key: "st_account_name", value: accountName)
-        Self.kcSet(service: service, key: "st_avatar_url", value: accountAvatarURL?.absoluteString)
+        store.setValue(accessToken, forKey: "st_access_token")
+        store.setValue(refreshToken, forKey: "st_refresh_token")
+        store.setValue(tokenExpiry.map { fmt.string(from: $0) }, forKey: "st_token_expiry")
+        store.setValue(accountName, forKey: "st_account_name")
+        store.setValue(accountAvatarURL?.absoluteString, forKey: "st_avatar_url")
     }
 
     private func deleteFromKeychain() {
@@ -162,52 +158,7 @@ public actor TokenManager {
             "st_access_token", "st_refresh_token", "st_token_expiry",
             "st_account_name", "st_avatar_url", "st_sapisid", "st_page_id",
         ] {
-            Self.kcDelete(service: service, key: key)
+            store.setValue(nil, forKey: key)
         }
-    }
-
-    // MARK: - Static (nonisolated) Keychain helpers
-    // Static methods are nonisolated — safe to call from actor init.
-
-    private static func kcGet(service: String, key: String) -> String? {
-        let query: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: service,
-            kSecAttrAccount: key,
-            kSecReturnData: true,
-            kSecMatchLimit: kSecMatchLimitOne,
-        ]
-        var result: AnyObject?
-        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
-            let data = result as? Data
-        else { return nil }
-        return String(data: data, encoding: .utf8)
-    }
-
-    private static func kcSet(service: String, key: String, value: String?) {
-        let deleteQuery: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: service,
-            kSecAttrAccount: key,
-        ]
-        SecItemDelete(deleteQuery as CFDictionary)
-        guard let value, let data = value.data(using: .utf8) else { return }
-        let addQuery: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: service,
-            kSecAttrAccount: key,
-            kSecValueData: data,
-            kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlock,
-        ]
-        SecItemAdd(addQuery as CFDictionary, nil)
-    }
-
-    private static func kcDelete(service: String, key: String) {
-        let query: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: service,
-            kSecAttrAccount: key,
-        ]
-        SecItemDelete(query as CFDictionary)
     }
 }

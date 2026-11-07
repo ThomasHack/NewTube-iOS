@@ -176,42 +176,40 @@ struct BrandAccountRequestHeaderTests {
 @Suite("Brand Account — pageId persistence")
 struct BrandAccountPersistenceTests {
 
-    // deve persistir o pageId no Keychain entre instâncias do TokenManager
-    @Test("should persist the pageId in the Keychain across TokenManager instances")
+    // deve persistir o pageId no armazenamento entre instâncias do TokenManager
+    @Test("should persist the pageId in the store across TokenManager instances")
     func persistsPageId() async {
-        let service = "test-tm-pageid-\(UUID().uuidString)"
-        let tm = TokenManager(keychainService: service)
+        let store = InMemoryTokenStore()
+        let tm = TokenManager(store: store)
 
         await tm.setPageId("100000000000000000001")
 
-        #expect(TokenManager(keychainService: service).initialSnapshot.pageId == "100000000000000000001")
-        await tm.clearToken()
+        #expect(TokenManager(store: store).initialSnapshot.pageId == "100000000000000000001")
     }
 
     // deve apagar o pageId no logout
     @Test("should remove the pageId on sign-out")
     func clearTokenRemovesPageId() async {
-        let service = "test-tm-pageid-clear-\(UUID().uuidString)"
-        let tm = TokenManager(keychainService: service)
+        let store = InMemoryTokenStore()
+        let tm = TokenManager(store: store)
         await tm.setPageId("222")
 
         await tm.clearToken()
 
         #expect(await tm.currentPageId() == nil)
-        #expect(TokenManager(keychainService: service).initialSnapshot.pageId == nil)
+        #expect(TokenManager(store: store).initialSnapshot.pageId == nil)
     }
 
     // deve voltar para a conta principal ao gravar pageId nil
     @Test("should go back to the primary account when storing a nil pageId")
     func nilPageIdRemovesEntry() async {
-        let service = "test-tm-pageid-nil-\(UUID().uuidString)"
-        let tm = TokenManager(keychainService: service)
+        let store = InMemoryTokenStore()
+        let tm = TokenManager(store: store)
         await tm.setPageId("333")
 
         await tm.setPageId(nil)
 
-        #expect(TokenManager(keychainService: service).initialSnapshot.pageId == nil)
-        await tm.clearToken()
+        #expect(TokenManager(store: store).initialSnapshot.pageId == nil)
     }
 }
 
@@ -227,20 +225,23 @@ struct BrandAccountAuthServiceTests {
     private let primary = YouTubeChannel(name: "Primary User", avatarURL: nil, pageId: nil)
     private let brand = YouTubeChannel(name: "Brand Channel", avatarURL: nil, pageId: "100000000000000000001")
 
+    /// Private, so a channel switch doesn't reload the feed view models of parallel tests.
+    private let center = NotificationCenter()
+
     private func countChannelChanges(during action: () -> Void) -> Int {
         let counter = NotificationCounter()
-        let token = NotificationCenter.default.addObserver(
+        let token = center.addObserver(
             forName: .activeChannelDidChange, object: nil, queue: nil
         ) { _ in counter.count += 1 }
         action()
-        NotificationCenter.default.removeObserver(token)
+        center.removeObserver(token)
         return counter.count
     }
 
     // deve disparar activeChannelDidChange ao trocar para um Brand Account diferente do ativo
     @Test("should post activeChannelDidChange when switching to a different Brand Account")
     func postsChangeOnSwitch() {
-        let auth = AuthService()
+        let auth = AuthService(notificationCenter: center)
         auth.applyChannels([primary, brand])
         defer { auth.resetChannels() }
 
@@ -253,7 +254,7 @@ struct BrandAccountAuthServiceTests {
     // não deve disparar activeChannelDidChange ao selecionar o canal que já está ativo
     @Test("should not post activeChannelDidChange when selecting the already active channel")
     func skipsChangeForActiveChannel() {
-        let auth = AuthService()
+        let auth = AuthService(notificationCenter: center)
         auth.applyChannels([primary, brand])
         auth.selectChannel(brand)
         defer { auth.resetChannels() }
@@ -266,7 +267,7 @@ struct BrandAccountAuthServiceTests {
     // deve limpar o canal selecionado no logout e enviar a próxima requisição sem X-Goog-Pageid
     @Test("should clear the selected channel on sign-out and send the next request without X-Goog-Pageid")
     func signOutClearsSelectedChannel() async {
-        let auth = AuthService()
+        let auth = AuthService(notificationCenter: center)
         auth.applyChannels([primary, brand])
         auth.selectChannel(brand)
 

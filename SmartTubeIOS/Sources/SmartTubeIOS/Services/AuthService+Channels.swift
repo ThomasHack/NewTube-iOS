@@ -42,7 +42,7 @@ extension AuthService {
         activePageId = pageId
         ActiveChannel.shared.set(pageId: pageId)
         Task { await tokenManager.setPageId(pageId) }
-        NotificationCenter.default.post(name: .activeChannelDidChange, object: nil)
+        notificationCenter.post(name: .activeChannelDidChange, object: nil)
     }
 
     func resetChannels() {
