@@ -276,6 +276,10 @@ struct SearchFilterSheet: View {
                     Button("Cancel", role: .cancel) { dismiss() }
                 }
             }
+            // Focused rows grow, so keep them clear of the overlay's edges and of each other.
+            .contentMargins(.horizontal, 60, for: .scrollContent)
+            .listRowSpacing(16)
+            .scrollClipDisabled()
             .navigationTitle("Search filters")
         }
         .accessibilityIdentifier("search.filterSheet")
