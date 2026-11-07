@@ -4,7 +4,7 @@
 
 **When to use:** running unit or UI tests locally, or setting up a fresh simulator.
 
-All commands are `just` recipes (run `just` from the repo root to list them). Don't use
+Don't use
 `mcp_xcode_RunAllTests`/`mcp_xcode_RunSomeTests` or any other `mcp_xcode_*` tool to run tests.
 
 ## When to run tests
@@ -19,8 +19,7 @@ Tests take a lot of time, so run them deliberately:
 
 ## Target simulator
 
-`just` uses the simulator named in the `justfile` (`Apple TV 4K (4th generation)`). Override it with
-the `SMARTTUBE_TV_SIM` environment variable.
+The commands below use `Apple TV 4K (4th generation)`.
 
 ### One-time simulator setup
 
@@ -35,19 +34,23 @@ xcrun simctl spawn "Apple TV 4K (4th generation)" defaults write com.apple.Crash
 ## Memory ceiling
 
 16 GB Mac Mini. Each simulator clone adds ~500–750 MB RAM (copy-on-write). **3 workers is the
-ceiling** — 5 stalls clone boot indefinitely with no output. `justfile` hardcodes 3; don't raise
-it without more RAM.
+ceiling** — 5 stalls clone boot indefinitely with no output. Pass `-parallel-testing-worker-count 3`, and don't
+raise it without more RAM.
 
 ## Commands
 
-- `just test-unit` — all Swift Testing unit tests on the tvOS simulator. `swift test` isn't
-  supported, because the package only declares tvOS and SwiftPM builds for the host Mac.
-- `just test-core` — `SmartTubeCore` tests, which run without the app.
-- `just test-app` — `SmartTubeTests`, hosted by the app. The host launches an empty scene, so a test
-  run doesn't start sign-in or network work.
-- `just test-core-filter <Suite>` / `just test-app-filter <Suite>` — one suite.
-- `just test-ui` — UI tests, 3 parallel workers (enable them in the test plan first).
-- `just test-ui-one <SmartTubeTVUITests/Suite/testMethod>` — a single UI test.
+```bash
+# SmartTubeTests, hosted by the app. The host launches an empty scene, so a test run doesn't start
+# sign-in or network work. Add /<Suite> for one suite.
+xcodebuild test -workspace SmartTube.xcworkspace -scheme "Smart Tube" \
+  -destination "platform=tvOS Simulator,name=Apple TV 4K (4th generation)" -only-testing:SmartTubeTests CODE_SIGNING_ALLOWED=NO
+
+# SmartTubeCore tests, which run without the app. `swift test` isn't supported, because the package
+# only declares tvOS and SwiftPM builds for the host Mac.
+cd SmartTubeCore && xcodebuild test -scheme SmartTubeCore \
+  -destination "platform=tvOS Simulator,name=Apple TV 4K (4th generation)" CODE_SIGNING_ALLOWED=NO
+```
+
 - Device/app log capture during a test run: `docs/how-to/device-logs.md`.
 
 ## Keychain

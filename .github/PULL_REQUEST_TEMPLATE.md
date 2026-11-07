@@ -1,4 +1,4 @@
-- [ ] `just ci` passes locally
+- [ ] Unit tests pass locally
 - [ ] Task/issue: #
 - [ ] Behaviour change? (yes/no) — if yes, which Live suites were run
 - [ ] No secrets

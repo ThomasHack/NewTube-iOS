@@ -6,13 +6,12 @@ UI-independent models, API clients and stores. Xcode project `SmartTubeApp/` hol
 unit tests), `SmartTubeTVUITests`. See ADR-0011 before adding a package.
 Architecture map: docs/architecture.md · Glossary: CONTEXT.md · Decisions: docs/adr/ · Plan: docs/modernization/
 
-## Commands (always via `just`; run `just` to list)
-- `just ci` — secrets check + format check + lint + unit tests. Run after finishing a larger task, not before every commit.
-- `just build` — tvOS simulator build, no signing needed.
-- `just test-unit` — all unit tests on the tvOS simulator (`just test-core` + `just test-app`).
-- `just test-core-filter <Name>` / `just test-app-filter <Name>` — one suite.
-- `just test-ui` — UI tests (needs a signed-in simulator; 3 workers max, see docs/how-to/run-tests.md).
-- `just format` — swift-format in place. `just lint` — SwiftLint against the committed baseline.
+## Commands
+- Build: `xcodebuild build -workspace SmartTube.xcworkspace -scheme "Smart Tube" -destination "platform=tvOS Simulator,name=Apple TV 4K (4th generation)" CODE_SIGNING_ALLOWED=NO -quiet`
+- App unit tests: the same with `test` and `-only-testing:SmartTubeTests`, or `-only-testing:SmartTubeTests/<Suite>` for one suite.
+- Core unit tests, from `SmartTubeCore/`: `xcodebuild test -scheme SmartTubeCore -destination "platform=tvOS Simulator,name=Apple TV 4K (4th generation)" CODE_SIGNING_ALLOWED=NO`
+- Format: `xcrun swift-format format --in-place --configuration .swift-format <file>`.
+- SwiftLint runs as a build phase of the app target. Its findings are warnings.
 
 ## When to run tests
 - Unit tests: only after finishing a larger task. During a task, compile the affected target instead.
@@ -32,10 +31,10 @@ Architecture map: docs/architecture.md · Glossary: CONTEXT.md · Decisions: doc
 
 ## Gotchas
 - The Simulator cannot decode VP9/AV1; assert stream *selection* in tests, not decoding.
-- `swift test` isn't supported: the package only declares tvOS and SwiftPM builds for the host Mac. Use `just test-unit`.
+- `swift test` isn't supported: the package only declares tvOS and SwiftPM builds for the host Mac. Use `xcodebuild`, as above.
 - The InnerTube `iOS` client profile and its user agent are API identities, not platform code. Don't remove them.
 - Authenticated InnerTube calls use the TVHTML5 client on youtubei.googleapis.com with a Bearer token and no API key; the WEB client rejects Bearer tokens. Never call `/oauth2/v3/userinfo` for account info (the TV OAuth client isn't Data-API-v3-enabled) — use `account/accounts` with the TVHTML5 context instead.
-- The 16 GB build Mac stalls with > 3 parallel simulator clones; `just` hardcodes 3.
+- The 16 GB build Mac stalls with > 3 parallel simulator clones, so run UI tests with `-parallel-testing-worker-count 3`.
 - Playback fallback code (`PlaybackViewModel+Fallback.swift`) is under active decomposition (WS4). Do not add branches there; add a `StreamSource`.
 
 - The `.sidebarAdaptable` `TabView` discards a tab's `@State` when another tab is selected, and evaluates every tab's content on each selection change. State that must survive tab switches goes in `AppFeeds`; don't do work in the initializer of a tab's root view.

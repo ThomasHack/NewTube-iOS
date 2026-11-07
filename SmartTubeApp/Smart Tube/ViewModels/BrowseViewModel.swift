@@ -31,8 +31,6 @@ final class BrowseViewModel {
     private(set) var sections: [BrowseSection] = BrowseSection.defaultSections
     private(set) var currentSection: BrowseSection = BrowseSection.defaultSections[0]
     private(set) var videoGroups: [VideoGroup] = []
-    /// Populated when the current section is `.channels`; empty for all other sections.
-    private(set) var subscribedChannels: [Channel] = []
     private(set) var isLoading: Bool = false
     /// False until the current content's fetch has finished, successfully or not.
     private var hasFinishedLoading = false
@@ -57,7 +55,6 @@ final class BrowseViewModel {
     private let localHistory: LocalWatchHistoryStore
     private let watchLaterMembership: WatchLaterMembershipStore
     private var fetchTask: Task<Void, Never>?
-    private var enrichTask: Task<Void, Never>?
     /// When `false`, the History section returns empty content rather than fetching from YouTube.
     private var historyEnabled: Bool = true
     /// True when the Recommended section fell back to a `/search?q=popular` result
@@ -74,7 +71,6 @@ final class BrowseViewModel {
     private struct SectionSnapshot {
         let sectionType: BrowseSection.SectionType
         var videoGroups: [VideoGroup]
-        let subscribedChannels: [Channel]
         let isAuthRequired: Bool
         let recommendedUsesSearchFallback: Bool
         let loadedAt: Date
@@ -197,7 +193,6 @@ final class BrowseViewModel {
         sectionSnapshots[currentSection.id] = SectionSnapshot(
             sectionType: currentSection.type,
             videoGroups: videoGroups,
-            subscribedChannels: subscribedChannels,
             isAuthRequired: isAuthRequired,
             recommendedUsesSearchFallback: recommendedUsesSearchFallback,
             loadedAt: loadedAt
@@ -206,10 +201,8 @@ final class BrowseViewModel {
 
     private func restore(_ snapshot: SectionSnapshot) {
         fetchTask?.cancel()
-        enrichTask?.cancel()
         isLoadingMore = false
         videoGroups = snapshot.videoGroups
-        subscribedChannels = snapshot.subscribedChannels
         isAuthRequired = snapshot.isAuthRequired
         recommendedUsesSearchFallback = snapshot.recommendedUsesSearchFallback
         loadedAt = snapshot.loadedAt
@@ -245,19 +238,15 @@ final class BrowseViewModel {
         source: String = "unknown"
     ) {
         let target = section ?? currentSection
-        let chCount = subscribedChannels.count
         let vCount = videoGroups.flatMap(\.videos).count
         let loading = isLoading
         browseLog.notice(
-            "loadContent source=\(source) section=\(target.title) refresh=\(refresh) channels=\(chCount) videos=\(vCount) loading=\(loading)"
+            "loadContent source=\(source) section=\(target.title) refresh=\(refresh) videos=\(vCount) loading=\(loading)"
         )
         if refresh && !keepingContent {
             hasFinishedLoading = false
             videoGroups = []
-            subscribedChannels = []
             loadedAt = nil
-            enrichTask?.cancel()
-            enrichTask = nil
         }
         // UI-testing synchronous inject: when `--uitesting-inject-recommended-ids=<ids>`
         // is present and the target section is `.recommended`, populate videoGroups
@@ -356,7 +345,7 @@ final class BrowseViewModel {
             loadContent(refresh: true, source: "updateAuthToken")
         } else if wasAuthenticated {
             // Signed out — reload auth-gated sections to show local content instead
-            let authSections: Set<BrowseSection.SectionType> = [.subscriptions, .channels]
+            let authSections: Set<BrowseSection.SectionType> = [.subscriptions]
             if authSections.contains(currentSection.type) {
                 loadContent(refresh: true, source: "updateAuthToken.signOut")
             }
@@ -391,7 +380,7 @@ final class BrowseViewModel {
             }
         } catch {
             if !Task.isCancelled {
-                let authSections: Set<BrowseSection.SectionType> = [.subscriptions, .history, .playlists, .channels]
+                let authSections: Set<BrowseSection.SectionType> = [.subscriptions, .history, .playlists]
                 if let apiErr = error as? APIError,
                     case .httpError(let code) = apiErr,
                     (code == 401 || code == 403),
@@ -528,36 +517,6 @@ final class BrowseViewModel {
                         thumbnailURL: pl.thumbnailURL, playlistId: pl.id)
                 }
                 videoGroups = videos.isEmpty ? [] : [VideoGroup(title: "Playlists", videos: videos)]
-            }
-
-        case .channels:
-            if hasAuthToken {
-                let channels = try await api.fetchSubscribedChannels()
-                browseLog.notice("channels fetch complete: \(channels.count) channels, isCancelled=\(Task.isCancelled)")
-                if !Task.isCancelled {
-                    isAuthRequired = channels.isEmpty
-                    subscribedChannels = channels
-                    videoGroups = []
-                    let chCount = subscribedChannels.count
-                    let authReq = isAuthRequired
-                    browseLog.notice("channels state set: subscribedChannels=\(chCount) isAuthRequired=\(authReq)")
-                    // Background-enrich avatars — the guide/params approaches yield no thumbnails;
-                    // fetch each channel's About tab concurrently to get the avatar URL.
-                    if !channels.isEmpty {
-                        enrichTask?.cancel()
-                        enrichTask = Task { await self.enrichChannelAvatars() }
-                    }
-                }
-            } else {
-                let localChannels = await LocalSubscriptionStore.shared.allChannelsSortedBySubscriptionDate()
-                browseLog.notice(
-                    "channels (local): \(localChannels.count) followed channels sorted by subscription date, isCancelled=\(Task.isCancelled)"
-                )
-                if !Task.isCancelled {
-                    isAuthRequired = false
-                    subscribedChannels = localChannels.map { $0.toChannel() }
-                    videoGroups = []
-                }
             }
 
         case .music:
@@ -733,8 +692,6 @@ final class BrowseViewModel {
                         await fetchNextPage(for: section, autoChainDepth: autoChainDepth + 1)
                     }
                 }
-            case .channels:
-                break  // channel list doesn't paginate via videoGroups
             case .music:
                 let group = try await retryWithBackoff(label: "BrowseVM[\(section.title)]") {
                     try await api.fetchMusic()
@@ -825,51 +782,6 @@ final class BrowseViewModel {
     private func deduplicated(_ videos: [Video]) -> [Video] {
         var seen = Set<String>()
         return videos.filter { seen.insert($0.id).inserted }
-    }
-
-    // MARK: - Channel avatar enrichment
-
-    /// Concurrently fetches the avatar thumbnail URL for each subscribed channel and
-    /// patches it into `subscribedChannels` as results arrive.
-    ///
-    /// The TV subscription feed only returns video tiles (no channel avatars), so we
-    /// fetch each channel's About tab to get the avatar URL. Requests are fired
-    /// concurrently. The task is cancelled automatically when the user leaves the
-    /// Channels section (enrichTask?.cancel() in loadContent).
-    private func enrichChannelAvatars() async {
-        let snapshot = subscribedChannels
-        guard !snapshot.isEmpty else { return }
-        let missing = snapshot.filter { $0.thumbnailURL == nil }
-        guard !missing.isEmpty else { return }
-        browseLog.notice("enrichChannelAvatars: fetching avatars for \(missing.count) channels")
-
-        let apiRef = api
-        let indexByID: [String: Int] = Dictionary(
-            uniqueKeysWithValues: snapshot.enumerated().map { ($1.id, $0) }
-        )
-
-        await withTaskGroup(of: (String, URL?).self) { group in
-            for channel in missing {
-                guard !Task.isCancelled else { break }
-                let channelId = channel.id
-                group.addTask {
-                    let url = try? await apiRef.fetchChannelThumbnailURL(channelId: channelId)
-                    return (channelId, url)
-                }
-            }
-            for await (channelId, thumbURL) in group {
-                guard !Task.isCancelled else { break }
-                guard let thumbURL,
-                    let idx = indexByID[channelId],
-                    idx < self.subscribedChannels.count
-                else { continue }
-                self.subscribedChannels[idx].thumbnailURL = thumbURL
-            }
-        }
-
-        let finalCount = self.subscribedChannels.filter { $0.thumbnailURL != nil }.count
-        let total = self.subscribedChannels.count
-        browseLog.notice("enrichChannelAvatars done: \(finalCount)/\(total) have avatars")
     }
 }
 

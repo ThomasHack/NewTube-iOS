@@ -7,7 +7,6 @@ included:
 excluded:
   - SmartTubeCore/.build
   - "**/Resources"
-strict: true
 disabled_rules:            # owned by swift-format
   - trailing_whitespace
   - line_length

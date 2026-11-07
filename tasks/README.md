@@ -3,15 +3,9 @@
 Remove an item when it's done.
 
 ## Tooling
-- [ ] Install `just` and run the recipes rewritten in the package restructure: `test-unit`,
-  `test-core`, `test-app`, `test-core-filter`, `test-app-filter`. So far only the underlying
-  `xcodebuild` commands have been run.
-- [ ] Get `swiftlint lint --strict --baseline` passing. It reports 169 violations that aren't in the
-  baseline, the same count as before the restructure, so `just ci` fails at its lint step.
-
-## Cleanup after the native player
-- [ ] Remove `seekBackSeconds`, `seekForwardSeconds` and `controlsHideTimeout` from `AppSettings`, and
-  their strings from the catalog. The system player doesn't use them, and Settings no longer shows them.
+- [ ] Clear the SwiftLint findings that aren't in the baseline. The build phase shows them as warnings;
+  `pr.yml` still lints with `--strict`. The raw accessibility identifier rule asks for `AccessibilityID`,
+  which doesn't exist in the repo.
 
 ## Localization
 - [ ] Translate "Default Quality" in Settings, which stays English in German.
@@ -25,3 +19,7 @@ Remove an item when it's done.
 
 ## Release
 - [ ] Publish `tvos-refresh`, which has no remote branch yet: `git push -u origin tvos-refresh`.
+
+## UI tests (last, once everything else is fine)
+- [ ] Bring back `SmartTubeTVUITests`. It's disabled in `SmartTube.xctestplan`, and it's out of date after
+  the navigation, player and Shorts changes.

@@ -34,9 +34,6 @@ struct AppSettingsMigrationTests {
                 "playbackSpeed": 1.5,
                 "autoplayEnabled": false,
                 "backgroundPlaybackEnabled": false,
-                "seekBackSeconds": 15,
-                "seekForwardSeconds": 45,
-                "controlsHideTimeout": 6,
                 "videoGravityMode": "fill",
                 "loopEnabled": true,
                 "shuffleEnabled": false,
@@ -63,9 +60,6 @@ struct AppSettingsMigrationTests {
         #expect(settings.preferredQuality == .q1080)
         #expect(settings.playbackSpeed == 1.5)
         #expect(settings.autoplayEnabled == false)
-        #expect(settings.seekBackSeconds == 15)
-        #expect(settings.seekForwardSeconds == 45)
-        #expect(settings.controlsHideTimeout == 6)
         #expect(settings.videoGravityMode == .fill)
         #expect(settings.loopEnabled == true)
         #expect(settings.themeName == .dark)
@@ -96,11 +90,8 @@ struct AppSettingsMigrationTests {
                 "playbackSpeed": 2.0,
                 "autoplayEnabled": true,
                 "backgroundPlaybackEnabled": false,
-                "seekBackSeconds": 10,
-                "seekForwardSeconds": 30,
-                "controlsHideTimeout": "bad_value",
                 "videoGravityMode": "fit",
-                "loopEnabled": false,
+                "loopEnabled": "bad_value",
                 "shuffleEnabled": false,
                 "defaultSection": "home",
                 "compactThumbnails": false,
@@ -122,9 +113,9 @@ struct AppSettingsMigrationTests {
 
         let settings = try JSONDecoder().decode(AppSettings.self, from: json)
 
-        // Type-mismatched field falls to default (4 seconds)
+        // Type-mismatched field falls to its default
         #expect(
-            settings.controlsHideTimeout == 4,
+            settings.loopEnabled == false,
             "Type-mismatched field must fall to its default, not crash/reset all settings")
 
         // All other stored values must survive
@@ -145,9 +136,6 @@ struct AppSettingsMigrationTests {
         original.playbackSpeed = 0.75
         original.autoplayEnabled = false
         original.subtitlesLanguage = "fr"
-        original.seekBackSeconds = 20
-        original.seekForwardSeconds = 60
-        original.controlsHideTimeout = 8
         original.videoGravityMode = .fill
         original.themeName = .dark
         original.historyState = .disabled
@@ -163,9 +151,6 @@ struct AppSettingsMigrationTests {
         #expect(decoded.playbackSpeed == original.playbackSpeed)
         #expect(decoded.autoplayEnabled == original.autoplayEnabled)
         #expect(decoded.subtitlesLanguage == original.subtitlesLanguage)
-        #expect(decoded.seekBackSeconds == original.seekBackSeconds)
-        #expect(decoded.seekForwardSeconds == original.seekForwardSeconds)
-        #expect(decoded.controlsHideTimeout == original.controlsHideTimeout)
         #expect(decoded.videoGravityMode == original.videoGravityMode)
         #expect(decoded.themeName == original.themeName)
         #expect(decoded.historyState == original.historyState)
@@ -188,7 +173,6 @@ struct AppSettingsMigrationTests {
         #expect(settings.preferredQuality == defaults.preferredQuality)
         #expect(settings.playbackSpeed == defaults.playbackSpeed)
         #expect(settings.autoplayEnabled == defaults.autoplayEnabled)
-        #expect(settings.seekBackSeconds == defaults.seekBackSeconds)
         #expect(settings.sponsorBlockEnabled == defaults.sponsorBlockEnabled)
         #expect(settings.settingsVersion == 0, "Empty JSON should yield settingsVersion=0 (migration sentinel)")
     }

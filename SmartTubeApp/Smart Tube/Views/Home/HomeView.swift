@@ -15,7 +15,6 @@ struct HomeView: View {
 
     @State private var selectedSection: BrowseSection = BrowseSection.allSections[0]
     @State private var showSignIn = false
-    @State private var queueVideosCount: Int = 0
     // Auto-retry tracking: record the video count at the moment a scroll trigger fires, so onChange
     // can detect whether the next page added anything visible (a page can hold only Shorts).
     @State private var needsMoreVideos = false
@@ -44,9 +43,7 @@ struct HomeView: View {
             // Reset auto-retry flags when switching sections to prevent stale
             // triggers from a previous section firing on the new section's content.
             needsMoreVideos = false
-            if selectedSection.type == .playlists {
-                queueVideosCount = await CurrentQueueStore.shared.videos.count
-            } else if selectedSection.type != .home {
+            if selectedSection.type != .home {
                 // Safety net: if sectionVM somehow fell out of sync with selectedSection
                 // (e.g., the chip action raced with an in-flight cancellation, or an
                 // @Observable tracking gap left the view empty), force a reload.
@@ -63,27 +60,8 @@ struct HomeView: View {
 
     @ViewBuilder
     private var contentArea: some View {
-        if selectedSection.type == .channels {
-            channelListFeed
-                .accessibilityIdentifier("home.sectionContainer")
-        } else {
-            sectionFeed
-                .accessibilityIdentifier("home.sectionContainer")
-        }
-    }
-
-    @ViewBuilder
-    private var channelListFeed: some View {
-        if sectionVM.isAwaitingContent && sectionVM.subscribedChannels.isEmpty {
-            ProgressView()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else if sectionVM.subscribedChannels.isEmpty {
-            feedEmptyState
-        } else {
-            ChannelListView(channels: sectionVM.subscribedChannels) { channel in
-                navigator.openChannel(id: channel.id)
-            }
-        }
+        sectionFeed
+            .accessibilityIdentifier("home.sectionContainer")
     }
 
     // MARK: - Section feed
@@ -136,9 +114,6 @@ struct HomeView: View {
                     .frame(maxWidth: .infinity, alignment: .trailing)
                     .padding(.horizontal)
                     .padding(.bottom, 32)
-                if selectedSection.type == .playlists, queueVideosCount > 0 {
-                    currentQueueRow
-                }
                 ForEach(rowGroups) { group in
                     if let title = group.title, !title.isEmpty {
                         Text(title)
@@ -187,36 +162,6 @@ struct HomeView: View {
         sectionVM.videoGroups.flatMap(\.videos).filter { !$0.isShort }.count
     }
 
-    @ViewBuilder private var currentQueueRow: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "list.number")
-                .font(.title2)
-                .frame(width: 44, height: 44)
-                .foregroundStyle(Color.accentColor)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Current Queue")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.primary)
-                Text("\(queueVideosCount) video\(queueVideosCount == 1 ? "" : "s")")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 10)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            navigator.openPlaylist(id: CurrentQueueStore.playlistID, title: "Current Queue")
-        }
-        .accessibilityIdentifier("home.currentQueueRow")
-        Divider().padding(.horizontal)
-    }
-
     private var feedEmptyState: some View {
         VStack(spacing: 16) {
             if sectionVM.isAuthRequired && !auth.isSignedIn {
@@ -231,8 +176,7 @@ struct HomeView: View {
                     .multilineTextAlignment(.center)
                 Button("Sign In") { showSignIn = true }
                     .buttonStyle(.borderedProminent)
-            } else if !auth.isSignedIn && (selectedSection.type == .subscriptions || selectedSection.type == .channels)
-            {
+            } else if !auth.isSignedIn && selectedSection.type == .subscriptions {
                 Image(systemName: "person.badge.plus")
                     .font(.system(size: 60))
                     .foregroundStyle(.secondary)

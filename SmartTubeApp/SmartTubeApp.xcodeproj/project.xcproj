@@ -78,6 +78,13 @@
         "compile-sources",
         "frameworks",
         "resources",
+        {
+          "kind": "script",
+          "name": "SwiftLint",
+          "shell": "/bin/sh",
+          "script": "export PATH=\"/opt/homebrew/bin:$PATH\"\nif command -v swiftlint >/dev/null; then\n  cd \"$SRCROOT/..\" && swiftlint lint --quiet --lenient --baseline .swiftlint.baseline --config .swiftlint.yml\nelse\n  echo \"warning: SwiftLint isn't installed, so linting was skipped\"\nfi\n",
+          "run-on-every-build": true,
+        },
       ],
       "package-product-members": [
         {

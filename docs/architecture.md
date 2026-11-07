@@ -1,7 +1,6 @@
 # Architecture overview
 
-> How to update this doc: regenerate the module table's line counts with `just metrics`;
-> update the target list whenever WS8 changes `Package.swift` targets. This doc describes
+> How to update this doc: update the target list whenever WS8 changes `Package.swift` targets. This doc describes
 > the system as it is, not the target state — see `docs/modernization/PLAN.md` for that.
 
 ## Containers
@@ -40,7 +39,7 @@ Dependency direction: the app depends on `SmartTubeCore`. Core can't see app cod
 | Stream resolution (JS extractors, descramblers) | `SmartTubeApp/Smart Tube/Services/YouTube*.swift` | WS4 | New `StreamResolver` target planned (WS8) |
 | Composition root | `SmartTubeApp/Smart Tube/Smart_TubeApp.swift` | WS7, WS1 | |
 | Tests | `SmartTubeCore/Tests/`, `SmartTubeApp/SmartTubeTests/`, `SmartTubeApp/UITests/` | WS3 | |
-| Tooling / CI | repo root, `.github/`, `scripts/`, `justfile` | WS1 | |
+| Tooling / CI | repo root, `.github/`, `scripts/` | WS1 | |
 | Docs / tasks | `docs/**`, `tasks/**` | WS2 | |
 
 Full file-ownership-during-parallel-work table: `docs/modernization/PLAN.md` §4 (private repo, pending WS2-T2.6).

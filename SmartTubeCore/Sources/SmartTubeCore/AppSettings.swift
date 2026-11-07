@@ -10,13 +10,6 @@ public struct AppSettings: Codable {
     public var autoplayEnabled: Bool
     public var subtitlesLanguage: String?
     public var backgroundPlaybackEnabled: Bool
-    /// Seconds to seek backward (configurable; default 10 mirrors Android's default).
-    public var seekBackSeconds: Int
-    /// Seconds to seek forward (configurable; default 30 mirrors Android's default).
-    public var seekForwardSeconds: Int
-    /// Seconds before the player controls auto-hide after the last interaction.
-    /// Mirrors Android's `PlayerData.controlsHideTimeoutMs`. Default: 4.
-    public var controlsHideTimeout: Int
 
     /// Whether the video should fill the screen (cropping sides) or fit within bounds.
     public enum VideoGravityMode: String, Codable, CaseIterable, Sendable {
@@ -155,9 +148,6 @@ public struct AppSettings: Codable {
     /// Canonical ordered list of selectable playback speeds — single source of truth.
     public static let availableSpeeds: [Double] = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
 
-    /// Canonical ordered list of selectable seek-interval values (seconds) — used by the Settings pickers.
-    public static let availableSeekOptions: [Int] = [5, 10, 15, 20, 30, 45, 60]
-
     /// `.system` keeps the `AccentColor` asset from the app bundle.
     public enum AccentColorChoice: String, Codable, CaseIterable, Sendable {
         case system, red, orange, yellow, green, mint, teal, blue, indigo, purple, pink
@@ -210,9 +200,6 @@ public struct AppSettings: Codable {
         autoplayEnabled = true
         subtitlesLanguage = nil
         backgroundPlaybackEnabled = false
-        seekBackSeconds = 10
-        seekForwardSeconds = 30
-        controlsHideTimeout = 4
         videoGravityMode = .fit
         loopEnabled = false
         shuffleEnabled = false
@@ -285,9 +272,6 @@ extension AppSettings {
         case autoplayEnabled
         case subtitlesLanguage
         case backgroundPlaybackEnabled
-        case seekBackSeconds
-        case seekForwardSeconds
-        case controlsHideTimeout
         case videoGravityMode
         case loopEnabled
         case shuffleEnabled
@@ -328,9 +312,6 @@ extension AppSettings {
         subtitlesLanguage = c.safeDecode(String?.self, forKey: .subtitlesLanguage, default: d.subtitlesLanguage)
         backgroundPlaybackEnabled = c.safeDecode(
             Bool.self, forKey: .backgroundPlaybackEnabled, default: d.backgroundPlaybackEnabled)
-        seekBackSeconds = c.safeDecode(Int.self, forKey: .seekBackSeconds, default: d.seekBackSeconds)
-        seekForwardSeconds = c.safeDecode(Int.self, forKey: .seekForwardSeconds, default: d.seekForwardSeconds)
-        controlsHideTimeout = c.safeDecode(Int.self, forKey: .controlsHideTimeout, default: d.controlsHideTimeout)
         videoGravityMode = c.safeDecode(VideoGravityMode.self, forKey: .videoGravityMode, default: d.videoGravityMode)
         loopEnabled = c.safeDecode(Bool.self, forKey: .loopEnabled, default: d.loopEnabled)
         shuffleEnabled = c.safeDecode(Bool.self, forKey: .shuffleEnabled, default: d.shuffleEnabled)

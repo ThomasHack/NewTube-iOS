@@ -57,7 +57,6 @@ public struct BrowseSection: Identifiable, Hashable, Sendable {
         case subscriptions = "subscriptions"
         case history = "history"
         case playlists = "playlists"
-        case channels = "channels"
         case music = "music"
         case news = "news"
         case gaming = "gaming"
@@ -75,7 +74,6 @@ public struct BrowseSection: Identifiable, Hashable, Sendable {
             case .subscriptions: return "Subscriptions"
             case .history: return "History"
             case .playlists: return "Playlists"
-            case .channels: return "Channels"
             case .music: return "Music"
             case .news: return "News"
             case .gaming: return "Gaming"
@@ -105,7 +103,6 @@ public struct BrowseSection: Identifiable, Hashable, Sendable {
         BrowseSection(type: .subscriptions),
         BrowseSection(type: .history),
         BrowseSection(type: .playlists),
-        BrowseSection(type: .channels),
     ]
 
     /// All known sections including extended categories (music, gaming, etc.).
