@@ -40,6 +40,8 @@ Architecture map: docs/architecture.md · Glossary: CONTEXT.md · Decisions: doc
 
 - The `.sidebarAdaptable` `TabView` discards a tab's `@State` when another tab is selected, and evaluates every tab's content on each selection change. State that must survive tab switches goes in `AppFeeds`; don't do work in the initializer of a tab's root view.
 
+- Text input doesn't work in the tvOS 27.2 Simulator, even in Apple's Settings app: selecting a key dismisses the keyboard or moves focus away. Test search and other text entry on a real Apple TV.
+
 ## Where things are
 - Playback: docs/architecture.md#playback · Tests how-to: docs/how-to/run-tests.md · Device logs: docs/how-to/device-logs.md
 - Tasks: tasks/README.md (open items) · Modernization program: docs/modernization/PLAN.md

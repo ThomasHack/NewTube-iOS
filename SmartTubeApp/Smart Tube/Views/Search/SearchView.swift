@@ -53,7 +53,7 @@ struct SearchView: View {
             }
         }
         .task(id: vm.query) { await vm.searchAsYouType() }
-        .fullScreenCover(isPresented: $showFilterSheet) {
+        .sheet(isPresented: $showFilterSheet) {
             SearchFilterSheet(current: vm.filter) { newFilter in
                 vm.applyFilter(newFilter)
             }
@@ -243,43 +243,40 @@ struct SearchFilterSheet: View {
 
     var body: some View {
         NavigationStack {
-            SettingsPageLayout {
-                Form {
-                    Section {
-                        SettingsPicker("Sort by", selection: $draft.sortOrder) {
-                            ForEach(SearchFilter.SortOrder.allCases, id: \.self) { order in
-                                Text(LocalizedStringKey(order.label)).tag(order)
-                            }
-                        }
-                        SettingsPicker("Upload date", selection: $draft.uploadDate) {
-                            ForEach(SearchFilter.UploadDate.allCases, id: \.self) { date in
-                                Text(LocalizedStringKey(date.label)).tag(date)
-                            }
-                        }
-                        SettingsPicker("search.filter.type", selection: $draft.type) {
-                            ForEach(SearchFilter.VideoType.allCases, id: \.self) { type in
-                                Text(LocalizedStringKey(type.label)).tag(type)
-                            }
-                        }
-                        SettingsPicker("Duration", selection: $draft.duration) {
-                            ForEach(SearchFilter.Duration.allCases, id: \.self) { dur in
-                                Text(LocalizedStringKey(dur.label)).tag(dur)
-                            }
+            Form {
+                Section {
+                    SettingsPicker("Sort by", selection: $draft.sortOrder) {
+                        ForEach(SearchFilter.SortOrder.allCases, id: \.self) { order in
+                            Text(LocalizedStringKey(order.label)).tag(order)
                         }
                     }
-                    Section {
-                        Button("Apply") {
-                            onApply(draft)
-                            dismiss()
+                    SettingsPicker("Upload date", selection: $draft.uploadDate) {
+                        ForEach(SearchFilter.UploadDate.allCases, id: \.self) { date in
+                            Text(LocalizedStringKey(date.label)).tag(date)
                         }
-                        .accessibilityIdentifier("search.filterApplyButton")
-                        Button("Cancel", role: .cancel) { dismiss() }
+                    }
+                    SettingsPicker("search.filter.type", selection: $draft.type) {
+                        ForEach(SearchFilter.VideoType.allCases, id: \.self) { type in
+                            Text(LocalizedStringKey(type.label)).tag(type)
+                        }
+                    }
+                    SettingsPicker("Duration", selection: $draft.duration) {
+                        ForEach(SearchFilter.Duration.allCases, id: \.self) { dur in
+                            Text(LocalizedStringKey(dur.label)).tag(dur)
+                        }
                     }
                 }
+                // Rows, because two toolbar buttons overlap in a tvOS sheet.
+                Section {
+                    Button("Apply") {
+                        onApply(draft)
+                        dismiss()
+                    }
+                    .accessibilityIdentifier("search.filterApplyButton")
+                    Button("Cancel", role: .cancel) { dismiss() }
+                }
             }
-            .toolbar(.hidden, for: .navigationBar)
-            // A full-screen cover on tvOS doesn't draw a background of its own.
-            .background(.background)
+            .navigationTitle("Search filters")
         }
         .accessibilityIdentifier("search.filterSheet")
     }
