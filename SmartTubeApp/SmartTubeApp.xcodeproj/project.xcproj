@@ -28,7 +28,7 @@
   "packages": [
     {
       "kind": "local",
-      "path": "../SmartTubeIOS",
+      "path": "../SmartTubeCore",
     },
   ],
   "files": [
@@ -36,7 +36,7 @@
       "kind": "group",
       "name": "Packages",
       "children": [
-        { "path": "<PROJECT>/../SmartTubeIOS" },
+        { "path": "<PROJECT>/../SmartTubeCore" },
       ],
     }, {
       "kind": "group",
@@ -77,7 +77,7 @@
       ],
       "package-product-members": [
         {
-          "package": "SmartTubeIOS",
+          "package": "SmartTubeCore",
           "product-name": "SmartTubeIOS",
           "build-phase": { "build-phase": "frameworks" },
         },

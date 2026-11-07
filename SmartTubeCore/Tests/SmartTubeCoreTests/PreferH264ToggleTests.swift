@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import SmartTubeIOSCore
+@testable import SmartTubeCore
 
 // MARK: - PreferH264ToggleTests
 //
@@ -10,7 +10,7 @@ import Testing
 // `PlaybackQualityManager.selectBestVideoFormat` behaviour (H.264 codec sorting) is
 // exercised via Xcode UI/integration tests.
 //
-// What is tested here (SmartTubeIOSCore only):
+// What is tested here (SmartTubeCore only):
 //   1. AppSettings.preferH264 defaults to false.
 //   2. AppSettings.preferH264 = true round-trips through Codable.
 //   3. AppSettings with preferH264 = true decodes correctly from explicit JSON.

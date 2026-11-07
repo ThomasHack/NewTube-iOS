@@ -2,7 +2,7 @@ import Foundation
 import Testing
 
 @testable import SmartTubeIOS
-@testable import SmartTubeIOSCore
+@testable import SmartTubeCore
 
 // MARK: - Brand Account channel switching
 //

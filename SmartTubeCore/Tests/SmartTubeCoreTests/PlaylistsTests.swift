@@ -2,7 +2,7 @@ import Foundation
 import OSLog
 import Testing
 
-@testable import SmartTubeIOSCore
+@testable import SmartTubeCore
 
 // MARK: - Playlist mock data
 

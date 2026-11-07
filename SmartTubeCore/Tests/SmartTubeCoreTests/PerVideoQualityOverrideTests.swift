@@ -3,7 +3,7 @@ import Foundation
 import Testing
 
 @testable import SmartTubeIOS
-@testable import SmartTubeIOSCore
+@testable import SmartTubeCore
 
 // MARK: - PerVideoQualityOverrideTests
 //

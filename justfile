@@ -3,7 +3,7 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 
 root      := justfile_directory()
 workspace := root + "/SmartTube.xcworkspace"
-package   := root + "/SmartTubeIOS"
+package   := root + "/SmartTubeCore"
 derived   := env_var_or_default("SMARTTUBE_DERIVED_DATA", env_var("HOME") + "/DevTemp/smarttube/derived-data/xcode")
 # Single source of truth for the target simulator. Override: `SMARTTUBE_TV_SIM="Apple TV" just test-ui`.
 sim       := env_var_or_default("SMARTTUBE_TV_SIM", "Apple TV 4K (4th generation)")
@@ -39,11 +39,11 @@ build:
 
 # package tests run on the tvOS simulator: the UI target needs UIKit, so `swift test` can't build it
 test-unit:
-    cd {{package}} && xcodebuild test -scheme SmartTubeIOS-Package -destination "{{destination}}" -derivedDataPath {{derived}}-package CODE_SIGNING_ALLOWED=NO 2>&1 | tail -30
+    cd {{package}} && xcodebuild test -scheme SmartTubeCore-Package -destination "{{destination}}" -derivedDataPath {{derived}}-package CODE_SIGNING_ALLOWED=NO 2>&1 | tail -30
 
 # filter: `just test-unit-filter HLSManifestParserTests`
 test-unit-filter name:
-    cd {{package}} && xcodebuild test -scheme SmartTubeIOS-Package -destination "{{destination}}" -derivedDataPath {{derived}}-package -only-testing:SmartTubeIOSTests/{{name}} CODE_SIGNING_ALLOWED=NO 2>&1 | tail -40
+    cd {{package}} && xcodebuild test -scheme SmartTubeCore-Package -destination "{{destination}}" -derivedDataPath {{derived}}-package -only-testing:SmartTubeCoreTests/{{name}} CODE_SIGNING_ALLOWED=NO 2>&1 | tail -40
 
 # UI tests are disabled in SmartTube.xctestplan during the rework; enable them there first
 test-ui:

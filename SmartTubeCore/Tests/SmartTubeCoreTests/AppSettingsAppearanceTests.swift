@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import SmartTubeIOSCore
+@testable import SmartTubeCore
 
 @Suite("AppSettings accent color and grid columns")
 struct AppSettingsAppearanceTests {

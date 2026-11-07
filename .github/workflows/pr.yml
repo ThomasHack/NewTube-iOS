@@ -23,7 +23,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            SmartTubeIOS/.build
+            SmartTubeCore/.build
             ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
           key: spm-${{ runner.os }}-${{ hashFiles('**/Package.resolved') }}
       - name: Docs sanity

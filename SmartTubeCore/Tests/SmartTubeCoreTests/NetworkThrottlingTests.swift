@@ -2,7 +2,7 @@ import Foundation
 import Network
 import Testing
 
-@testable import SmartTubeIOSCore
+@testable import SmartTubeCore
 
 // MARK: - NetworkThrottlingTests
 //

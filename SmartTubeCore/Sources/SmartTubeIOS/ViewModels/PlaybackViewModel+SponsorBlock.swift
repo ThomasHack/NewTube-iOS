@@ -1,5 +1,5 @@
 import AVFoundation
-import SmartTubeIOSCore
+import SmartTubeCore
 import os
 
 // MARK: - SponsorBlock (thin wrapper — logic lives in SponsorBlockSkipManager)

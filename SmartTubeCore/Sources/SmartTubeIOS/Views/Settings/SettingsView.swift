@@ -1,5 +1,5 @@
 import AuthenticationServices
-import SmartTubeIOSCore
+import SmartTubeCore
 import SwiftUI
 
 // MARK: - SettingsView

@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import SmartTubeIOSCore
+@testable import SmartTubeCore
 
 // MARK: - AudioSessionInitTests
 //
@@ -28,7 +28,7 @@ struct AudioSessionInitTests {
 
     @Test("InnerTubeAPI initialisation does not involve AVAudioSession (Core layer is audio-agnostic)")
     func coreLayerIsAudioAgnostic() async {
-        // InnerTubeAPI is in SmartTubeIOSCore which has no UIKit/AVFoundation import
+        // InnerTubeAPI is in SmartTubeCore which has no UIKit/AVFoundation import
         // for AVAudioSession. Creating one must not produce any side effects.
         let api = InnerTubeAPI()
         #expect(

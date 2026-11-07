@@ -2,7 +2,7 @@ import AVFoundation
 import Foundation
 import MediaPlayer
 import Observation
-import SmartTubeIOSCore
+import SmartTubeCore
 import UIKit
 import os
 

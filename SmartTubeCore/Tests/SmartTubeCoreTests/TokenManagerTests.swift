@@ -2,7 +2,7 @@ import Foundation
 import Synchronization
 import Testing
 
-@testable import SmartTubeIOSCore
+@testable import SmartTubeCore
 
 // MARK: - TokenManager unit tests
 //

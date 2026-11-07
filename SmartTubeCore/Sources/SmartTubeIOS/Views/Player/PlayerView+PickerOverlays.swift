@@ -1,5 +1,5 @@
 import AVKit
-import SmartTubeIOSCore
+import SmartTubeCore
 import SwiftUI
 import UIKit
 

@@ -1,5 +1,5 @@
 import AVFoundation
-import SmartTubeIOSCore
+import SmartTubeCore
 
 // MARK: - Audio Track Selection (thin wrapper — logic lives in AudioTrackManager)
 

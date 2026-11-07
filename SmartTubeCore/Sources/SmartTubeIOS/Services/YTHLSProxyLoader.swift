@@ -6,7 +6,7 @@
 
 import AVFoundation
 import Foundation
-import SmartTubeIOSCore
+import SmartTubeCore
 import os.log
 
 private let proxyScheme = "ytwebhls"

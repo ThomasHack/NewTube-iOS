@@ -1,4 +1,4 @@
-import SmartTubeIOSCore
+import SmartTubeCore
 import SwiftUI
 import UIKit
 import os

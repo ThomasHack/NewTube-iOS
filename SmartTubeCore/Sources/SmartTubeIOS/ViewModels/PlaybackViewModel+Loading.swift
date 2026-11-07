@@ -1,6 +1,6 @@
 import AVFoundation
 import MediaPlayer
-import SmartTubeIOSCore
+import SmartTubeCore
 import UIKit
 import os
 

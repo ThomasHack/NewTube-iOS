@@ -1,4 +1,4 @@
-import SmartTubeIOSCore
+import SmartTubeCore
 import SwiftUI
 import os
 
@@ -13,7 +13,7 @@ extension Notification.Name {
     static let openChannel = Notification.Name("com.smarttube.openChannel")
     /// Posted when a feature requests navigation to the Search tab (e.g. empty-state CTA).
     static let navigateToSearch = Notification.Name("com.smarttube.navigateToSearch")
-    // hideVideoFromFeed and hideChannelFromFeed are defined in SmartTubeIOSCore/FeedFeedbackNotifications.swift
+    // hideVideoFromFeed and hideChannelFromFeed are defined in SmartTubeCore/FeedFeedbackNotifications.swift
 }
 
 // MARK: - VideoCardView

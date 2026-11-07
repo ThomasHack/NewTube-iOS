@@ -1,9 +1,9 @@
 @preconcurrency import AVFoundation
-import SmartTubeIOSCore
+import SmartTubeCore
 import UIKit
 import os
 
-private typealias VideoFormat = SmartTubeIOSCore.VideoFormat
+private typealias VideoFormat = SmartTubeCore.VideoFormat
 
 private let playerLog = AppLogger(category: "Player")
 

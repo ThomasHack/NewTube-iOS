@@ -1,5 +1,5 @@
 import SmartTubeIOS
-import SmartTubeIOSCore
+import SmartTubeCore
 import SwiftUI
 
 /// tvOS entry point for SmartTube.

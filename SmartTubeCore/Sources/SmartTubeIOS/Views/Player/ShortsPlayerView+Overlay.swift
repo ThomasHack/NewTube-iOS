@@ -1,4 +1,4 @@
-import SmartTubeIOSCore
+import SmartTubeCore
 import SwiftUI
 
 extension ShortsPlayerView {

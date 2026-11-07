@@ -1,5 +1,5 @@
 import AVFoundation
-import SmartTubeIOSCore
+import SmartTubeCore
 import os
 
 private let audioOnlyLog = AppLogger(category: "AudioOnly")

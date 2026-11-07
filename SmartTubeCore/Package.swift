@@ -2,32 +2,26 @@
 import PackageDescription
 
 let package = Package(
-    name: "SmartTubeIOS",
+    name: "SmartTubeCore",
     defaultLocalization: "en",
     platforms: [
         .tvOS(.v27)
     ],
     products: [
         // Core: models + InnerTube/SponsorBlock services (Foundation only).
-        .library(
-            name: "SmartTubeIOSCore",
-            targets: ["SmartTubeIOSCore"]
-        ),
+        .library(name: "SmartTubeCore", targets: ["SmartTubeCore"]),
         // SwiftUI UI layer.
         .library(name: "SmartTubeIOS", targets: ["SmartTubeIOS"]),
     ],
     targets: [
-        // MARK: Core (Foundation only)
         .target(
-            name: "SmartTubeIOSCore",
-            dependencies: [],
-            path: "Sources/SmartTubeIOSCore",
+            name: "SmartTubeCore",
+            path: "Sources/SmartTubeCore",
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
-        // MARK: UI (SwiftUI)
         .target(
             name: "SmartTubeIOS",
-            dependencies: ["SmartTubeIOSCore"],
+            dependencies: ["SmartTubeCore"],
             path: "Sources/SmartTubeIOS",
             resources: [
                 .process("Localizable.xcstrings"),
@@ -36,11 +30,10 @@ let package = Package(
             ],
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
-        // MARK: Tests
         .testTarget(
-            name: "SmartTubeIOSTests",
-            dependencies: ["SmartTubeIOSCore", "SmartTubeIOS"],
-            path: "Tests/SmartTubeIOSTests",
+            name: "SmartTubeCoreTests",
+            dependencies: ["SmartTubeCore", "SmartTubeIOS"],
+            path: "Tests/SmartTubeCoreTests",
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
     ]

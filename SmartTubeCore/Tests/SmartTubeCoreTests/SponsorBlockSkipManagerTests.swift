@@ -1,7 +1,7 @@
 import AVFoundation
 import Testing
 
-@testable import SmartTubeIOSCore
+@testable import SmartTubeCore
 
 // MARK: - SponsorBlockSkipManager unit tests
 //

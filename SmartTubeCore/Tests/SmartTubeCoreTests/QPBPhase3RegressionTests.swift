@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import SmartTubeIOSCore
+@testable import SmartTubeCore
 
 // MARK: - QPB Phase 3 Regression Tests
 //

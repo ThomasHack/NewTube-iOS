@@ -1,6 +1,6 @@
 import Foundation
 import Observation
-import SmartTubeIOSCore
+import SmartTubeCore
 import os
 
 let authLog = AppLogger(category: "Auth")
@@ -11,7 +11,7 @@ let authLog = AppLogger(category: "Auth")
 //
 // Mirrors exactly how the Android SmartTube app authenticates:
 //  1. Fetch client_id / client_secret by scraping YouTube's own base.js
-//     (see YouTubeClientCredentialsFetcher in SmartTubeIOSCore).
+//     (see YouTubeClientCredentialsFetcher in SmartTubeCore).
 //  2. POST to https://oauth2.googleapis.com/device/code → get user_code +
 //     verification_url (youtube.com/activate).
 //  3. Show the user_code on-screen so the user can enter it at

@@ -5,6 +5,6 @@
       location = "group:SmartTubeApp/SmartTubeApp.xcodeproj">
    </FileRef>
    <FileRef
-      location = "group:SmartTubeIOS">
+      location = "group:SmartTubeCore">
    </FileRef>
 </Workspace>

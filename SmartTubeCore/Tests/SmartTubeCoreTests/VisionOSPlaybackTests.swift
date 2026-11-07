@@ -2,7 +2,7 @@ import Foundation
 import Testing
 
 @testable import SmartTubeIOS
-@testable import SmartTubeIOSCore
+@testable import SmartTubeCore
 
 @Suite("VisionOS Playback")
 struct VisionOSPlaybackTests {

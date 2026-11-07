@@ -1,5 +1,5 @@
 import Foundation
-import SmartTubeIOSCore
+import SmartTubeCore
 
 extension AuthService {
 

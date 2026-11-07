@@ -4,7 +4,7 @@ import Testing
 import UIKit
 
 @testable import SmartTubeIOS
-@testable import SmartTubeIOSCore
+@testable import SmartTubeCore
 
 // MARK: - PhoneCallInterruptionTests
 //

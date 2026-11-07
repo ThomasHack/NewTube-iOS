@@ -1,6 +1,6 @@
 import AVFoundation
 import MediaPlayer
-import SmartTubeIOSCore
+import SmartTubeCore
 import os
 
 private let playerLog = AppLogger(category: "Player")

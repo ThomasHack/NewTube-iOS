@@ -1,7 +1,7 @@
 import Foundation
 import OSLog
 import Observation
-import SmartTubeIOSCore
+import SmartTubeCore
 
 private let settingsLog = Logger(subsystem: appSubsystem, category: "Settings")
 

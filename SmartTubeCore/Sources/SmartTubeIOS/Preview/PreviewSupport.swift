@@ -1,6 +1,6 @@
 #if DEBUG
 import Foundation
-import SmartTubeIOSCore
+import SmartTubeCore
 import SwiftUI
 
 // MARK: - PreviewData

@@ -1,5 +1,5 @@
 import OSLog
-import SmartTubeIOSCore
+import SmartTubeCore
 import SwiftUI
 
 // MARK: - RootView

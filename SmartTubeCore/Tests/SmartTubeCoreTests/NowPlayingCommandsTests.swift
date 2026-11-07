@@ -3,7 +3,7 @@ import MediaPlayer
 import Testing
 
 @testable import SmartTubeIOS
-@testable import SmartTubeIOSCore
+@testable import SmartTubeCore
 
 /// Tests that setupRemoteCommandCenter registers next/previous track commands and
 /// that updateNowPlayingInfo correctly reflects hasNext/hasPrevious in the enabled

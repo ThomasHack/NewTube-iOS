@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import SmartTubeIOSCore
+@testable import SmartTubeCore
 
 // MARK: - TVClientHLSNilFallbackTests (NW-3-FIX)
 //

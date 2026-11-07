@@ -1,5 +1,5 @@
 import Foundation
-import SmartTubeIOSCore
+import SmartTubeCore
 
 // MARK: - Caption Track Selection (thin wrapper — logic lives in CaptionsManager)
 

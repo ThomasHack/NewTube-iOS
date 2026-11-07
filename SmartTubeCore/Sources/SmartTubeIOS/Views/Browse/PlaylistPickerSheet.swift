@@ -1,4 +1,4 @@
-import SmartTubeIOSCore
+import SmartTubeCore
 import SwiftUI
 
 // MARK: - PlaylistPickerSheet (#8 — move/copy videos between playlists)

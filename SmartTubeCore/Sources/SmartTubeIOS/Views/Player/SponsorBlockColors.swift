@@ -1,4 +1,4 @@
-import SmartTubeIOSCore
+import SmartTubeCore
 import SwiftUI
 
 // MARK: - SponsorSegment.Category + SwiftUI color

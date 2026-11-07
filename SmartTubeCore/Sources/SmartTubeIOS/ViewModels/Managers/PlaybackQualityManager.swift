@@ -1,5 +1,5 @@
 import AVFoundation
-import SmartTubeIOSCore
+import SmartTubeCore
 import os
 
 private let playerLog = AppLogger(category: "Player")
@@ -102,7 +102,7 @@ final class PlaybackQualityManager {
 
     // MARK: - Cross-load HLS manifest cache
     //
-    // Delegated to HLSManifestCache.shared (SmartTubeIOSCore). Survives reset() so
+    // Delegated to HLSManifestCache.shared (SmartTubeCore). Survives reset() so
     // revisited videos skip the manifest fetch. See HLSManifestCache for TTL / capacity.
 
     static func cachedHLSVariants(for videoId: String) -> [Int: URL]? {

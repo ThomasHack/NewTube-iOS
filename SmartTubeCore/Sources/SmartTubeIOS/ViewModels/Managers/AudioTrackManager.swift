@@ -1,5 +1,5 @@
 import AVFoundation
-import SmartTubeIOSCore
+import SmartTubeCore
 import os
 
 private let playerLog = AppLogger(category: "Player")

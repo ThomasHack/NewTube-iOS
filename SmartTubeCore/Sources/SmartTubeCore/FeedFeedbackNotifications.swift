@@ -4,7 +4,7 @@ import Foundation
 //
 // Posted by VideoCardView when the user selects a feed feedback action
 // (Not Interested, Don't Like, Don't Recommend Channel).
-// Defined here in SmartTubeIOSCore so ViewModels can observe without
+// Defined here in SmartTubeCore so ViewModels can observe without
 // importing the SmartTubeIOS UI module.
 
 public extension Notification.Name {
