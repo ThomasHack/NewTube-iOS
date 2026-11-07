@@ -86,11 +86,7 @@ struct SearchView: View {
     /// search suggestions, because a list of buttons here took focus from the system keyboard.
     private var tvIdleView: some View {
         VStack(spacing: 24) {
-            ContentUnavailableView(
-                "Search YouTube",
-                systemImage: AppSymbol.search,
-                description: Text("Use the keyboard above, or pick a suggestion.")
-            )
+            ContentUnavailableView("Search YouTube", systemImage: AppSymbol.search)
             if !vm.history.isEmpty {
                 Button("Clear History", role: .destructive) {
                     vm.clearHistory()

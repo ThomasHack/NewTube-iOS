@@ -86,31 +86,6 @@ extension InnerTubeAPI {
         return group
     }
 
-    /// Fetches the list of channels the authenticated user subscribes to (requires auth).
-    ///
-    /// Strategy:
-    ///  1. `/guide` endpoint with TV client + auth — returns the TV sidebar guide which
-    ///     includes every subscribed channel with avatar thumbnail URLs via guideEntryRenderer.
-    ///  2. If that yields no channels, fall back to parsing unique channels from the
-    ///     TVHTML5 video-tile subscription feed (channel IDs + names, no avatars).
-    public func fetchSubscribedChannels() async throws -> [Channel] {
-        // Primary: TV guide sidebar — includes subscribed channels with avatar thumbnails
-        let guideBody = makeBody(client: tvClientContext)
-        let guideData = try await postTV(endpoint: "guide", body: guideBody)
-        let guideKeys = Array(guideData.keys.sorted().prefix(8))
-        tubeLog.notice("fetchSubscribedChannels guide top-level keys: \(guideKeys, privacy: .public)")
-        let guideChannels = parseGuideChannels(from: guideData)
-        tubeLog.notice("fetchSubscribedChannels guide → \(guideChannels.count, privacy: .public) channels")
-        if !guideChannels.isEmpty { return guideChannels }
-
-        // Fallback: TV subscription video-tile feed — extract unique channels (no avatars)
-        tubeLog.notice("fetchSubscribedChannels: guide returned 0 — falling back to video tile parse")
-        var tvBody = makeBody(client: tvClientContext)
-        tvBody["browseId"] = "FEsubscriptions"
-        let tvData = try await postTV(endpoint: "browse", body: tvBody)
-        return parseSubscribedChannels(from: tvData)
-    }
-
     /// Fetches watch history (requires auth).
     public func fetchHistory(continuationToken: String? = nil) async throws -> VideoGroup {
         var body = makeBody(client: tvClientContext, continuationToken: continuationToken)
@@ -151,37 +126,28 @@ extension InnerTubeAPI {
             URLQueryItem(name: "callback", value: ""),
         ]
         guard let url = components.url else { return [] }
-        print("[Suggestions] Fetching URL: \(url)")
         let (data, response) = try await session.data(from: url)
         let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
-        print("[Suggestions] HTTP status: \(statusCode), bytes: \(data.count)")
         // Response format: [query, [[suggestion, 0, []], ...], ...]
         guard let raw = String(data: data, encoding: .utf8) else {
-            print("[Suggestions] Failed to decode response as UTF-8")
             return []
         }
-        print("[Suggestions] Raw prefix: \(raw.prefix(120))")
         // Extract the outermost JSON array — works regardless of callback wrapper name
         guard let arrayStart = raw.firstIndex(of: "["),
             let arrayEnd = raw.lastIndex(of: "]")
         else {
-            print("[Suggestions] Could not find JSON array bounds")
             return []
         }
         let jsonString = String(raw[arrayStart...arrayEnd])
-        print("[Suggestions] JSON prefix after strip: \(jsonString.prefix(120))")
         guard let jsonData = jsonString.data(using: .utf8),
             let json = try? JSONSerialization.jsonObject(with: jsonData) as? [Any]
         else {
-            print("[Suggestions] JSON parse failed")
             return []
         }
         guard let suggestions = json[safe: 1] as? [[Any]] else {
-            print("[Suggestions] Unexpected JSON shape: \(json.prefix(2))")
             return []
         }
         let results = suggestions.compactMap { $0[safe: 0] as? String }
-        print("[Suggestions] Parsed \(results.count) suggestions: \(results.prefix(5))")
         return results
     }
 

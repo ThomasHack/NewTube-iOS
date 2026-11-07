@@ -234,7 +234,9 @@ struct VideoCardView: View {
         } label: {
             cardContent
         }
-        .buttonStyle(VideoCardButtonStyle())
+        // The standard tvOS lockup. With .hoverEffect on the thumbnail, it provides the lift, the
+        // motion that follows the thumb on the touch surface, and the focus sound.
+        .buttonStyle(.borderless)
         .contextMenu {
             contextMenuItems
         } preview: {
@@ -245,9 +247,7 @@ struct VideoCardView: View {
         .onChange(of: isFocused) { _, newValue in
             focusLog.info("[VideoCard] isFocused=\(newValue) id=\(self.video.id)")
         }
-        .scaleEffect(isFocused ? 1.08 : 1.0)
         .zIndex(isFocused ? 1 : 0)
-        .animation(.easeInOut(duration: 0.15), value: isFocused)
         .alert(item: $watchLaterAlert) { item in
             Alert(title: Text(item.title), message: Text(item.message), dismissButton: .default(Text("OK")))
         }
@@ -288,7 +288,6 @@ struct VideoCardView: View {
                     }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 10))
-                .shadow(color: focusGlow, radius: 16)
                 .overlay(alignment: .bottomTrailing) {
                     let dur = video.formattedDuration
                     if !dur.isEmpty { durationBadge(dur) }
@@ -299,6 +298,7 @@ struct VideoCardView: View {
                 .overlay(alignment: .topTrailing) {
                     if WatchLaterMembershipStore.shared.contains(video.id) { watchLaterSavedBadge }
                 }
+                .hoverEffect(.highlight)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(displayTitle)
@@ -334,7 +334,6 @@ struct VideoCardView: View {
                     }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 6))
-                .shadow(color: focusGlow, radius: 16)
                 .overlay(alignment: .bottomTrailing) {
                     let dur = video.formattedDuration
                     if !dur.isEmpty { durationBadge(dur) }
@@ -342,6 +341,7 @@ struct VideoCardView: View {
                 .overlay(alignment: .topTrailing) {
                     if WatchLaterMembershipStore.shared.contains(video.id) { watchLaterSavedBadge }
                 }
+                .hoverEffect(.highlight)
             VStack(alignment: .leading, spacing: 3) {
                 Text(displayTitle)
                     .font(.subheadline)
@@ -450,10 +450,6 @@ struct VideoCardView: View {
         .frame(height: 3)
     }
 
-    private var focusGlow: Color {
-        isFocused ? .white.opacity(0.25) : .clear
-    }
-
     /// Views and upload date, e.g. "1.2M views · 2 days ago".
     private var metadataLine: String {
         [video.formattedViewCount, uploadDateLabel ?? ""]
@@ -546,16 +542,6 @@ struct VideoCardView: View {
 }
 
 // MARK: - Preview
-
-// MARK: - VideoCardButtonStyle
-
-/// A card's focus effect is drawn by `VideoCardView`; this only dims it while pressed.
-private struct VideoCardButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .opacity(configuration.isPressed ? 0.8 : 1)
-    }
-}
 
 #if DEBUG
 extension VideoCardView {
