@@ -70,6 +70,7 @@ struct MainTVTabView: View {
     @State private var searchVM = SearchViewModel()
     @State private var navigator = AppNavigator()
     @State private var showAccount = false
+    @State private var showSignIn = false
     @Environment(AuthService.self) private var auth
     @Environment(SidebarChannelsViewModel.self) private var sidebarChannels
     @Environment(AppFeeds.self) private var feeds
@@ -123,15 +124,16 @@ struct MainTVTabView: View {
         }
         .tabViewStyle(.sidebarAdaptable)
         .tabViewSidebarHeader {
-            SidebarAccountButton { showAccount = true }
-        }
-        .sheet(isPresented: $showAccount) {
-            if auth.isSignedIn {
-                AccountSheet()
-            } else {
-                SignInView()
+            SidebarAccountButton {
+                if auth.isSignedIn {
+                    showAccount = true
+                } else {
+                    showSignIn = true
+                }
             }
         }
+        .sheet(isPresented: $showAccount) { AccountSheet() }
+        .fullScreenCover(isPresented: $showSignIn) { SignInView() }
         .fullScreenCover(item: $navigator.playingVideo) { video in
             PlayerView(video: video, api: api)
         }

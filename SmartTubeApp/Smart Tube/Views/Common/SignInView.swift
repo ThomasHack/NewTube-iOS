@@ -19,26 +19,24 @@ struct SignInView: View {
         tvBody
     }
 
-    /// Full-screen tvOS sign-in layout — two-column, 10-foot-UI friendly.
+    /// Full-screen layout: the content is centered, with Cancel below it in every state.
     private var tvBody: some View {
-        ZStack(alignment: .topTrailing) {
-            Color.black.opacity(0.85).ignoresSafeArea()
-
+        VStack(spacing: 48) {
+            Spacer(minLength: 0)
             if let info = auth.pendingActivation {
                 tvActivationView(info: info)
             } else {
                 tvLoadingView
             }
-
-            Button {
+            Spacer(minLength: 0)
+            Button("Cancel") {
                 auth.cancelSignIn()
                 dismiss()
-            } label: {
-                Label("Cancel", systemImage: "xmark")
-                    .font(.headline)
             }
-            .padding(40)
         }
+        .padding(60)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(.background)
         .alert("Sign-In Failed", isPresented: $showError, presenting: auth.error) { _ in
             Button("Try Again") { Task { await auth.beginSignIn() } }
             Button("Cancel", role: .cancel) { auth.error = nil }
@@ -61,7 +59,6 @@ struct SignInView: View {
                 .font(.title3)
                 .foregroundStyle(.secondary)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func tvActivationView(info: AuthService.ActivationInfo) -> some View {
@@ -109,7 +106,6 @@ struct SignInView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
 
             // Right column: QR code
             VStack(spacing: 16) {
@@ -124,8 +120,6 @@ struct SignInView: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(60)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - Loading screen

@@ -44,7 +44,7 @@ struct AccountRows: View {
         } else {
             Button("Sign in with Google") { showSignIn = true }
                 .accessibilityIdentifier("settings.signInButton")
-                .sheet(isPresented: $showSignIn) { SignInView() }
+                .fullScreenCover(isPresented: $showSignIn) { SignInView() }
         }
     }
 }

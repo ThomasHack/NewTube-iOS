@@ -53,7 +53,7 @@ struct LibraryView: View {
             libraryContent
         }
         .toolbar(.hidden, for: .navigationBar)
-        .sheet(isPresented: $showSignIn) { SignInView() }
+        .fullScreenCover(isPresented: $showSignIn) { SignInView() }
     }
 
     private var libraryContent: some View {

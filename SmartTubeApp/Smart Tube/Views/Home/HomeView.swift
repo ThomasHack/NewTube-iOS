@@ -33,7 +33,7 @@ struct HomeView: View {
             contentArea
                 .focusSection()
         }
-        .sheet(isPresented: $showSignIn) { SignInView() }
+        .fullScreenCover(isPresented: $showSignIn) { SignInView() }
         .task(id: auth.accessToken) {
             // Apple TV never shows the mixed Home feed, so it must not be loaded there.
             await sectionVM.updateAuthToken(auth.accessToken)

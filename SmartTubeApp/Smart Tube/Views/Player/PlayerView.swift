@@ -116,7 +116,7 @@ struct PlayerView: View {
         } message: { error in
             Text(error.localizedDescription)
         }
-        .sheet(isPresented: $showSignIn) { SignInView() }
+        .fullScreenCover(isPresented: $showSignIn) { SignInView() }
     }
 
     // MARK: - Errors

@@ -39,7 +39,7 @@ struct ChannelSwitcherView: View {
             }
         }
         .navigationTitle("Channel")
-        .sheet(isPresented: $showSignIn) { SignInView() }
+        .fullScreenCover(isPresented: $showSignIn) { SignInView() }
         .task(id: auth.isSignedIn) {
             isLoading = true
             await auth.loadChannelsIfNeeded()
