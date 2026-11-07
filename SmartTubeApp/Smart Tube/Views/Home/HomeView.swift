@@ -230,7 +230,7 @@ struct HomeView: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                 Button("Sign In") { showSignIn = true }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.primaryAction)
             } else if !auth.isSignedIn && (selectedSection.type == .subscriptions || selectedSection.type == .channels)
             {
                 Image(systemName: "person.badge.plus")
@@ -245,7 +245,7 @@ struct HomeView: View {
                 Button("Search") {
                     navigator.openSearch()
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.primaryAction)
             } else {
                 Image(systemName: AppSymbol.tvPlay)
                     .font(.system(size: 60))
@@ -254,7 +254,7 @@ struct HomeView: View {
                     .font(.title3)
                     .foregroundStyle(.secondary)
                 Button("Refresh") { sectionVM.loadContent(refresh: true) }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.primaryAction)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
