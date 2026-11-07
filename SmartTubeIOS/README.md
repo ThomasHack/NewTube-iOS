@@ -8,7 +8,7 @@ A native Swift/SwiftUI YouTube client for **iPhone**, **iPad**, **macOS**, and *
 
 | Feature | Implementation |
 |---|---|
-| Home / Subscriptions / History feeds | `BrowseView` + `BrowseViewModel` → InnerTube API |
+| Home / Subscriptions / History feeds | `HomeView` + `HomeViewModel` / `BrowseViewModel` → InnerTube API |
 | Video playback (adaptive, HLS, DASH) | `PlayerView` + `PlaybackViewModel` → AVPlayer / AVKit |
 | Search with suggestions | `SearchView` + `SearchViewModel` |
 | Channel browser | `ChannelView` + `ChannelViewModel` |
@@ -43,8 +43,9 @@ SmartTubeIOS/
     │   └── SearchViewModel.swift   # Search + ChannelViewModel
     └── Views/
         ├── RootView.swift          # iOS TabView / macOS SidebarView
+        ├── Home/
+        │   └── HomeView.swift      # Home feed and section feeds
         ├── Browse/
-        │   ├── BrowseView.swift    # Main grid feed
         │   └── VideoCardView.swift # Thumbnail card (grid & compact)
         ├── Player/
         │   └── PlayerView.swift    # Full-screen AVKit player + controls

@@ -3,7 +3,7 @@ import SwiftUI
 
 // MARK: - ShortsPresentation
 //
-// Shared Identifiable wrapper used by BrowseView and ChannelView to present
+// Shared Identifiable wrapper used by HomeView and ChannelView to present
 // ShortsPlayerView via .fullScreenCover(item:).
 
 struct ShortsPresentation: Identifiable {

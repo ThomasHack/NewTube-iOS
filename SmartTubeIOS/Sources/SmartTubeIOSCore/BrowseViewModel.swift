@@ -545,8 +545,8 @@ public final class BrowseViewModel {
             // Watch Later. Stamps playlistId = "WL" on each video (parsePlaylistVideoRenderer
             // doesn't set it) so VideoCardView's Remove/Move-to-Playlist actions work here too
             // (VideoCardView falls back to video.playlistId when its explicit currentPlaylistId
-            // parameter isn't passed — this section renders through the generic BrowseView
-            // grid, which doesn't thread section context per-card).
+            // parameter isn't passed — this section renders through the generic HomeView
+            // section grid, which doesn't thread section context per-card).
             if !hasAuthToken {
                 if !Task.isCancelled {
                     isAuthRequired = true

@@ -47,7 +47,7 @@ public struct VideoCardView: View {
 
     /// #125: falls back to `video.playlistId` when the caller doesn't explicitly pass
     /// `currentPlaylistId` (e.g. the "Watch Later" home tab, which renders through the
-    /// generic BrowseView grid that has no per-card playlist context of its own) — lets
+    /// generic HomeView section grid that has no per-card playlist context of its own) — lets
     /// Remove/Move-to-Playlist actions work there too, not just from PlaylistView.
     private var effectivePlaylistId: String? {
         currentPlaylistId ?? video.playlistId
