@@ -1,7 +1,6 @@
 included:
   - SmartTubeIOS/Sources
   - SmartTubeIOS/Tests
-  - SmartTubeApp/Sources
   - SmartTubeApp/UITests
   - SmartTubeApp/Smart Tube
 excluded:

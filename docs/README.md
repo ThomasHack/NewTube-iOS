@@ -10,9 +10,9 @@ undiscoverable until it is. Keep this under 100 lines; anything that doesn't fit
 | [../CLAUDE.md](../CLAUDE.md) | Claude Code specifics, imports AGENTS.md | current | 2026-09-10 |
 | [../CONTEXT.md](../CONTEXT.md) | Domain glossary + architecture vocabulary | current | 2026-09-11 |
 | [architecture.md](architecture.md) | C4 container diagram, module map, playback pipeline, deep links | current | 2026-09-10 |
-| [design/tos-player.md](design/tos-player.md) | TOS player (macOS) development worklog | current | 2026-06 |
-| [design/tos-player-ios-plan.md](design/tos-player-ios-plan.md) | TOS player iOS port plan | current | 2026-06 |
-| [adr/README.md](adr/README.md) | Architecture Decision Records index (0001-0009) | current | 2026-09-10 |
+| [design/tos-player.md](design/tos-player.md) | TOS player (macOS) development worklog; player removed, see ADR-0010 | archived | 2026-06 |
+| [design/tos-player-ios-plan.md](design/tos-player-ios-plan.md) | TOS player iOS port plan; player removed, see ADR-0010 | archived | 2026-06 |
+| [adr/README.md](adr/README.md) | Architecture Decision Records index (0001-0010) | current | 2026-09-10 |
 | [explanation/swift-style.md](explanation/swift-style.md) | Swift style guide (moved from private repo) | current | 2026-09-11 |
 | [explanation/solid.md](explanation/solid.md) | SOLID principles reference (moved from private repo) | current | 2026-09-11 |
 | [explanation/home-feed-architecture.md](explanation/home-feed-architecture.md) | Home feed / Shorts detection notes | unverified | 2026-09-11 |

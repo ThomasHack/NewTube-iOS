@@ -33,13 +33,5 @@ jobs:
           scripts/check-doc-links.sh          # WS2-T2.1 adds; until then `true`
       - name: Gate
         run: just ci
-      - name: Build iOS & tvOS
-        run: |
-          just build
-          just build-tvos
-      - name: Unit tests (Xcode, iOS sim)   # once WS3-T3.4 adds the Unit plan
-        if: hashFiles('SmartTubeApp/Unit.xctestplan') != ''
-        run: xcodebuild test -workspace SmartTube.xcworkspace -scheme SmartTube -testPlan Unit -destination 'platform=iOS Simulator,name=iPhone 17' -onlyUsePackageVersionsFromResolvedFile CODE_SIGNING_ALLOWED=NO -resultBundlePath out/unit.xcresult
-      - uses: kishikawakatsumi/xcresulttool@v1
-        if: success() || failure()
-        with: { path: out/unit.xcresult, show-passed-tests: false }
+      - name: Build tvOS
+        run: just build

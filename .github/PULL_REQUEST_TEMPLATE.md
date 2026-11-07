@@ -1,4 +1,4 @@
 - [ ] `just ci` passes locally
 - [ ] Task/issue: #
 - [ ] Behaviour change? (yes/no) — if yes, which Live suites were run
-- [ ] No secrets, no hand-edited pbxproj
+- [ ] No secrets
