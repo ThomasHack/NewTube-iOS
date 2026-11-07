@@ -1,6 +1,7 @@
 included:
   - SmartTubeCore/Sources
   - SmartTubeCore/Tests
+  - SmartTubeApp/SmartTubeTests
   - SmartTubeApp/UITests
   - SmartTubeApp/Smart Tube
 excluded:
@@ -69,13 +70,13 @@ custom_rules:
     severity: warning
   print_in_sources:
     name: "print() in production code"
-    included: "SmartTubeCore/Sources/.*\\.swift"
+    included: "(SmartTubeCore/Sources|SmartTubeApp/Smart Tube)/.*\\.swift"
     regex: '(^|\s)print\('
     message: "Use os.Logger"
     severity: warning
   task_sleep_in_tests:
     name: "Task.sleep in unit tests"
-    included: "SmartTubeCore/Tests/.*\\.swift"
+    included: "(SmartTubeCore/Tests|SmartTubeApp/SmartTubeTests)/.*\\.swift"
     regex: 'Task\.sleep'
     message: "Use confirmation/continuations or fakes; tests must be time-independent"
     severity: warning

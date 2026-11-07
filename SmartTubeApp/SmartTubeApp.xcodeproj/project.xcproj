@@ -55,11 +55,15 @@
         { "path": "TVVideoPlaybackBenchmarkUITests.swift", "target-membership": [ "SmartTubeTVUITests/compile-sources" ] },
         { "path": "TVWKHLSReplayRegressionUITests.swift", "target-membership": [ "SmartTubeTVUITests/compile-sources" ] },
       ],
-    }, { "kind": "folder", "path": "Smart Tube", "target-membership": [ "Smart Tube" ] }, {
+    },
+    { "kind": "folder", "path": "Smart Tube", "target-membership": [ "Smart Tube" ] },
+    { "kind": "folder", "path": "SmartTubeTests", "target-membership": [ "SmartTubeTests" ] },
+    {
       "kind": "group",
       "name": "Products",
       "children": [
         { "path": "<PRODUCTS>/Smart Tube.app", "id": "67E6B67B2F9535CD00CD372F", "type": "wrapper.application", "index": false },
+        { "path": "<PRODUCTS>/SmartTubeTests.xctest", "id": "1A2B3C4D5E6F1A2B3C4D5E71", "type": "wrapper.cfbundle", "index": false },
         { "path": "<PRODUCTS>/SmartTubeTVUITests.xctest", "id": "1A2B3C4D5E6F1A2B3C4D5E61", "type": "wrapper.cfbundle", "index": false },
       ],
     },
@@ -78,7 +82,7 @@
       "package-product-members": [
         {
           "package": "SmartTubeCore",
-          "product-name": "SmartTubeIOS",
+          "product-name": "SmartTubeCore",
           "build-phase": { "build-phase": "frameworks" },
         },
       ],
@@ -109,6 +113,7 @@
         ],
         "LOCALIZATION_PREFERS_STRING_CATALOGS": "YES",
         "PRODUCT_BUNDLE_IDENTIFIER": "de.thomashack.smarttube",
+        "PRODUCT_MODULE_NAME": "SmartTube",
         "PRODUCT_NAME": "$(TARGET_NAME)",
         "PROVISIONING_PROFILE_SPECIFIER": "",
         "SDKROOT": "appletvos",
@@ -116,10 +121,35 @@
         "SUPPORTED_PLATFORMS": "appletvos appletvsimulator",
         "SWIFT_ACTIVE_COMPILATION_CONDITIONS[config=Debug]": "DEBUG $(inherited)",
         "SWIFT_EMIT_LOC_STRINGS": "YES",
-        "SWIFT_VERSION": "5.9",
+        "SWIFT_VERSION": "6.0",
         "TARGETED_DEVICE_FAMILY": "3",
         "TVOS_DEPLOYMENT_TARGET": "27.0",
         "VALIDATE_PRODUCT[config=Release]": "YES",
+      },
+    }, {
+      "name": "SmartTubeTests",
+      "id": "1A2B3C4D5E6F1A2B3C4D5E74",
+      "product": "Products/SmartTubeTests.xctest",
+      "product-type": "bundle.unit-test",
+      "test-host-target": "Smart Tube",
+      "dependencies": [
+        "Smart Tube",
+      ],
+      "build-phases": [
+        "compile-sources",
+      ],
+      "build-settings": {
+        "BUNDLE_LOADER": "$(TEST_HOST)",
+        "CODE_SIGN_STYLE": "Automatic",
+        "DEVELOPMENT_TEAM": "N9C9UAVR87",
+        "GENERATE_INFOPLIST_FILE": "YES",
+        "PRODUCT_BUNDLE_IDENTIFIER": "de.thomashack.smarttube.tests",
+        "SDKROOT": "appletvos",
+        "SUPPORTED_PLATFORMS": "appletvos appletvsimulator",
+        "SWIFT_VERSION": "6.0",
+        "TARGETED_DEVICE_FAMILY": "3",
+        "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/Smart Tube.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Smart Tube",
+        "TVOS_DEPLOYMENT_TARGET": "27.0",
       },
     }, {
       "name": "SmartTubeTVUITests",

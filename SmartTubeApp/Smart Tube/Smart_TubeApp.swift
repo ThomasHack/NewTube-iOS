@@ -1,11 +1,28 @@
-import SmartTubeIOS
 import SmartTubeCore
 import SwiftUI
+
+/// Picks the scene to launch. Hosted unit tests get an empty one, so a test run never starts the
+/// real app's sign-in, network and BotGuard work.
+@main
+enum AppLauncher {
+    static func main() {
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+            UnitTestHostApp.main()
+        } else {
+            SmartTubeTVApp.main()
+        }
+    }
+}
+
+private struct UnitTestHostApp: App {
+    var body: some Scene {
+        WindowGroup { EmptyView() }
+    }
+}
 
 /// tvOS entry point for SmartTube.
 /// The device-code + QR sign-in flow is natively designed for Apple TV —
 /// the user reads a code on screen and activates on their phone at yt.be/activate.
-@main
 struct SmartTubeTVApp: App {
     // Declared without default values so that init() can build them in dependency order.
     @State private var api: InnerTubeAPI

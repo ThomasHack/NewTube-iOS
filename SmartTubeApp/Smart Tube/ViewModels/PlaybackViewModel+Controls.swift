@@ -1,0 +1,97 @@
+import AVFoundation
+import MediaPlayer
+import SmartTubeCore
+import os
+
+private let playerLog = AppLogger(category: "Player")
+
+// MARK: - Transport Controls & Scrubbing
+
+extension PlaybackViewModel {
+
+    func togglePlayPause() {
+        if videoEnded {
+            videoEnded = false
+            seek(to: 0)
+            player.rate = Float(settings.playbackSpeed)
+            isPlaying = true
+            showControls()
+            updateNowPlayingPlayback()
+            return
+        }
+        if isPlaying { player.pause() } else { player.rate = Float(settings.playbackSpeed) }
+        isPlaying.toggle()
+        showControls()
+        updateNowPlayingPlayback()
+    }
+
+    // MARK: - Scrubbing (slider drag)
+
+    /// Called when the user starts dragging the progress slider.
+    func beginScrubbing() {
+        // Guard against the spurious onEditingChanged(true) that SwiftUI's Slider
+        // fires right after commitScrub() triggers a binding re-evaluation.
+        let sinceCommit = Date.now.timeIntervalSince(lastCommitScrubTime)
+        guard sinceCommit > 0.5 else {
+            playerLog.debug(
+                "[scrub] beginScrubbing IGNORED (spurious, \(String(format: "%.3f", sinceCommit))s since commit — threshold=0.5s)"
+            )
+            return
+        }
+        playerLog.debug(
+            "[scrub] beginScrubbing at \(String(format: "%.1f", self.currentTime))s — sinceCommit=\(String(format: "%.3f", sinceCommit))s isScrubbing=\(self.isScrubbing) controlsVisible=\(self.controlsVisible)"
+        )
+        seekDebounceTask?.cancel()
+        isScrubbing = true
+        scrubTime = currentTime
+        playerLog.debug("[scrub] beginScrubbing done — isScrubbing=\(self.isScrubbing)")
+    }
+
+    /// Called when the user releases the slider. Issues a single precise seek.
+    func commitScrub() {
+        // SwiftUI's Slider fires onEditingChanged(false) on initialization (when the
+        // view first renders), before the user has ever touched it. Guard here so that
+        // spurious call doesn't (a) call showControls() at load time, or (b) poison
+        // lastCommitScrubTime and block the user's first real scrub attempt via the
+        // debounce guard in beginScrubbing().
+        guard isScrubbing else { return }
+        seekDebounceTask?.cancel()  // release-seek supersedes any pending debounce
+        let target = scrubTime
+        playerLog.debug(
+            "[scrub] commitScrub to \(String(format: "%.1f", target))s — isScrubbing=\(self.isScrubbing) controlsVisible=\(self.controlsVisible)"
+        )
+        lastCommitScrubTime = .now
+        isScrubbing = false
+        seek(to: target)
+        showControls()
+        playerLog.debug(
+            "[scrub] commitScrub done — isScrubbing=\(self.isScrubbing) controlsVisible=\(self.controlsVisible)")
+    }
+
+    /// Issues a seek to the given time. Does NOT show controls — callers that
+    /// want the overlay to appear (user-initiated gestures) must call
+    /// `showControls()` themselves after this.
+    func seek(to time: TimeInterval) {
+        player.seek(
+            to: CMTime(seconds: time, preferredTimescale: 600),
+            toleranceBefore: .zero,
+            toleranceAfter: .zero
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in self?.currentTime = time }
+        }
+    }
+
+    func seekRelative(seconds: TimeInterval) {
+        seek(to: max(0, currentTime + seconds))
+        showControls()
+    }
+
+    func setPlaybackSpeed(_ speed: Double) {
+        // Setting player.rate to a non-zero value on a paused AVPlayer restarts
+        // playback — only apply the rate while actively playing.
+        if isPlaying {
+            player.rate = Float(speed)
+        }
+    }
+
+}
