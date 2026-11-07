@@ -20,6 +20,12 @@ Remove an item when it's done.
 ## Release
 - [ ] Publish `tvos-refresh`, which has no remote branch yet: `git push -u origin tvos-refresh`.
 
+## Top Shelf
+- [ ] Add a Top Shelf extension (`TVTopShelfContentProvider`): rows for the home screen, with a URL
+  scheme to open a video directly. It needs an App Group and a shared keychain group to reach the
+  app's data and sign-in. Decide which rows to show first; Subscriptions and Continue Watching from
+  cached data would load fastest.
+
 ## UI tests (last, once everything else is fine)
 - [ ] Bring back `SmartTubeTVUITests`. It's disabled in `SmartTube.xctestplan`, and it's out of date after
   the navigation, player and Shorts changes.
